@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estimer le coût d'un inventaire ou d'un diagnostic d'arbres — Arbogestion</title>
+<meta name="description" content="Calculez en ligne une estimation indicative pour l'inventaire, le diagnostic, le prévisionnel d'intervention ou le suivi annuel de vos arbres avec Arbogestion, arboriste conseil dans le Lot.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="canonical" href="https://arbogestion.fr/estimation.html">
+<link rel="icon" href="img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--vert:#1e3d33;--vert2:#163028;--lime:#b7c93b;--creme:#f6f5f0;--texte:#2b2b2b;--gris:#5f655f;--bleu:#eaf3fb}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:clamp(16px,calc(12px + .45vw),20px);scroll-padding-top:110px}
+body{font-family:Lato,system-ui,sans-serif;color:var(--texte);background:var(--creme);line-height:1.6}
+img{max-width:100%;display:block}
+a{color:inherit}
+.wrap{width:min(1440px,90vw);margin:0 auto}
+@media (max-width:600px){.wrap{width:auto;padding:0 18px}}
+
+/* En-tête */
+header{position:relative;color:#fff;background:var(--vert2) url(img/fond-entete.jpg) center/cover no-repeat;min-height:min(82vh,860px);display:flex;align-items:center}
+header .wrap{width:min(1440px,90vw)}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(22,48,40,.96) 0%,rgba(30,61,51,.88) 45%,rgba(30,61,51,.45) 100%)}
+header>*{position:relative}
+/* Bandeau fixe */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(22,48,40,.97);color:#fff;box-shadow:0 2px 18px rgba(0,0,0,.25);backdrop-filter:blur(6px)}
+nav{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:12px 0;transition:padding .25s}
+nav .logo img{height:clamp(78px,7vw,110px);border-radius:10px;background:#fff;padding:5px;transition:height .25s}
+.topbar.reduit nav{padding:6px 0}
+.topbar.reduit nav .logo img{height:72px}
+nav ul{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px clamp(14px,1.6vw,30px);list-style:none;font-size:.95rem;font-weight:700}
+nav ul a{text-decoration:none;opacity:.9;padding:6px 0;border-bottom:2px solid transparent}
+nav ul a:hover{opacity:1;color:var(--lime);border-bottom-color:var(--lime)}
+nav ul .cta a{background:var(--lime);color:var(--vert);opacity:1;padding:8px 16px;border-radius:6px;border:0}
+nav ul .cta a:hover{color:var(--vert);filter:brightness(1.05)}
+.burger{display:none;background:none;border:0;color:#fff;cursor:pointer;padding:8px}
+.burger span{display:block;width:28px;height:3px;background:#fff;margin:6px 0;border-radius:2px;transition:.25s}
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:clamp(32px,5vw,90px);align-items:center;padding:clamp(40px,6vw,90px) 0}
+.hero .bar{width:72px;height:5px;background:var(--lime);margin-bottom:28px}
+.hero h1{font-size:clamp(2.1rem,3.4vw,3.7rem);line-height:1.06;font-weight:900}
+.hero p{font-size:1.2rem;max-width:40ch;margin-top:22px;opacity:.95}
+.hero .tags{margin-top:26px;color:var(--lime);font-weight:700;letter-spacing:.05em;font-size:.85rem;text-transform:uppercase}
+.btn{display:inline-block;margin-top:34px;background:var(--lime);color:var(--vert);font-weight:900;padding:14px 26px;border-radius:6px;text-decoration:none}
+.btn:hover{filter:brightness(1.05)}
+.hero figure{position:relative;max-width:520px;justify-self:end;width:100%}
+.hero figure img{border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);aspect-ratio:4/5;object-fit:cover;object-position:center top;width:100%}
+.hero figcaption{position:absolute;left:18px;bottom:18px;background:rgba(22,48,40,.85);padding:10px 14px;border-radius:8px;font-size:.85rem}
+.ambition{display:grid;grid-template-columns:repeat(3,auto);gap:22px;margin-top:36px;padding-top:26px;border-top:1px solid rgba(255,255,255,.25);width:max-content;max-width:100%}
+.ambition b{display:block;font-size:1.3rem;color:var(--lime)}
+.ambition span{font-size:.85rem;opacity:.85}
+
+/* Sections */
+section{padding:clamp(56px,7vw,120px) 0}
+.kicker{color:var(--lime);font-weight:900;letter-spacing:.12em;font-size:.75rem;text-transform:uppercase;margin-bottom:10px}
+section h2{color:var(--vert);font-size:clamp(1.7rem,3vw,3rem);line-height:1.12;font-weight:900;margin-bottom:16px}
+.lead{font-size:1.15rem;color:var(--gris);max-width:62ch}
+.blanc{background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;margin-top:40px}
+.etape .num{color:var(--lime);font-weight:900;font-size:1.6rem}
+.etape h3,.carte h3,.col h3{color:var(--vert);font-size:1.12rem;margin:4px 0 6px}
+.etape p,.carte p,.col p{color:var(--gris)}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,72px);align-items:center}
+.deux.inv>:first-child{order:2}
+figure.shot img{border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.14);border:1px solid #e3e3dc}
+figure.shot figcaption{font-size:.82rem;color:var(--gris);margin-top:10px}
+.encart{background:var(--vert);color:#fff;border-radius:12px;padding:32px;margin-top:44px}
+.encart h3{font-size:1.3rem;margin-bottom:10px}
+.encart .liste{display:flex;flex-wrap:wrap;gap:24px;margin-top:18px;color:var(--lime);font-weight:700}
+.note{font-size:.9rem;color:var(--gris);margin-top:18px;border-left:4px solid var(--lime);padding-left:14px}
+.note.bleue{background:var(--bleu);border-left-color:#4a7fb5;padding:12px 14px;border-radius:6px}
+.cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-top:36px}
+.carte{border-top:4px solid var(--lime);padding-top:14px}
+.legende{display:flex;flex-wrap:wrap;gap:16px;margin-top:18px;font-size:.9rem;color:var(--gris)}
+.legende i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.galerie{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2vw,36px);margin-top:40px}
+
+.terrain{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;margin-top:40px}
+.terrain .pile{display:grid;gap:24px}
+.terrain figure{position:relative;border-radius:12px;overflow:hidden;box-shadow:0 14px 36px rgba(0,0,0,.14)}
+.terrain img{width:100%;height:100%;object-fit:cover}
+.terrain figcaption{position:absolute;left:14px;bottom:14px;right:14px;background:rgba(22,48,40,.88);color:#fff;padding:10px 14px;border-radius:8px;font-size:.9rem}
+.terrain figcaption b{color:var(--lime)}
+
+.soustitre{color:var(--vert);font-size:1.35rem;margin-top:56px}
+.publics{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2vw,32px);margin-top:22px}
+.public{background:#fff;border-radius:12px;padding:26px;box-shadow:0 8px 24px rgba(0,0,0,.06);border-top:5px solid var(--lime)}
+.public .tag{display:inline-block;background:var(--vert);color:var(--lime);font-weight:900;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:4px}
+.public h4{color:var(--vert);font-size:1.12rem;margin:14px 0 8px;line-height:1.3}
+.public p{color:var(--gris)}
+
+.public.large{grid-column:1/-1}
+.points{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;margin-top:16px}
+.points li{position:relative;padding-left:22px;color:var(--gris)}
+.points li::before{content:"";position:absolute;left:0;top:.55em;width:10px;height:10px;border-radius:50%;background:var(--lime)}
+.points b{color:var(--vert)}
+
+/* Contact */
+#contact{background:var(--vert);color:#fff}
+#contact h2,#contact .kicker{color:#fff}
+#contact .kicker{color:var(--lime)}
+#contact p{opacity:.95}
+form{background:#fff;color:var(--texte);border-radius:12px;padding:30px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+form .ligne{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{display:block;font-weight:700;font-size:.9rem;color:var(--vert);margin:14px 0 6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cfd3cc;border-radius:6px;font:inherit;background:#fbfbf8}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--lime);border-color:var(--lime)}
+textarea{min-height:130px;resize:vertical}
+.pot{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
+form .btn{margin-top:22px;border:0;cursor:pointer;font:inherit;font-weight:900}
+form small{display:block;margin-top:12px;color:var(--gris);font-size:.8rem}
+
+footer{background:var(--vert2);color:#cfd6d2;font-size:.85rem;padding:36px 0}
+footer h3{color:#fff;font-size:1rem;margin-bottom:8px}
+footer p{margin-bottom:6px}
+footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}
+
+@media (max-width:1100px){
+  .burger{display:block}
+  nav ul{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--vert2);padding:8px 5vw 18px;box-shadow:0 12px 24px rgba(0,0,0,.3)}
+  nav ul.ouvert{display:flex}
+  nav ul li{border-bottom:1px solid rgba(255,255,255,.1)}
+  nav ul a{display:block;padding:14px 0;font-size:1.05rem}
+  nav ul .cta{border:0;margin-top:12px}
+  nav ul .cta a{display:inline-block}
+}
+@media (max-width:820px){
+  header{min-height:0}
+  nav .logo img{height:64px}
+  .topbar.reduit nav .logo img{height:52px}
+  .hero figure{justify-self:start}
+  .hero,.deux,.galerie,.terrain,form .ligne{grid-template-columns:1fr}
+  .deux.inv>:first-child{order:0}
+  .hero figure{max-width:380px}
+  .ambition{grid-template-columns:1fr 1fr 1fr;width:100%;gap:12px}
+  .ambition b{font-size:1.1rem}
+  .encart{padding:24px}
+  form{padding:22px}
+}
+@media (max-width:420px){.ambition{grid-template-columns:1fr}}
+@media (max-width:760px){.publics,.points{grid-template-columns:1fr}}
+
+/* Calculateur */
+.pagehead{background:var(--vert);color:#fff;padding:clamp(40px,5vw,80px) 0}
+.pagehead h1{font-size:clamp(2rem,3.4vw,3.2rem);line-height:1.1;font-weight:900}
+.pagehead p{max-width:60ch;margin-top:14px;opacity:.92;font-size:1.1rem}
+.calc{display:grid;grid-template-columns:1.25fr .75fr;gap:clamp(24px,3vw,48px);align-items:start}
+.etapec{background:#fff;border-radius:12px;padding:clamp(20px,2vw,32px);box-shadow:0 8px 24px rgba(0,0,0,.06);margin-bottom:22px}
+.etapec h2{font-size:1.25rem;margin-bottom:16px}
+.etapec h2 span{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--lime);color:var(--vert);font-size:.95rem;margin-right:10px}
+.choix{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.choix label{margin:0;cursor:pointer}
+.choix input{position:absolute;opacity:0;width:0}
+.choix .c{display:block;border:2px solid #dcdfd8;border-radius:10px;padding:14px 16px;height:100%;transition:.15s;color:var(--texte);font-weight:400}
+.choix .c b{display:block;color:var(--vert);font-size:1.05rem;margin-bottom:2px}
+.choix .c small{color:var(--gris);font-size:.85rem}
+.choix input:checked+.c{border-color:var(--lime);background:#f6f9e6;box-shadow:0 0 0 3px rgba(183,201,59,.25)}
+.choix input:focus-visible+.c{outline:2px solid var(--vert)}
+.nb{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.nb input[type=number]{width:140px;font-size:1.3rem;font-weight:900;color:var(--vert)}
+.nb input[type=range]{flex:1;min-width:200px;accent-color:#8fa224;padding:0;border:0;background:none}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid #e3e5df;border-radius:8px;padding:12px 14px;margin:0;font-weight:400;color:var(--texte);cursor:pointer}
+.opt input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:#8fa224;flex:none}
+.opt b{color:var(--vert)}
+.opt small{display:block;color:var(--gris)}
+.opt .px{margin-left:auto;white-space:nowrap;font-weight:700;color:var(--vert)}
+.qte{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid #e3e5df;border-radius:8px;padding:12px 14px;flex-wrap:wrap}
+.qte input{width:90px}
+.inclus{list-style:none;display:grid;gap:6px;margin-top:12px}
+.inclus li{padding-left:22px;position:relative;color:var(--gris)}
+.inclus li::before{content:"✓";position:absolute;left:0;color:#8fa224;font-weight:900}
+.resultat{position:sticky;top:130px;background:var(--vert);color:#fff;border-radius:14px;padding:clamp(22px,2vw,32px);box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.resultat h2{color:#fff;font-size:1.2rem;margin-bottom:14px}
+.lignes{list-style:none;font-size:.95rem}
+.lignes li{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.12)}
+.total{margin-top:16px}
+.total .grand{font-size:clamp(2rem,3vw,2.6rem);font-weight:900;color:var(--lime);line-height:1.1}
+.total .sous{opacity:.85;font-size:.95rem;margin-top:4px}
+.resultat .avert{font-size:.8rem;opacity:.8;margin-top:16px;line-height:1.5}
+.resultat .btn{width:100%;text-align:center;margin-top:18px;border:0;cursor:pointer;font:inherit;font-weight:900}
+.surdevis{background:rgba(255,255,255,.08);border-radius:8px;padding:12px;margin-top:10px}
+#demande{scroll-margin-top:130px}
+@media (max-width:900px){.calc{grid-template-columns:1fr}.resultat{position:static}}
+</style>
+</head>
+<body>
+
+<div class="topbar" id="topbar">
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="index.html"><img src="img/logo.png" alt="Arbogestion — Chaque arbre compte"></a>
+      <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      <ul id="menu">
+        <li><a href="index.html#methode">La méthode</a></li>
+        <li><a href="index.html#terrain">Sur le terrain</a></li>
+        <li><a href="index.html#carto">Cartographie</a></li>
+        <li><a href="index.html#risque">Risque</a></li>
+        <li><a href="index.html#carnet">Carnet de santé</a></li>
+        <li><a href="index.html#climat">Fraîcheur &amp; carbone</a></li>
+        <li><a href="estimation.html" style="color:var(--lime)">Estimation</a></li>
+        <li class="cta"><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<div class="pagehead">
+  <div class="wrap">
+    <div class="kicker">Estimation en ligne</div>
+    <h1>Combien coûte le suivi<br>de vos arbres ?</h1>
+    <p>Indiquez votre profil, le nombre d'arbres et votre besoin : vous obtenez une estimation immédiate, que vous pouvez ensuite nous envoyer pour recevoir un devis.</p>
+  </div>
+</div>
+
+<section style="padding-top:clamp(32px,4vw,64px)">
+  <div class="wrap calc">
+    <div>
+      <div class="etapec">
+        <h2><span>1</span>Vous êtes</h2>
+        <div class="choix" id="profil">
+          <label><input type="radio" name="profil" value="collectivite" checked><span class="c"><b>Collectivité</b><small>Commune, intercommunalité, syndicat</small></span></label>
+          <label><input type="radio" name="profil" value="pro"><span class="c"><b>Professionnel</b><small>Gestionnaire, entreprise, domaine, bailleur</small></span></label>
+          <label><input type="radio" name="profil" value="particulier"><span class="c"><b>Particulier</b><small>Jardin, parc ou propriété privée</small></span></label>
+        </div>
+      </div>
+
+      <div class="etapec">
+        <h2><span>2</span>Nombre d'arbres concernés</h2>
+        <div class="nb">
+          <input type="number" id="nb" min="1" max="10000" value="100" inputmode="numeric" aria-label="Nombre d'arbres">
+          <input type="range" id="nbr" min="1" max="1000" value="100" aria-label="Nombre d'arbres (curseur)">
+        </div>
+      </div>
+
+      <div class="etapec">
+        <h2><span>3</span>Votre besoin</h2>
+        <div class="choix" id="besoin">
+          <label><input type="radio" name="besoin" value="ponctuel" checked><span class="c"><b>Prestation ponctuelle</b><small>Inventaire, diagnostic, prévisionnel, tests</small></span></label>
+          <label><input type="radio" name="besoin" value="abonnement"><span class="c"><b>Suivi dans la durée</b><small>Abonnement annuel avec accès au logiciel Grality</small></span></label>
+        </div>
+
+        <div id="blocPonctuel" style="margin-top:20px">
+          <div class="opts">
+            <label class="opt"><input type="checkbox" id="o_inv" checked><span><b>Inventaire</b><small>Localisation et identification des arbres ; base de données numérique (espèce, dimensions, emplacement, photos).</small></span><span class="px" id="px_inv"></span></label>
+            <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Diagnostic</b><small>Analyse sanitaire : état général, maladies, points de vigilance, photos.</small></span><span class="px" id="px_diag"></span></label>
+            <label class="opt"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small></span><span class="px" id="px_prev"></span></label>
+          </div>
+          <h3 style="color:var(--vert);font-size:1.05rem;margin:22px 0 10px">Tests complémentaires au résistographe <small style="font-weight:400;color:var(--gris)">(facultatif)</small></h3>
+          <div class="opts">
+            <div class="qte"><span><b style="color:var(--vert)">Partie basse de l'arbre</b><small style="display:block;color:var(--gris)">Test au pied du tronc, remise des données.</small></span><span><input type="number" id="q_rb" min="0" max="500" value="0" aria-label="Nombre de tests en partie basse"> <span class="px" id="px_rb"></span></span></div>
+            <div class="qte"><span><b style="color:var(--vert)">Houppier</b><small style="display:block;color:var(--gris)">Test en hauteur (nacelle ou deux grimpeurs), rapport des données.</small></span><span><input type="number" id="q_rh" min="0" max="100" value="0" aria-label="Nombre de tests dans le houppier"> <span class="px" id="px_rh"></span></span></div>
+          </div>
+        </div>
+
+        <div id="blocAbo" style="margin-top:20px" hidden>
+          <div id="aboDetail"></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="resultat" aria-live="polite">
+      <h2>Votre estimation</h2>
+      <ul class="lignes" id="lignes"></ul>
+      <div class="total" id="total"></div>
+      <a class="btn" href="#demande" id="envoyer">Recevoir cette estimation et un devis</a>
+      <p class="avert">Estimation indicative et non contractuelle, établie à partir de nos tarifs en vigueur, hors frais de déplacement. Les interventions de terrain (élagage, abattage, haubanage, traitements) font l'objet de devis séparés. Le devis définitif est établi après échange et, si besoin, visite du site.</p>
+    </aside>
+  </div>
+</section>
+
+<section id="demande" class="blanc">
+  <div class="wrap deux">
+    <div>
+      <div class="kicker">Demande de devis</div>
+      <h2>Recevoir votre estimation détaillée.</h2>
+      <p class="lead">Le détail de votre estimation est déjà inscrit dans votre demande. Ajoutez simplement vos coordonnées et quelques mots sur votre site : nous revenons vers vous rapidement.</p>
+    </div>
+    <form action="contact.php" method="post" style="box-shadow:0 12px 36px rgba(0,0,0,.1)">
+      <div class="ligne">
+        <div><label for="nom">Nom et prénom *</label><input id="nom" name="nom" required autocomplete="name"></div>
+        <div><label for="fprofil">Vous êtes</label>
+          <select id="fprofil" name="profil">
+            <option>Collectivité</option><option>Gestionnaire professionnel</option><option>Propriétaire privé</option><option>Autre</option>
+          </select></div>
+      </div>
+      <div class="ligne">
+        <div><label for="email">E-mail *</label><input id="email" name="email" type="email" required autocomplete="email"></div>
+        <div><label for="tel">Téléphone</label><input id="tel" name="tel" type="tel" autocomplete="tel"></div>
+      </div>
+      <label for="message">Votre demande *</label>
+      <textarea id="message" name="message" required style="min-height:220px"></textarea>
+      <div class="pot" aria-hidden="true"><label for="site_web">Site web</label><input id="site_web" name="site_web" tabindex="-1" autocomplete="off"></div>
+      <button class="btn" type="submit">Envoyer ma demande</button>
+      <small>Les informations saisies servent uniquement à traiter votre demande et ne sont transmises à aucun tiers.</small>
+    </form>
+  </div>
+</section>
+
+<footer id="mentions">
+  <div class="wrap cols">
+    <div>
+      <h3>Mentions légales</h3>
+      <p>Éditeur du site : Arbogestion, SAS au capital de 1 000 €, immatriculée au RCS de Cahors sous le numéro 105 612 543.</p>
+      <p>Siège social : 133 rue Madeleine Brès, 46100 Cambes</p>
+      <p>Directeur de la publication : Kevin Cazes-Bouchet, président.</p>
+    </div>
+    <div>
+      <h3>Hébergement et données</h3>
+      <p>OVH SAS — 2 rue Kellermann, 59100 Roubaix, France — www.ovhcloud.com</p>
+      <p style="margin-top:12px">Ce site ne dépose aucun cookie. Les données du formulaire de contact sont utilisées uniquement pour répondre à votre demande ; vous pouvez en demander la rectification ou la suppression par courrier au siège.</p>
+      <p>Visuels : logo Arbogestion et captures du logiciel Grality. Fonds cartographiques : Google, Airbus, Maxar Technologies, © OpenStreetMap.</p>
+      <p>© 2026 Arbogestion — Chaque arbre compte.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ================================================================
+   TARIFS ARBOGESTION — prix HT. Modifier ici uniquement.
+   Paliers : [nombre d'arbres maximum, prix HT]
+   ================================================================ */
+var TARIFS = {
+  tva: 0.20,
+  unitaire: { inventaire: 3, diagnostic: 5, previsionnel: 8 },      // € HT par arbre
+  resistographe: { base: 50, houppier: 750 },                          // € HT par test
+  abonnements: {
+    collectivite: {
+      nom: "Gestion complète", periode: "an",
+      paliers: [[50, 583.33], [250, 1416.67], [500, 2666.67], [1000, 5000], [2000, 10000], [3000, 15416.67], [4000, 20833.33]],
+      inclus: ["Accès au logiciel Grality (4 utilisateurs)", "Diagnostic annuel progressif (1/6 du parc chaque année)", "Planification pluriannuelle des interventions (3 à 6 ans)", "Rapports trimestriels", "Hotline technique", "4 h de formation", "Réunions trimestrielles"]
+    },
+    pro: {
+      nom: "Performance", periode: "an",
+      paliers: [[20, 375], [50, 583.33], [100, 1000], [200, 1500], [300, 2083.33], [400, 2666.67], [500, 3333.33]],
+      inclus: ["Accès au logiciel Grality (2 utilisateurs)", "Diagnostic annuel progressif (1/6 du parc chaque année)", "Planification des interventions", "Hotline technique", "1 h de formation", "Réunion annuelle"]
+    },
+    particulier: {
+      nom: "Performance", periode: "mois",
+      paliers: [[20, 29.17], [50, 50], [100, 75], [200, 108.33], [500, 166.67]],
+      inclus: ["Accès au logiciel Grality (2 utilisateurs)", "Diagnostic annuel progressif (1/6 du parc chaque année)", "Planification des interventions", "Hotline technique", "1 h de formation", "Réunion annuelle"]
+    }
+  }
+};
+/* ================================================================ */
+
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var eur=function(v){return v.toLocaleString('fr-FR',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})+' €'};
+  var noms={collectivite:'Collectivité',pro:'Professionnel',particulier:'Particulier'};
+  var resume='';
+
+  function val(name){return document.querySelector('input[name="'+name+'"]:checked').value}
+  function palier(liste,n){for(var i=0;i<liste.length;i++){if(n<=liste[i][0])return {max:liste[i][0],prix:liste[i][1]}}return null}
+
+  function calcul(){
+    var profil=val('profil'),besoin=val('besoin');
+    var n=Math.max(1,Math.min(10000,parseInt($('nb').value,10)||1));
+    var ttcFirst=(profil==='particulier');
+    var lignes=[],ht=0,txt=[];
+    $('blocPonctuel').hidden=(besoin!=='ponctuel');
+    $('blocAbo').hidden=(besoin!=='abonnement');
+    var u=TARIFS.unitaire,r=TARIFS.resistographe;
+    $('px_inv').textContent=eur(u.inventaire)+' HT / arbre';
+    $('px_diag').textContent=eur(u.diagnostic)+' HT / arbre';
+    $('px_prev').textContent=eur(u.previsionnel)+' HT / arbre';
+    $('px_rb').textContent=eur(r.base)+' HT / test';
+    $('px_rh').textContent=eur(r.houppier)+' HT / test';
+    txt.push('Estimation réalisée sur arbogestion.fr','Profil : '+noms[profil],'Nombre d\'arbres : '+n);
+    var surDevis=false,periode='';
+
+    if(besoin==='ponctuel'){
+      txt.push('Besoin : prestation ponctuelle');
+      [['o_inv','Inventaire',u.inventaire],['o_diag','Diagnostic',u.diagnostic],['o_prev','Prévisionnel d\'intervention',u.previsionnel]].forEach(function(o){
+        if($(o[0]).checked){var m=o[2]*n;ht+=m;lignes.push([o[1]+' ('+n+' × '+eur(o[2])+')',m]);}
+      });
+      var qb=Math.max(0,parseInt($('q_rb').value,10)||0),qh=Math.max(0,parseInt($('q_rh').value,10)||0);
+      if(qb){ht+=qb*r.base;lignes.push(['Résistographe, partie basse ('+qb+' × '+eur(r.base)+')',qb*r.base]);}
+      if(qh){ht+=qh*r.houppier;lignes.push(['Résistographe, houppier ('+qh+' × '+eur(r.houppier)+')',qh*r.houppier]);}
+    } else {
+      var a=TARIFS.abonnements[profil],p=palier(a.paliers,n);periode=a.periode;
+      txt.push('Besoin : suivi dans la durée (abonnement « '+a.nom+' »)');
+      var html='<h3 style="color:var(--vert);font-size:1.1rem">Formule « '+a.nom+' »</h3>';
+      if(p){
+        ht=p.prix;
+        lignes.push(['Abonnement « '+a.nom+' » jusqu\'à '+p.max+' arbres',p.prix]);
+        html+='<p style="color:var(--gris);margin-top:6px">Palier applicable : <b style="color:var(--vert)">jusqu\'à '+p.max+' arbres</b>, '+eur(p.prix)+' HT par '+a.periode+'.</p>';
+      } else {
+        surDevis=true;
+        html+='<p style="color:var(--gris);margin-top:6px">Au-delà de '+a.paliers[a.paliers.length-1][0]+' arbres, la formule est établie sur devis.</p>';
+      }
+      html+='<ul class="inclus">'+a.inclus.map(function(i){return '<li>'+i+'</li>'}).join('')+'</ul>';
+      html+='<p class="note" style="margin-top:14px">Les interventions de terrain (élagage, abattage, haubanage, traitements) ne sont pas incluses : elles font l\'objet de devis séparés.</p>';
+      $('aboDetail').innerHTML=html;
+    }
+
+    var tva=ht*TARIFS.tva,ttc=ht+tva;
+    $('lignes').innerHTML=lignes.map(function(l){return '<li><span>'+l[0]+'</span><b>'+eur(l[1])+' HT</b></li>'}).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>';
+    var suffixe=periode?' / '+periode:'';
+    var t='';
+    if(surDevis){t='<div class="surdevis">Pour plus de '+TARIFS.abonnements[profil].paliers.slice(-1)[0][0]+' arbres, nous établissons une proposition sur mesure.</div>';}
+    else if(ht>0){
+      if(ttcFirst){t='<div class="grand">'+eur(Math.round(ttc*100)/100)+' TTC'+suffixe+'</div><div class="sous">soit '+eur(Math.round(ht*100)/100)+' HT</div>';}
+      else{t='<div class="grand">'+eur(Math.round(ht*100)/100)+' HT'+suffixe+'</div><div class="sous">soit '+eur(Math.round(ttc*100)/100)+' TTC (TVA 20 %)</div>';}
+      if(periode==='mois'){t+='<div class="sous">soit '+eur(Math.round(ttc*12*100)/100)+' TTC par an</div>';}
+    }
+    $('total').innerHTML=t;
+
+    lignes.forEach(function(l){txt.push('- '+l[0]+' : '+eur(l[1])+' HT')});
+    if(surDevis)txt.push('Total : sur devis');
+    else if(ht>0)txt.push('Total estimé : '+eur(Math.round(ht*100)/100)+' HT'+suffixe+' ('+eur(Math.round(ttc*100)/100)+' TTC)');
+    txt.push('','Précisions sur mon site et mon besoin :','');
+    resume=txt.join('\n');
+    $('fprofil').value={collectivite:'Collectivité',pro:'Gestionnaire professionnel',particulier:'Propriétaire privé'}[profil];
+  }
+
+  $('nb').addEventListener('input',function(){var v=parseInt(this.value,10)||1;$('nbr').value=Math.min(v,1000);calcul()});
+  $('nbr').addEventListener('input',function(){$('nb').value=this.value;calcul()});
+  document.querySelectorAll('input').forEach(function(i){if(i.id!=='nb'&&i.id!=='nbr')i.addEventListener('change',calcul)});
+  ['q_rb','q_rh'].forEach(function(id){$(id).addEventListener('input',calcul)});
+  $('envoyer').addEventListener('click',function(){var m=$('message');if(!m.dataset.edite){m.value=resume}setTimeout(function(){$('nom').focus({preventScroll:true})},500)});
+  $('message').addEventListener('input',function(){this.dataset.edite='1'});
+  calcul();
+})();
+</script>
+
+<script>
+(function(){
+  var bar=document.getElementById('topbar'),b=document.getElementById('burger'),m=document.getElementById('menu');
+  b.addEventListener('click',function(){var o=m.classList.toggle('ouvert');b.setAttribute('aria-expanded',o)});
+  m.addEventListener('click',function(e){if(e.target.tagName==='A'){m.classList.remove('ouvert');b.setAttribute('aria-expanded','false')}});
+  function f(){bar.classList.toggle('reduit',window.scrollY>60)}
+  window.addEventListener('scroll',f,{passive:true});f();
+})();
+</script>
+</body>
+</html>
