@@ -10,4 +10,10 @@
     <image:image><image:loc>https://arbogestion.fr/img/capdenac-risque.jpg</image:loc><image:title>Cartographie des niveaux de risque à Capdenac-Gare</image:title></image:image>
     <image:image><image:loc>https://arbogestion.fr/img/carnet-sante.jpg</image:loc><image:title>Carnet de santé Grality d'un platane</image:title></image:image>
   </url>
+  <url>
+    <loc>https://arbogestion.fr/cgv.php</loc>
+    <lastmod>2026-11-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
 </urlset>

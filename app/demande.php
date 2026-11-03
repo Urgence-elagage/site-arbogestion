@@ -144,6 +144,7 @@ function texte_estimation(array $dem, array $calc): string {
 /** Traite une demande complète. Renvoie ['id'=>…, 'pennylane'=>bool]. */
 function traiter_demande(array $in): array {
     $dem = valider_demande($in);
+    $dem['cgv_version'] = cgv_version_courante(); // version des CGV jointe au devis (preuve)
     $calc = calculer($dem['estimation']);
     $pdo = db();
     $now = date('Y-m-d H:i:s');
@@ -159,12 +160,13 @@ function traiter_demande(array $in): array {
         [$sections, $lignes] = lignes_devis($dem, $calc);
         if (!$lignes) { throw new RuntimeException('Aucune ligne chiffrable (abonnement sur devis) : devis à établir manuellement.'); }
         $ponctuel = empty($calc['abonnement']);
+        $cgv_txt = 'conditions générales de vente Arbogestion (version du ' . date_fr($dem['cgv_version']) . ', consultables sur arbogestion.fr/cgv.php)';
         $mention = $ponctuel
-            ? 'La signature du présent devis vaut acceptation des conditions de prestation ponctuelle jointes en annexe. Prestation sans abonnement, facturée après sa réalisation. Les interventions de terrain ne sont pas comprises.'
-            : 'La signature du présent devis vaut acceptation du contrat d’abonnement Arbogestion joint en annexe (conditions générales, grille tarifaire 2026 et conditions particulières). '
+            ? 'La signature du présent devis vaut acceptation des conditions particulières et des ' . $cgv_txt . ', jointes en annexe. Prestation sans abonnement, facturée après sa réalisation. Les interventions de terrain ne sont pas comprises.'
+            : 'La signature du présent devis vaut acceptation du contrat d’abonnement Arbogestion joint en annexe (grille tarifaire 2026 et conditions particulières) ainsi que des ' . $cgv_txt . ', jointes à la suite. '
               . 'Les prestations de démarrage sont facturées après leur réalisation ; l’abonnement est facturé selon l’échéancier du contrat. Les interventions de terrain ne sont pas comprises.';
         if ($calc['acompte_ht'] > 0) { $mention .= ' Un acompte de ' . tarifs()['acompte']['pourcentage'] . ' % des prestations ' . ($ponctuel ? '' : 'de démarrage ') . '(' . eur(round($calc['acompte_ht'] * (1 + tarifs()['tva']), 2)) . ' TTC) est demandé à la signature, le solde étant facturé après réalisation.'; }
-        if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article ' . ($ponctuel ? '5 des conditions' : '6 du contrat') . ').'; }
+        if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article ' . ($ponctuel ? cgv_article('particulier', 'Rétractation') . ' des conditions générales de vente' : '6 du contrat') . ').'; }
         if ($dem['profil'] === 'collectivite') { $mention .= ' L’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.'; }
         $desc = 'Demande en ligne n° ' . $id . ' – ' . $calc['nb'] . ' arbres' . ($dem['lieu_label'] ? ' – ' . $dem['lieu_label'] : '');
         $devis = pennylane('POST', '/quotes', [
@@ -202,7 +204,7 @@ function traiter_demande(array $in): array {
     $sujet = $erreur ? "[Arbogestion] Demande n° $id à traiter à la main – " . nom_client($dem) : "[Arbogestion] Devis $numero à relire et envoyer – " . nom_client($dem);
     $texte = ($erreur
         ? "La demande a été enregistrée mais le devis n'a pas pu être créé automatiquement dans Pennylane.\nMotif : $erreur\n\n"
-        : "Un devis BROUILLON a été créé dans Pennylane (n° $numero), avec " . (empty($calc['abonnement']) ? 'les conditions de prestation ponctuelle' : 'le contrat d\'abonnement') . " en annexe.\nÀ faire : ouvrir Pennylane > Facturation > Devis, relire, puis l'envoyer au client pour signature.\n\n")
+        : "Un devis BROUILLON a été créé dans Pennylane (n° $numero), avec " . (empty($calc['abonnement']) ? 'les conditions particulières et les CGV' : 'le contrat d\'abonnement et les CGV') . " en annexe.\nÀ faire : ouvrir Pennylane > Facturation > Devis, relire, puis l'envoyer au client pour signature.\n\n")
         . $infos;
     envoyer_mail((string)cfg('mail_kevin'), $sujet, $texte, $c['email']);
     envoyer_mail($c['email'], 'Arbogestion – Votre demande de devis est bien reçue',

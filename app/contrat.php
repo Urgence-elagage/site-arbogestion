@@ -5,7 +5,7 @@
  * Le contrat est joint en annexe du devis Pennylane : la signature du devis vaut acceptation.
  */
 declare(strict_types=1);
-require_once __DIR__ . '/core.php';
+require_once __DIR__ . '/cgv.php';
 
 const PRESTATAIRE = 'SAS Arbogestion, au capital de 1 000 €, RCS Cahors 105 612 543, SIRET 105 612 543 00014, TVA intracommunautaire FR42 105 612 543, siège social 133 rue Madeleine Brès, 46100 Cambes, représentée par Kévin Cazes-Bouchet, Président, contact@arbogestion.fr – 06 09 70 46 50. Ci-après « Arbogestion ».';
 
@@ -85,12 +85,13 @@ table.cp td:first-child{width:42%;color:#1e3d33;font-weight:bold}
 .sign{margin-top:10px;border:1px solid #b7c93b;padding:8px 10px;background:#fafbf6}
 ul{margin:2px 0 6px 16px;padding:0}li{margin-bottom:2px}
 .pied{position:fixed;bottom:-12mm;left:0;right:0;font-size:7pt;color:#8a8f88;text-align:center}
+<?= CGV_STYLE_PDF ?>
 </style></head><body>
 <div class="pied">Arbogestion – SAS au capital de 1 000 € – RCS Cahors 105 612 543 – 133 rue Madeleine Brès, 46100 Cambes – Contrat <?= h($titre) ?> – Devis n° <?= h($numero_devis) ?></div>
 <table class="entete"><tr><td style="width:70px"><img src="<?= h(ARBO_APP . '/assets/logo.png') ?>" style="width:62px"></td>
 <td><h1>Contrat d’abonnement Arbogestion</h1><div class="sous"><?= h($titre) ?> – Conditions générales, grille tarifaire 2026 et conditions particulières – Version 2.0, novembre 2026</div></td></tr></table>
 
-<div class="ref">Le présent contrat est joint en annexe du devis n° <b><?= h($numero_devis) ?></b> du <?= h(date_fr($date_doc)) ?>. <b>La signature électronique de ce devis vaut acceptation du présent contrat</b>, de ses conditions générales et de ses annexes.<?= $col ? ' Pour les collectivités, l’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.' : '' ?></div>
+<div class="ref">Le présent contrat est joint en annexe du devis n° <b><?= h($numero_devis) ?></b> du <?= h(date_fr($date_doc)) ?>. <b>La signature électronique de ce devis vaut acceptation du présent contrat</b>, de ses annexes et des conditions générales de vente Arbogestion (version du <?= h(date_fr(cgv_version_courante())) ?>) jointes à la suite.<?= $col ? ' Pour les collectivités, l’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.' : '' ?></div>
 
 <h2>Entre les soussignés</h2>
 <p><b>Le Prestataire</b> : <?= h(PRESTATAIRE) ?></p>
@@ -110,7 +111,7 @@ ul{margin:2px 0 6px 16px;padding:0}li{margin-bottom:2px}
 <?php endif; ?>
 
 <h2>2. Documents contractuels</h2>
-<p>Par ordre de priorité : (1) les Conditions particulières (Annexe 2), (2) le présent contrat, (3) la grille tarifaire (Annexe 1), (4) le devis n° <?= h($numero_devis) ?>. <?= $part ? 'Le Client reconnaît en avoir reçu un exemplaire avant de s’engager.' : ($pro ? 'Ils annulent tout accord antérieur sur le même objet et prévalent sur les conditions générales d’achat du Client.' : 'Ils annulent tout accord antérieur sur le même objet.') ?></p>
+<p>Par ordre de priorité : (1) les Conditions particulières (Annexe 2), (2) le présent contrat, (3) la grille tarifaire (Annexe 1), (4) le devis n° <?= h($numero_devis) ?>, (5) les conditions générales de vente Arbogestion jointes, qui s’appliquent pour tout point que les documents précédents ne règlent pas. <?= $part ? 'Le Client reconnaît en avoir reçu un exemplaire avant de s’engager.' : ($pro ? 'Ils annulent tout accord antérieur sur le même objet et prévalent sur les conditions générales d’achat du Client.' : 'Ils annulent tout accord antérieur sur le même objet.') ?></p>
 
 <h2>3. Prérequis (prestations distinctes)</h2>
 <p>Le parc doit avoir fait l’objet d’un recensement initial, d’un diagnostic complet et d’un prévisionnel d’intervention. Ces prestations de démarrage, ainsi que les analyses complémentaires (tests au résistographe notamment), ne sont pas comprises dans l’abonnement. Elles sont facturées selon les tarifs de l’Annexe 1 (frais de déplacement en sus) et le devis mentionné en Annexe 2<?= $col ? ', après leur réalisation' : ' : un acompte de ' . (int)$T['acompte']['pourcentage'] . ' % est demandé à la signature du devis, le solde étant facturé après leur réalisation' ?>.</p>
@@ -217,79 +218,61 @@ ul{margin:2px 0 6px 16px;padding:0}li{margin-bottom:2px}
 <p>Je vous notifie par la présente ma rétractation du contrat d’abonnement Arbogestion (devis n° <?= h($numero_devis) ?>) :</p>
 <ul><li>Accepté le : ……………………………</li><li>Nom du Client : ……………………………</li><li>Adresse du Client : ……………………………………………………</li><li>Date : ……………………………</li><li>Signature (en cas d’envoi papier) : ……………………………</li></ul>
 <?php endif; ?>
+<div style="page-break-before:always"><?= cgv_fragment_html($p) ?></div>
 </body></html>
 <?php
     return (string)ob_get_clean();
 }
 
 
-/** Conditions de prestation ponctuelle (diagnostic d'un ou plusieurs arbres, sans abonnement). */
+/** Prestation ponctuelle : conditions particulières (1 page) suivies des CGV du profil, version en vigueur. */
 function conditions_ponctuelles_html(array $dem, array $calc, string $numero_devis, string $date_doc): string {
     $p = $dem['profil']; $c = $dem['client']; $T = tarifs();
     $part = $p === 'particulier'; $pro = $p === 'pro'; $col = $p === 'collectivite';
     $titre = $part ? 'Particuliers' : ($pro ? 'Professionnels' : 'Collectivités et personnes publiques');
+    $version = cgv_version_courante();
+    $retract = $part ? cgv_article('particulier', 'Rétractation') : null;
     $adr = h(trim(($c['adresse'] ?? '') . ', ' . ($c['cp'] ?? '') . ' ' . ($c['ville'] ?? ''), ', '));
     $client = $part ? h(trim(($c['prenom'] ?? '') . ' ' . ($c['nom'] ?? ''))) . ', demeurant ' . $adr . ', ' . h($c['email'] ?? '')
         : h($c['denomination'] ?? '') . ', SIREN ' . h($c['siren'] ?? '') . ', ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '') . ($col && !empty($c['habilitation']) ? ', habilité(e) par ' . h($c['habilitation']) : '') . '. Référent : ' . h($c['referent'] ?? '') . ', ' . h($c['email'] ?? '');
     $presta = array_map(fn($l) => h($l['label']), $calc['lignes_demarrage']);
     $montant = $part ? eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC (' . eur($calc['demarrage_ht']) . ' HT)' : eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)';
+    $acompte = $col ? 'Aucun – facture après réalisation, déposée sur Chorus Pro' : (int)$T['acompte']['pourcentage'] . ' % du devis à la signature (prélèvement SEPA, carte bancaire ou virement), solde après réalisation';
     ob_start(); ?>
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
-@page{margin:22mm 18mm 20mm 18mm}
-body{font-family:'DejaVu Sans',sans-serif;font-size:8.8pt;line-height:1.45;color:#2b2b2b}
-h1{font-size:15pt;color:#1e3d33;margin:0 0 4px}h2{font-size:10pt;color:#1e3d33;margin:13px 0 4px;border-bottom:1.5px solid #b7c93b;padding-bottom:2px}
+@page{margin:16mm 16mm 18mm 16mm}
+body{font-family:'DejaVu Sans',sans-serif;font-size:8.3pt;line-height:1.38;color:#2b2b2b}
+h1{font-size:15pt;color:#1e3d33;margin:0 0 4px}h2{font-size:10pt;color:#1e3d33;margin:9px 0 3px;border-bottom:1.5px solid #b7c93b;padding-bottom:2px}
 p{margin:0 0 5px;text-align:justify}.sous{color:#5f655f;font-size:8pt}.entete{width:100%;margin-bottom:10px}.entete td{vertical-align:middle}
 .ref{background:#f2f6dc;border-left:3px solid #8fa224;padding:6px 9px;margin:8px 0}
-table.cp{width:100%;border-collapse:collapse;margin:6px 0}table.cp td{border-bottom:0.5px solid #d9dcd4;padding:4px 6px}table.cp td:first-child{width:40%;color:#1e3d33;font-weight:bold}
-.sign{margin-top:10px;border:1px solid #b7c93b;padding:8px 10px;background:#fafbf6}ul{margin:2px 0 6px 16px;padding:0}
+table.cp{width:100%;border-collapse:collapse;margin:6px 0}table.cp td{border-bottom:0.5px solid #d9dcd4;padding:2.5px 6px}table.cp td:first-child{width:40%;color:#1e3d33;font-weight:bold}
+.sign{margin-top:10px;border:1px solid #b7c93b;padding:8px 10px;background:#fafbf6}
 .pied{position:fixed;bottom:-12mm;left:0;right:0;font-size:7pt;color:#8a8f88;text-align:center}
+<?= CGV_STYLE_PDF ?>
 </style></head><body>
 <div class="pied">Arbogestion – SAS au capital de 1 000 € – RCS Cahors 105 612 543 – 133 rue Madeleine Brès, 46100 Cambes – Prestation ponctuelle – Devis n° <?= h($numero_devis) ?></div>
 <table class="entete"><tr><td style="width:70px"><img src="<?= h(ARBO_APP . '/assets/logo.png') ?>" style="width:62px"></td>
-<td><h1>Conditions de prestation ponctuelle</h1><div class="sous"><?= h($titre) ?> – Diagnostic d’un ou plusieurs arbres, sans abonnement – Version 1.0, novembre 2026</div></td></tr></table>
-<div class="ref">Les présentes conditions sont jointes au devis n° <b><?= h($numero_devis) ?></b> du <?= h(date_fr($date_doc)) ?>. <b>La signature électronique de ce devis vaut acceptation des présentes conditions.</b><?= $col ? ' Pour les collectivités, elle est complétée par la transmission du bon de commande.' : '' ?> Aucun abonnement ni engagement de durée n’en découle.</div>
-<h2>Entre les soussignés</h2>
+<td><h1>Conditions particulières – prestation ponctuelle</h1><div class="sous"><?= h($titre) ?> – sans abonnement ni engagement de durée – conditions générales de vente du <?= h(date_fr($version)) ?> jointes</div></td></tr></table>
+<div class="ref">Le présent document est joint au devis n° <b><?= h($numero_devis) ?></b> du <?= h(date_fr($date_doc)) ?>, avec les conditions générales de vente Arbogestion (version du <?= h(date_fr($version)) ?>) qui le suivent. <b>La signature électronique de ce devis vaut acceptation des présentes conditions particulières et des conditions générales de vente.</b><?= $col ? ' Pour les collectivités, elle est complétée par la transmission du bon de commande.' : '' ?> Ordre de priorité : (1) le devis, (2) les présentes conditions particulières, (3) les conditions générales de vente.</div>
+<h2>Les parties</h2>
 <p><b>Le Prestataire</b> : <?= h(PRESTATAIRE) ?></p>
 <p><b>Le Client</b> : <?= $client ?>. Ci-après « le Client ».</p>
-<h2>1. Objet</h2>
-<p>Arbogestion réalise, sur le site désigné en annexe, la prestation ponctuelle décrite au devis : recensement et diagnostic visuel (méthode VTA) d’un ou plusieurs arbres et, selon les options retenues, tests au résistographe au pied du tronc ou en hauteur. Un compte rendu écrit, comprenant les préconisations d’Arbogestion (interventions conseillées et priorités), est remis au Client ; il est compris dans le prix. Ces éléments sont des outils d’aide à la décision : <b>le Client décide seul</b> de la réalisation des interventions et choisit librement l’entreprise qui les réalise.</p>
-<h2>2. Documents contractuels</h2>
-<p>Par ordre de priorité : (1) le devis n° <?= h($numero_devis) ?>, (2) les conditions particulières (annexe), (3) les présentes conditions<?= $pro ? ', qui prévalent sur les conditions générales d’achat du Client' : '' ?>.</p>
-<h2>3. Réalisation</h2>
-<p>La date d’intervention est fixée d’un commun accord après la signature du devis. Le Client facilite l’accès au site et aux arbres concernés et signale toute contrainte (accès, animaux, réseaux, public). En cas de conditions météorologiques défavorables ou de danger, l’intervention est reportée sans frais à une date convenue. Le diagnostic porte sur l’état de l’arbre constaté à la date de l’examen.</p>
-<h2>4. Prix, facturation et paiement</h2>
-<p>Le prix est celui du devis, établi selon les tarifs 2026 d’Arbogestion : forfait sur place de <?= (int)$T['ponctuel']['forfaitHeures'] ?> h (<?= eur(round((float)$T['ponctuel']['forfaitHeures'] * (float)$T['tauxHoraire'], 2)) ?> HT) par journée d’intervention, jusqu’à <?= (int)$T['ponctuel']['arbresInclus'] ?> arbres, puis <?= eur((float)$T['ponctuel']['prixArbreSupplementaire']) ?> HT par arbre supplémentaire, dans la limite de <?= (int)$T['arbresParJour'] ?> arbres par journée (au-delà, une journée supplémentaire est nécessaire, avec son forfait et son déplacement), frais de déplacement et tests éventuels en sus, comme détaillé au devis. Toute prestation complémentaire fait l’objet d’un devis complémentaire.<?= $col ? ' La facture est émise après la réalisation de la prestation.' : ' Un acompte de ' . (int)$T['acompte']['pourcentage'] . ' % du montant du devis est demandé à sa signature, par prélèvement SEPA, carte bancaire ou virement ; le solde est facturé après la réalisation de la prestation.' ?>
-<?php if ($col): ?> Elle est déposée sur Chorus Pro ; paiement par mandat administratif sous 30 jours à compter de sa réception. En cas de retard : intérêts moratoires et indemnité forfaitaire de recouvrement de 40 €, selon la réglementation en vigueur.
-<?php elseif ($pro): ?> Paiement à 30 jours date de facture, par virement ou prélèvement. Aucun escompte pour paiement anticipé. En cas de retard : pénalités au taux de trois fois le taux d’intérêt légal et indemnité forfaitaire pour frais de recouvrement de 40 € (articles L.441-10 et D.441-5 du Code de commerce).
-<?php else: ?> Paiement à réception de la facture, par virement ou carte bancaire. En cas de retard, les sommes dues portent intérêt au taux légal après mise en demeure restée sans effet 15 jours.
-<?php endif; ?></p>
-<?php if ($part): ?>
-<h2>5. Droit de rétractation</h2>
-<p>Lorsque la prestation est commandée à distance ou hors établissement, le Client dispose d’un délai de <b>14 jours</b> à compter de son acceptation pour se rétracter, sans justification ni pénalité, au moyen du formulaire ci-après ou de toute déclaration dénuée d’ambiguïté adressée à contact@arbogestion.fr. Si le Client demande expressément que la prestation soit réalisée avant la fin de ce délai, il reconnaît qu’il perd son droit de rétractation une fois la prestation entièrement exécutée, et paie, en cas de rétractation avant ce terme, le montant correspondant au service déjà fourni.</p>
-<?php endif; ?>
-<h2><?= $part ? '6' : '5' ?>. Exclusions</h2>
-<p>Les interventions de terrain (élagage, abattage, haubanage, traitements, etc.) ne sont pas comprises et font l’objet de devis séparés, auprès de l’entreprise du choix du Client. Le suivi dans la durée du patrimoine arboré relève d’un contrat d’abonnement distinct.</p>
-<h2><?= $part ? '7' : '6' ?>. Responsabilité et assurance</h2>
-<p>Arbogestion est tenue d’une obligation de moyens. Le diagnostic décrit l’état apparent de l’arbre et, le cas échéant, les résultats des tests réalisés, à la date de l’examen ; il ne constitue pas une garantie d’absence de risque, l’état d’un arbre pouvant évoluer (intempéries, maladies, travaux). La responsabilité d’Arbogestion n’est pas engagée si les préconisations ne sont pas suivies. <?= $part ? 'Aucune disposition ne limite la responsabilité d’Arbogestion en cas de dommage corporel, de faute lourde ou intentionnelle, ou dans les cas où la loi l’interdit.' : 'Elle est limitée au montant de la prestation et exclut les dommages indirects, sauf dommage corporel, faute lourde ou dolosive.' ?> Arbogestion est couverte par une assurance RC Professionnelle de 10 000 000 € par sinistre.</p>
-<h2><?= $part ? '8' : '7' ?>. Données personnelles</h2>
-<p>Les données du Client sont traitées conformément au RGPD, uniquement pour établir, réaliser et facturer la prestation (outil de facturation Pennylane) ; elles ne sont ni vendues ni cédées et sont conservées pour la durée légale. Droits d’accès, de rectification et d’effacement : contact@arbogestion.fr ; réclamation possible auprès de la CNIL. Les résultats du diagnostic appartiennent au Client, qui peut les transmettre librement (assureur, notaire, mairie, entreprise de travaux).</p>
-<h2><?= $part ? '9' : '8' ?>. Litiges</h2>
-<p><?= $part ? 'En cas de réclamation restée sans solution amiable dans un délai de 2 mois, le Client peut saisir gratuitement le médiateur de la consommation : CM2C, 49 rue de Ponthieu, 75008 Paris, www.cm2c.net. Droit français ; le Client peut saisir la juridiction de son domicile ou toute juridiction compétente selon la loi.' : ($pro ? 'Droit français. À défaut d’accord amiable, tout litige est porté devant le Tribunal de commerce de Cahors.' : 'Droit français. À défaut d’accord amiable, le litige est porté devant le tribunal administratif territorialement compétent.') ?></p>
-<div class="sign">Établi à Cambes, le <?= h(date_fr($date_doc)) ?>, pour Arbogestion : Kévin Cazes-Bouchet, Président.<br>Acceptation par le Client : signature électronique du devis n° <?= h($numero_devis) ?> sur Pennylane<?= $col ? ', complétée par le bon de commande' : '' ?>.</div>
-<h2>Conditions particulières</h2>
+<h2>Prestation commandée</h2>
 <table class="cp"><tbody>
 <tr><td>Site concerné</td><td><?= h(($dem['site_adresse'] ?? '') ?: trim(($c['adresse'] ?? '') . ', ' . ($c['cp'] ?? '') . ' ' . ($c['ville'] ?? ''), ', ')) ?></td></tr>
-<tr><td>Nombre d’arbres</td><td><?= (int)$calc['nb'] ?></td></tr>
+<tr><td>Nombre d’arbres</td><td><?= (int)$calc['nb'] ?> (<?= (int)$T['arbresParJour'] ?> arbres maximum par journée sur place)</td></tr>
 <tr><td>Prestations retenues</td><td><?= implode(' ; ', $presta) ?></td></tr>
+<tr><td>Livrable</td><td>Compte rendu écrit avec les préconisations d’Arbogestion (interventions conseillées et priorités), compris dans le prix</td></tr>
 <tr><td>Montant</td><td><?= $montant ?> – détail au devis n° <?= h($numero_devis) ?></td></tr>
-<tr><td>Période souhaitée</td><td>À partir du <?= h(date_fr($dem['date_debut'] ?? date('Y-m-d'))) ?></td></tr>
-<?php if ($part): ?><tr><td>Exécution avant la fin du délai de rétractation</td><td><?= !empty($dem['execution_anticipee']) ? 'Oui, demandée par le Client' : 'Non' ?></td></tr><?php endif; ?>
+<tr><td>Acompte et paiement</td><td><?= h($acompte) ?></td></tr>
+<tr><td>Période souhaitée</td><td>À partir du <?= h(date_fr($dem['date_debut'] ?? date('Y-m-d'))) ?>, date fixée d’un commun accord après signature</td></tr>
+<?php if ($part): ?><tr><td>Exécution avant la fin du délai de rétractation</td><td><?= !empty($dem['execution_anticipee']) ? 'Oui, demandée expressément par le Client' : 'Non' ?></td></tr>
+<tr><td>Droit de rétractation</td><td>14 jours – article <?= (int)$retract ?> des conditions générales de vente ; formulaire en fin de document</td></tr><?php endif; ?>
+<tr><td>Interventions de terrain (élagage, abattage…)</td><td>Non comprises : devis séparés, auprès de l’entreprise du choix du Client</td></tr>
 <tr><td>Validité du devis</td><td>3 mois à compter de son émission</td></tr>
 </tbody></table>
-<?php if ($part): ?>
-<h2>Formulaire de rétractation</h2>
-<p><i>À renvoyer uniquement si vous souhaitez vous rétracter, à SAS Arbogestion, 133 rue Madeleine Brès, 46100 Cambes – contact@arbogestion.fr.</i> Je vous notifie ma rétractation de la prestation (devis n° <?= h($numero_devis) ?>) acceptée le …………… – Nom : …………………… – Adresse : …………………………………… – Date et signature : ……………</p>
-<?php endif; ?>
+<div class="sign">Établi à Cambes, le <?= h(date_fr($date_doc)) ?>, pour Arbogestion : Kévin Cazes-Bouchet, Président.<br>Acceptation par le Client : signature électronique du devis n° <?= h($numero_devis) ?> sur Pennylane<?= $col ? ', complétée par le bon de commande' : '' ?>.</div>
+<div style="page-break-before:always"><?= cgv_fragment_html($p, $version) ?></div>
 </body></html>
 <?php
     return (string)ob_get_clean();
