@@ -236,7 +236,15 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
       </div>
 
       <div class="etapec">
-        <h2><span>3</span>Votre besoin</h2>
+        <h2><span>3</span>Lieu d'intervention</h2>
+        <label for="adresse" style="margin-top:0">Adresse ou commune du site</label>
+        <input id="adresse" list="adresses" autocomplete="off" placeholder="Ex. : Place de la Halle, 46160 Cajarc">
+        <datalist id="adresses"></datalist>
+        <p id="distInfo" style="color:var(--gris);font-size:.9rem;margin-top:8px">Les frais de déplacement sont calculés depuis notre base de Cambes (Lot).</p>
+      </div>
+
+      <div class="etapec">
+        <h2><span>4</span>Votre besoin</h2>
         <div class="choix" id="besoin">
           <label><input type="radio" name="besoin" value="ponctuel" checked><span class="c"><b>Prestation ponctuelle</b><small>Inventaire, diagnostic, prévisionnel, tests</small></span></label>
           <label><input type="radio" name="besoin" value="abonnement"><span class="c"><b>Suivi dans la durée</b><small>Abonnement annuel avec accès au logiciel Grality</small></span></label>
@@ -244,9 +252,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 
         <div id="blocPonctuel" style="margin-top:20px">
           <div class="opts">
-            <label class="opt"><input type="checkbox" id="o_inv" checked><span><b>Inventaire</b><small>Localisation et identification des arbres ; base de données numérique (espèce, dimensions, emplacement, photos).</small></span><span class="px" id="px_inv"></span></label>
-            <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Diagnostic</b><small>Analyse sanitaire : état général, maladies, points de vigilance, photos.</small></span><span class="px" id="px_diag"></span></label>
-            <label class="opt"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small></span><span class="px" id="px_prev"></span></label>
+            <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisie dans une base de données numérique. Environ 50 arbres par journée de 7 h ; minimum facturé : 1 h.</small></span><span class="px" id="px_diag"></span></label>
+            <label class="opt"><input type="checkbox" id="o_prev"><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small></span><span class="px" id="px_prev"></span></label>
           </div>
           <h3 style="color:var(--vert);font-size:1.05rem;margin:22px 0 10px">Tests complémentaires au résistographe <small style="font-weight:400;color:var(--gris)">(facultatif)</small></h3>
           <div class="opts">
@@ -324,7 +331,14 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
    ================================================================ */
 var TARIFS = {
   tva: 0.20,
-  unitaire: { inventaire: 3, diagnostic: 5, previsionnel: 8 },      // € HT par arbre
+  tauxHoraire: 65,                 // € HT de l'heure
+  arbresParJour: 50,               // recensement + diagnostic sur place
+  heuresParJour: 7,
+  minimumHeures: 1,                // minimum facturé pour le diagnostic sur place
+  previsionnelArbresHeure: 8,      // prévisionnel d'intervention, au temps passé
+  arrondiHeure: 0.25,              // facturation au quart d'heure supérieur
+  deplacementKm: 2.40,             // € HT par km, aller simple, par journée sur place
+  depart: { nom: "Cambes", adresse: "133 rue Madeleine Brès 46100 Cambes", lon: 1.9419, lat: 44.6156 },
   resistographe: { base: 50, houppier: 750 },                          // € HT par test
   abonnements: {
     collectivite: {
@@ -351,6 +365,38 @@ var TARIFS = {
   var eur=function(v){return v.toLocaleString('fr-FR',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})+' €'};
   var noms={collectivite:'Collectivité',pro:'Professionnel',particulier:'Particulier'};
   var resume='';
+  var lieu={label:'',km:null};
+
+  /* Adresse : Base Adresse Nationale ; distance routière : Géoplateforme IGN */
+  function hav(a,b){var R=6371,t=Math.PI/180,dLa=(b.lat-a.lat)*t,dLo=(b.lon-a.lon)*t;var x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLo/2)*Math.sin(dLo/2);return 2*R*Math.asin(Math.sqrt(x))}
+  var sugg={},minuteur=null;
+  function chercher(q){
+    fetch('https://api-adresse.data.gouv.fr/search/?limit=6&q='+encodeURIComponent(q))
+      .then(function(r){return r.json()}).then(function(d){
+        sugg={};var dl=$('adresses');dl.innerHTML='';
+        (d.features||[]).forEach(function(f){var l=f.properties.label+(f.properties.type==='municipality'?'':' ('+f.properties.city+')');l=f.properties.label;sugg[l]={lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1],label:l};var o=document.createElement('option');o.value=l;dl.appendChild(o)});
+        if(sugg[$('adresse').value])choisir(sugg[$('adresse').value]);
+      }).catch(function(){});
+  }
+  function choisir(pt){
+    var D=TARIFS.depart;lieu.label=pt.label;
+    $('distInfo').textContent='Calcul de la distance…';
+    var url='https://data.geopf.fr/navigation/itineraire?resource=bdtopo-osrm&profile=car&optimization=fastest&getSteps=false&getBbox=false&distanceUnit=kilometer&start='+D.lon+','+D.lat+'&end='+pt.lon+','+pt.lat;
+    fetch(url).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+      lieu.km=Math.round(parseFloat(d.distance)*10)/10;
+      $('distInfo').textContent='Distance par la route depuis Cambes : '+String(lieu.km).replace('.',',')+' km (aller simple).';calcul();
+    }).catch(function(){
+      lieu.km=Math.round(hav(D,pt)*1.3*10)/10;
+      $('distInfo').textContent='Distance estimée depuis Cambes : environ '+String(lieu.km).replace('.',',')+' km (aller simple).';calcul();
+    });
+  }
+  $('adresse').addEventListener('input',function(){
+    var v=this.value.trim();
+    if(sugg[v]){choisir(sugg[v]);return}
+    lieu={label:'',km:null};calcul();
+    clearTimeout(minuteur);if(v.length>=3)minuteur=setTimeout(function(){chercher(v)},250);
+  });
+  $('adresse').addEventListener('change',function(){var v=this.value.trim();if(sugg[v])choisir(sugg[v]);else if(v.length>=3)chercher(v)});
 
   function val(name){return document.querySelector('input[name="'+name+'"]:checked').value}
   function palier(liste,n){for(var i=0;i<liste.length;i++){if(n<=liste[i][0])return {max:liste[i][0],prix:liste[i][1]}}return null}
@@ -362,23 +408,46 @@ var TARIFS = {
     var lignes=[],ht=0,txt=[];
     $('blocPonctuel').hidden=(besoin!=='ponctuel');
     $('blocAbo').hidden=(besoin!=='abonnement');
-    var u=TARIFS.unitaire,r=TARIFS.resistographe;
-    $('px_inv').textContent=eur(u.inventaire)+' HT / arbre';
-    $('px_diag').textContent=eur(u.diagnostic)+' HT / arbre';
-    $('px_prev').textContent=eur(u.previsionnel)+' HT / arbre';
+    var T=TARIFS,r=T.resistographe;
+    var arbresHeure=T.arbresParJour/T.heuresParJour;
+    var arr=function(x){return Math.ceil(x/T.arrondiHeure-1e-9)*T.arrondiHeure};
+    var hfmt=function(x){var hh=Math.floor(x),mm=Math.round((x-hh)*60);return hh+' h'+(mm?(' '+(mm<10?'0':'')+mm):'')};
+    $('px_diag').textContent=eur(T.tauxHoraire)+' HT / h';
+    $('px_prev').textContent=eur(T.tauxHoraire)+' HT / h';
     $('px_rb').textContent=eur(r.base)+' HT / test';
     $('px_rh').textContent=eur(r.houppier)+' HT / test';
     txt.push('Estimation réalisée sur arbogestion.fr','Profil : '+noms[profil],'Nombre d\'arbres : '+n);
+    if(lieu.label)txt.push('Lieu d\'intervention : '+lieu.label);
     var surDevis=false,periode='';
 
     if(besoin==='ponctuel'){
       txt.push('Besoin : prestation ponctuelle');
-      [['o_inv','Inventaire',u.inventaire],['o_diag','Diagnostic',u.diagnostic],['o_prev','Prévisionnel d\'intervention',u.previsionnel]].forEach(function(o){
-        if($(o[0]).checked){var m=o[2]*n;ht+=m;lignes.push([o[1]+' ('+n+' × '+eur(o[2])+')',m]);}
-      });
+      var jours=0;
+      if($('o_diag').checked){
+        var hd=Math.max(T.minimumHeures,arr(n/arbresHeure));
+        jours=Math.ceil(n/T.arbresParJour);
+        ht+=hd*T.tauxHoraire;
+        var mini=(n/arbresHeure)<T.minimumHeures;
+        lignes.push(['Recensement et diagnostic sur place ('+hfmt(hd)+' × '+eur(T.tauxHoraire)+(mini?', minimum facturé jusqu\'à '+Math.floor(arbresHeure*T.minimumHeures)+' arbres':'')+')',hd*T.tauxHoraire]);
+      }
+      if($('o_prev').checked){
+        var hp=arr(n/T.previsionnelArbresHeure);
+        ht+=hp*T.tauxHoraire;
+        lignes.push(['Prévisionnel d\'intervention ('+hfmt(hp)+' × '+eur(T.tauxHoraire)+')',hp*T.tauxHoraire]);
+      }
       var qb=Math.max(0,parseInt($('q_rb').value,10)||0),qh=Math.max(0,parseInt($('q_rh').value,10)||0);
       if(qb){ht+=qb*r.base;lignes.push(['Résistographe, partie basse ('+qb+' × '+eur(r.base)+')',qb*r.base]);}
       if(qh){ht+=qh*r.houppier;lignes.push(['Résistographe, houppier ('+qh+' × '+eur(r.houppier)+')',qh*r.houppier]);}
+      if(!jours&&(qb||qh))jours=1;
+      if(jours){
+        if(lieu.km!=null){
+          var dep=Math.round(lieu.km*T.deplacementKm*jours*100)/100;
+          ht+=dep;
+          lignes.push(['Déplacement ('+jours+' jour'+(jours>1?'s':'')+' × '+String(lieu.km).replace('.',',')+' km × '+eur(T.deplacementKm)+')',dep]);
+        } else {
+          lignes.push(['Déplacement : indiquez l\'adresse du site',null]);
+        }
+      }
     } else {
       var a=TARIFS.abonnements[profil],p=palier(a.paliers,n);periode=a.periode;
       txt.push('Besoin : suivi dans la durée (abonnement « '+a.nom+' »)');
@@ -397,7 +466,7 @@ var TARIFS = {
     }
 
     var tva=ht*TARIFS.tva,ttc=ht+tva;
-    $('lignes').innerHTML=lignes.map(function(l){return '<li><span>'+l[0]+'</span><b>'+eur(l[1])+' HT</b></li>'}).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>';
+    $('lignes').innerHTML=lignes.map(function(l){return '<li><span>'+l[0]+'</span><b>'+(l[1]==null?'—':eur(l[1])+' HT')+'</b></li>'}).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>';
     var suffixe=periode?' / '+periode:'';
     var t='';
     if(surDevis){t='<div class="surdevis">Pour plus de '+TARIFS.abonnements[profil].paliers.slice(-1)[0][0]+' arbres, nous établissons une proposition sur mesure.</div>';}
@@ -408,7 +477,7 @@ var TARIFS = {
     }
     $('total').innerHTML=t;
 
-    lignes.forEach(function(l){txt.push('- '+l[0]+' : '+eur(l[1])+' HT')});
+    lignes.forEach(function(l){if(l[1]!=null)txt.push('- '+l[0]+' : '+eur(l[1])+' HT')});
     if(surDevis)txt.push('Total : sur devis');
     else if(ht>0)txt.push('Total estimé : '+eur(Math.round(ht*100)/100)+' HT'+suffixe+' ('+eur(Math.round(ttc*100)/100)+' TTC)');
     txt.push('','Précisions sur mon site et mon besoin :','');
