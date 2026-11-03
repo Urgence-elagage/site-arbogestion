@@ -105,13 +105,32 @@ function pl_client(array $dem): string {
 
 function prix6(float $v): string { return number_format($v, 6, '.', ''); }
 
+/**
+ * Version « client » des lignes : une ligne par prestation, au forfait, sans base de calcul
+ * (pas de prix à l'arbre, au km ni à la journée). Le détail reste dans le courriel à Kevin.
+ */
+function lignes_client(array $calc): array {
+    $out = []; $n = (int)$calc['nb']; $pl = fn(int $q, string $u) => $q . ' ' . $u . ($q > 1 ? 's' : '');
+    foreach ($calc['lignes_demarrage'] as $l) {
+        $m = round($l['qte'] * $l['pu'], 2);
+        if ($l['label'] === 'Arbres supplémentaires' && $out) { $out[count($out) - 1]['pu'] = round($out[count($out) - 1]['pu'] + $m, 2); continue; }
+        $label = $l['label']; $desc = $l['desc'];
+        if (in_array($l['unite'], ['journée', 'forfait'], true) || str_contains($label, 'Prévisionnel') || $l['unite'] === 'arbre' && !str_contains($label, 'couronne')) { $label .= ' – ' . $pl($n, 'arbre'); }
+        elseif ($l['unite'] === 'test') { $label .= ' – ' . $pl((int)$l['qte'], 'test'); }
+        elseif (str_contains($label, 'couronne')) { $label .= ' – ' . $pl((int)$l['qte'], 'arbre'); }
+        if ($l['unite'] === 'km') { $label = 'Frais de déplacement'; $desc = 'Depuis Cambes, ' . $pl((int)$calc['jours'], 'journée') . ' sur place'; }
+        $out[] = ['label' => $label, 'desc' => $desc, 'qte' => 1, 'unite' => 'forfait', 'pu' => $m];
+    }
+    return $out;
+}
+
 /** Lignes du devis Pennylane (démarrage + abonnement 1re année). */
 function lignes_devis(array $dem, array $calc): array {
     $sections = []; $lignes = []; $rang = 0;
     if ($calc['lignes_demarrage']) {
         $sections[] = $calc['abonnement'] ? ['title' => 'Démarrage', 'description' => 'Prestations ponctuelles, facturées après leur réalisation', 'rank' => ++$rang]
             : ['title' => 'Prestation ponctuelle', 'description' => 'Sans abonnement, facturée après sa réalisation', 'rank' => ++$rang];
-        foreach ($calc['lignes_demarrage'] as $l) {
+        foreach (lignes_client($calc) as $l) {
             $lignes[] = ['label' => $l['label'], 'description' => $l['desc'], 'quantity' => (float)$l['qte'], 'unit' => $l['unite'],
                 'raw_currency_unit_price' => prix6($l['pu']), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
         }
@@ -131,9 +150,10 @@ function lignes_devis(array $dem, array $calc): array {
     return [$sections, $lignes];
 }
 
-function texte_estimation(array $dem, array $calc): string {
+function texte_estimation(array $dem, array $calc, bool $client = false): string {
     $T = tarifs(); $t = [];
-    foreach ($calc['lignes_demarrage'] as $l) { $t[] = '- ' . $l['label'] . ' : ' . str_replace(['.'], [','], (string)$l['qte']) . ' ' . $l['unite'] . ((float)$l['qte'] > 1 && !str_ends_with($l['unite'], 's') ? 's' : '') . ' × ' . eur($l['pu']) . ' = ' . eur(round($l['qte'] * $l['pu'], 2)) . ' HT'; }
+    if ($client) { foreach (lignes_client($calc) as $l) { $t[] = '- ' . $l['label'] . ' : ' . eur($l['pu']) . ' HT'; } }
+    else foreach ($calc['lignes_demarrage'] as $l) { $t[] = '- ' . $l['label'] . ' : ' . str_replace(['.'], [','], (string)$l['qte']) . ' ' . $l['unite'] . ((float)$l['qte'] > 1 && !str_ends_with($l['unite'], 's') ? 's' : '') . ' × ' . eur($l['pu']) . ' = ' . eur(round($l['qte'] * $l['pu'], 2)) . ' HT'; }
     if ($calc['demarrage_ht'] > 0) { $t[] = '  Total ' . ($calc['abonnement'] ? 'démarrage' : 'prestation') . ' : ' . eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)'; }
     if (!empty($calc['acompte_ht'])) { $t[] = '  Acompte à la signature (' . $T['acompte']['pourcentage'] . ' %) : ' . eur(round($calc['acompte_ht'] * (1 + $T['tva']), 2)) . ' TTC'; }
     $ab = $calc['abonnement'];
@@ -242,7 +262,7 @@ function traiter_demande(array $in): array {
         . $infos;
     envoyer_mail((string)cfg('mail_kevin'), $sujet, $texte);
     envoyer_mail($c['email'], 'Arbogestion – Votre demande de devis est bien reçue',
-        "Bonjour,\n\nNous avons bien reçu votre demande d'estimation (référence $id). Nous vérifions les informations et vous adressons votre devis et votre contrat par courriel, à signer en ligne, sous 48 heures ouvrées.\n\nRécapitulatif de votre estimation :\n$resume\n\nCette estimation est indicative ; le devis fait foi.\n\nBien cordialement,\nArbogestion – arboriste conseil\n133 rue Madeleine Brès, 46100 Cambes\nhttps://arbogestion.fr",
+        "Bonjour,\n\nNous avons bien reçu votre demande d'estimation (référence $id). Nous vérifions les informations et vous adressons votre devis et votre contrat par courriel, à signer en ligne, sous 48 heures ouvrées.\n\nRécapitulatif de votre estimation :\n" . texte_estimation($dem, $calc, true) . "\n\nCette estimation est indicative ; le devis fait foi.\n\nBien cordialement,\nArbogestion – arboriste conseil\n133 rue Madeleine Brès, 46100 Cambes\nhttps://arbogestion.fr",
         (string)cfg('mail_kevin'));
     return ['id' => $id, 'pennylane' => $erreur === null];
 }

@@ -570,19 +570,18 @@ var TARIFS = {
 
     if(init){
       var lignes=[],ht=0,jours=0,txtAc='';
-      var parArbre=function(nom,pu){var m=n*pu;if(m<mini){ht+=mini;lignes.push([nom,mini]);}else{ht+=r2(m);lignes.push([nom+' ('+n+' arbres)',r2(m)]);}};
+      var parArbre=function(nom,pu){var m=n*pu;if(m<mini){ht+=mini;lignes.push([nom+' ('+n+' arbre'+(n>1?'s':'')+')',mini]);}else{ht+=r2(m);lignes.push([nom+' ('+n+' arbres)',r2(m)]);}};
       var surPlace=ponct||$('o_diag').checked;
       if(surPlace){jours=Math.ceil(n/T.arbresParJour);var nsup=0;
         for(var j=1;j<=jours;j++){nsup+=Math.max(0,Math.min(T.arbresParJour,n-(j-1)*T.arbresParJour)-Pn.arbresInclus)}
-        ht+=r2(jours*forf);lignes.push([(ponct?'Diagnostic ponctuel':'Recensement et diagnostic')+(jours>1?' ('+jours+' journées)':''),r2(jours*forf)]);
-        if(nsup){var sup=r2(nsup*Pn.prixArbreSupplementaire);ht+=sup;lignes.push(['Arbres supplémentaires ('+nsup+' × '+eur(Pn.prixArbreSupplementaire)+')',sup]);}}
+        var sp=r2(jours*forf+nsup*Pn.prixArbreSupplementaire);ht+=sp;lignes.push([(ponct?'Diagnostic ponctuel':'Recensement et diagnostic')+' ('+n+' arbre'+(n>1?'s':'')+')',sp]);}
       if(!ponct&&$('o_prev').checked){parArbre('Prévisionnel d\'intervention',T.previsionnelParArbre);}
       var qb=Math.max(0,parseInt($('q_rb').value,10)||0),qh=Math.max(0,parseInt($('q_rh').value,10)||0);
-      if(qb){ht+=qb*r.base;lignes.push(['Résistographe au pied du tronc ('+qb+' × '+eur(r.base)+')',qb*r.base]);}
-      if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Diagnostic dans la couronne ('+qh+' arbre'+(qh>1?'s':'')+' × '+eur(puh)+')',r2(qh*puh)]);}
+      if(qb){ht+=qb*r.base;lignes.push(['Résistographe au pied du tronc ('+qb+' test'+(qb>1?'s':'')+')',qb*r.base]);}
+      if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Diagnostic dans la couronne ('+qh+' arbre'+(qh>1?'s':'')+')',r2(qh*puh)]);}
       if(!jours&&(qb||qh))jours=1;
       if(jours){
-        if(lieu.km!=null){var dep=r2(lieu.km*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement ('+jours+' jour'+(jours>1?'s':'')+' × '+String(lieu.km).replace('.',',')+' km × '+eur(T.deplacementKm)+')',dep]);}
+        if(lieu.km!=null){var dep=r2(lieu.km*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement',dep]);}
         else lignes.push(['Déplacement : indiquez le lieu d\'intervention',null]);
       }
       html+='<div class="res-bloc"><h3>'+(abo?'Démarrage — une fois':'Prestation ponctuelle')+'</h3><ul class="lignes">'+(lignes.map(li).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>')+'</ul>';
