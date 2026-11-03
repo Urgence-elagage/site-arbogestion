@@ -85,11 +85,20 @@ function suite_signature(array $row): string {
         $lien = url_site('bon-de-commande.php?t=' . jeton_signe($id));
         maj_demande($id, ['statut' => 'signe_attente_bdc', 'notes' => ajouter_note($row, 'Devis signé ; lien de dépôt du bon de commande envoyé.')]);
         envoyer_mail($c['email'], 'Arbogestion – Devis ' . $row['pl_devis_numero'] . ' signé : transmission du bon de commande',
-            "Bonjour,\n\nNous vous remercions pour la signature du devis n° {$row['pl_devis_numero']}.\n\nPour finaliser l'engagement, merci de nous transmettre le bon de commande ou la décision d'engagement de la collectivité (PDF), à l'adresse sécurisée suivante :\n$lien\n\nLa facture annuelle sera ensuite déposée sur Chorus Pro.\n\nBien cordialement,\nArbogestion – arboriste conseil",
+            "Bonjour,\n\nNous vous remercions pour la signature du devis n° {$row['pl_devis_numero']}.\n\nPour finaliser l'engagement, merci de nous transmettre le bon de commande ou la décision d'engagement de la collectivité (PDF), à l'adresse sécurisée suivante :\n$lien\n\nLa facture sera ensuite déposée sur Chorus Pro.\n\nBien cordialement,\nArbogestion – arboriste conseil",
             (string)cfg('mail_kevin'));
         envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']} (collectivité)",
-            "Le devis {$row['pl_devis_numero']} a été signé.\nLe lien de dépôt du bon de commande a été envoyé au référent ({$c['email']}).\nL'abonnement sera créé dans Pennylane dès réception du bon.\n\nÀ faire de ton côté : planifier le démarrage (recensement, diagnostic) et facturer le démarrage après réalisation.");
+            "Le devis {$row['pl_devis_numero']} a été signé.\nLe lien de dépôt du bon de commande a été envoyé au référent ({$c['email']}).\n" . ($avec_abonnement ? "L'abonnement sera créé dans Pennylane dès réception du bon." : 'Prestation ponctuelle : pas d\'abonnement.') . "\n\nÀ faire de ton côté : planifier le démarrage (recensement, diagnostic) et facturer le démarrage après réalisation.");
         return 'collectivité : lien bon de commande envoyé';
+    }
+
+    if (!$avec_abonnement) { // prestation ponctuelle (ou abonnement sur devis) : rien à automatiser
+        maj_demande($id, ['statut' => 'signe_ponctuel', 'notes' => ajouter_note($row, 'Devis signé (prestation ponctuelle).')]);
+        envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']} (prestation ponctuelle)",
+            "Le devis {$row['pl_devis_numero']} (prestation ponctuelle, sans abonnement) a été signé." . (!empty($dem['execution_anticipee']) ? "\nLe client a demandé une exécution avant la fin du délai de rétractation." : ($dem['profil'] === 'particulier' ? "\nAttention : particulier sans demande d'exécution anticipée, intervenir après le délai de rétractation de 14 jours." : '')) . "\n\nÀ faire : convenir de la date d'intervention avec le client ({$c['email']}" . (empty($c['tel']) ? '' : ", {$c['tel']}") . "), puis facturer après réalisation (Pennylane > Devis > Transformer en facture).");
+        envoyer_mail($c['email'], 'Arbogestion – Votre devis ' . $row['pl_devis_numero'] . ' est validé',
+            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}. Nous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
+        return 'prestation ponctuelle : rendez-vous à fixer';
     }
 
     // Particuliers et pros : début après le délai de rétractation pour un particulier (sauf demande d'exécution anticipée)

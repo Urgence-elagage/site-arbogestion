@@ -213,6 +213,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .conds li::before{content:"";position:absolute;left:0;top:.6em;width:9px;height:9px;border-radius:50%;background:var(--lime)}
 .bloc.vert .conds li{color:#e7ece9}
 .choixb{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choixb.trois{grid-template-columns:repeat(3,1fr)}
+.choixb input[type=radio]+.c::before{border-radius:50%}
 .choixb label{margin:0;cursor:pointer;font-weight:400;color:var(--texte)}
 .choixb input{position:absolute;opacity:0;width:0}
 .choixb .c{display:flex;gap:10px;border:2px solid #dcdfd8;border-radius:10px;padding:14px 16px;height:100%}
@@ -230,7 +232,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .flottant.cache{opacity:0;pointer-events:none;transform:translate(-50%,20px)}
 .res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
 @media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets button{flex:1;padding:12px 10px;font-size:.95rem}}
-@media (max-width:600px){.choixb{grid-template-columns:1fr}}
+@media (max-width:760px){.choixb,.choixb.trois{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -277,10 +279,15 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
         <div class="bloc">
           <h3>Comment ça se passe</h3>
           <div class="etapes3">
-            <div><b>1. Démarrage</b><span>Recensement et diagnostic complet de chaque arbre sur place, puis prévisionnel d'intervention. Prestation ponctuelle, facturée une fois.</span></div>
+            <div><b>1. Démarrage</b><span>Recensement et diagnostic complet de chaque arbre sur place, puis prévisionnel d'intervention. Facturé une fois.</span></div>
             <div><b>2. Suivi annuel</b><span>Abonnement avec accès au logiciel Grality : environ 1/6 du parc rediagnostiqué chaque année, pour couvrir tout le parc en 6 ans.</span></div>
             <div><b>3. Accompagnement</b><span>Planification, estimation budgétaire, bilans et assistance. Vous décidez des interventions et choisissez l'entreprise.</span></div>
           </div>
+        </div>
+        <div class="bloc" style="border-left:5px solid var(--lime)">
+          <h3>Un besoin ponctuel ?</h3>
+          <p style="color:var(--gris)">Un arbre qui inquiète, une vente, une demande de l'assureur ou un projet de travaux : nous réalisons aussi un <b>diagnostic ponctuel d'un ou plusieurs arbres</b>, sans abonnement ni engagement, avec un compte rendu et nos préconisations.</p>
+          <a class="btn" href="#calculateur" data-besoin="ponctuel" style="margin-top:14px">Estimer un diagnostic ponctuel ↓</a>
         </div>
         <div class="bloc">
           <h3>Compris dans l'abonnement</h3>
@@ -321,12 +328,14 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
         </div>
         <div class="etapec" style="background:var(--creme)">
           <h2><span>2</span>Ce que vous souhaitez</h2>
-          <div class="choixb">
-            <label><input type="checkbox" id="b_init" checked><span class="c"><span><b>Démarrage</b><small>Recensement, diagnostic et prévisionnel, une fois</small></span></span></label>
-            <label><input type="checkbox" id="b_abo" checked><span class="c"><span><b>Suivi annuel</b><small>Abonnement avec le logiciel Grality</small></span></span></label>
+          <div class="choixb trois" role="radiogroup" aria-label="Votre besoin">
+            <label><input type="radio" name="besoin" value="ponctuel" id="m_ponctuel"><span class="c"><span><b>Prestation ponctuelle</b><small>Diagnostic d'un ou plusieurs arbres, sans abonnement</small></span></span></label>
+            <label><input type="radio" name="besoin" value="complet" id="m_complet" checked><span class="c"><span><b>Démarrage + suivi annuel</b><small>Recensement et diagnostic de tout le parc, puis suivi chaque année</small></span></span></label>
+            <label><input type="radio" name="besoin" value="suivi" id="m_suivi"><span class="c"><span><b>Suivi annuel seul</b><small>Parc déjà recensé et diagnostiqué</small></span></span></label>
           </div>
+          <input type="checkbox" id="b_init" checked hidden><input type="checkbox" id="b_abo" checked hidden>
           <div id="blocPonctuel" style="margin-top:20px">
-            <h3 style="color:var(--vert);font-size:1.05rem;margin-bottom:10px">Prestations de démarrage</h3>
+            <h3 style="color:var(--vert);font-size:1.05rem;margin-bottom:10px" id="t-prestations">Prestations de démarrage</h3>
             <div class="opts">
               <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisis dans Grality.</small><small class="seuil" id="seuil_diag"></small></span><span class="px" id="px_diag"></span></label>
               <label class="opt"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small><small class="seuil" id="seuil_prev"></small></span><span class="px" id="px_prev"></span></label>
@@ -557,7 +566,7 @@ var TARIFS = {
         if(lieu.km!=null){var dep=r2(lieu.km*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement ('+jours+' jour'+(jours>1?'s':'')+' × '+String(lieu.km).replace('.',',')+' km × '+eur(T.deplacementKm)+')',dep]);}
         else lignes.push(['Déplacement : indiquez le lieu d\'intervention',null]);
       }
-      html+='<div class="res-bloc"><h3>Démarrage — une fois</h3><ul class="lignes">'+(lignes.map(li).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>')+'</ul>';
+      html+='<div class="res-bloc"><h3>'+(abo?'Démarrage — une fois':'Prestation ponctuelle')+'</h3><ul class="lignes">'+(lignes.map(li).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>')+'</ul>';
       if(ht>0)html+='<div class="total">'+tot(ht,'')+'</div>';
       html+='</div>';
       txt.push('','Démarrage (une fois) :');
@@ -582,7 +591,7 @@ var TARIFS = {
       }
       html+='</div>';
     } else {document.querySelectorAll('#grille tr').forEach(function(tr){tr.classList.remove('actif')})}
-    if(!init&&!abo)html='<p>Cochez le démarrage, le suivi annuel, ou les deux.</p>';
+    
     $('resultats').innerHTML=html;
     txt.push('','Précisions sur mon site et mon besoin :','');
     resume=txt.join('\n');
@@ -613,7 +622,14 @@ var TARIFS = {
   document.querySelectorAll('.onglets button').forEach(function(b){b.addEventListener('click',function(){profil=b.dataset.p;try{history.replaceState(null,'','#'+profil)}catch(e){}afficherOffre()})});
   $('nb').addEventListener('input',function(){var v=parseInt(this.value,10)||1;$('nbr').value=Math.min(v,1000);calcul()});
   $('nbr').addEventListener('input',function(){$('nb').value=this.value;calcul()});
-  ['b_init','b_abo','o_diag','o_prev'].forEach(function(id){$(id).addEventListener('change',calcul)});
+  function besoin(){var v=document.querySelector('input[name=besoin]:checked').value;
+    $('b_init').checked=(v!=='suivi');$('b_abo').checked=(v!=='ponctuel');
+    $('t-prestations').textContent=v==='ponctuel'?'Prestations souhaitées':'Prestations de démarrage';
+    if(v==='ponctuel'&&parseInt($('nb').value,10)>=100){$('nb').value=1;$('nbr').value=1}
+    calcul()}
+  document.querySelectorAll('input[name=besoin]').forEach(function(r){r.addEventListener('change',besoin)});
+  document.querySelectorAll('[data-besoin]').forEach(function(a){a.addEventListener('click',function(){var r=$('m_'+a.dataset.besoin);r.checked=true;besoin()})});
+  ['o_diag','o_prev'].forEach(function(id){$(id).addEventListener('change',calcul)});
   ['q_rb','q_rh'].forEach(function(id){$(id).addEventListener('input',calcul)});
   $('envoyer').addEventListener('click',function(){setTimeout(function(){var f=profil==='particulier'?$('prenom'):$('siren');f.focus({preventScroll:true})},500)});
 

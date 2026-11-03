@@ -46,7 +46,8 @@ function valider_demande(array $in): array {
         'abonnement' => !empty($e['abonnement']),
     ];
     if ($est['nb'] < 1 || $est['nb'] > 10000) { throw new ErreurDemande("Nombre d'arbres invalide."); }
-    if (!$est['demarrage'] && !$est['abonnement']) { throw new ErreurDemande('Choisissez le démarrage, le suivi annuel, ou les deux.'); }
+    if (!$est['demarrage'] && !$est['abonnement']) { throw new ErreurDemande('Choisissez une formule : prestation ponctuelle, démarrage + suivi, ou suivi seul.'); }
+    if ($est['demarrage'] && !$est['diag'] && !$est['prev'] && !$est['rb'] && !$est['rh']) { throw new ErreurDemande('Sélectionnez au moins une prestation.'); }
     if (empty($in['consentement'])) { throw new ErreurDemande('Merci de cocher la case de consentement.'); }
     $debut = (string)($in['date_debut'] ?? '');
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $debut) || strtotime($debut) < strtotime('today')) {
@@ -108,7 +109,8 @@ function prix6(float $v): string { return number_format($v, 6, '.', ''); }
 function lignes_devis(array $dem, array $calc): array {
     $sections = []; $lignes = []; $rang = 0;
     if ($calc['lignes_demarrage']) {
-        $sections[] = ['title' => 'Démarrage', 'description' => 'Prestations ponctuelles, facturées après leur réalisation', 'rank' => ++$rang];
+        $sections[] = $calc['abonnement'] ? ['title' => 'Démarrage', 'description' => 'Prestations ponctuelles, facturées après leur réalisation', 'rank' => ++$rang]
+            : ['title' => 'Prestation ponctuelle', 'description' => 'Sans abonnement, facturée après sa réalisation', 'rank' => ++$rang];
         foreach ($calc['lignes_demarrage'] as $l) {
             $lignes[] = ['label' => $l['label'], 'description' => $l['desc'], 'quantity' => (float)$l['qte'], 'unit' => $l['unite'],
                 'raw_currency_unit_price' => prix6($l['pu']), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
@@ -155,15 +157,18 @@ function traiter_demande(array $in): array {
         $client_id = pl_client($dem);
         [$sections, $lignes] = lignes_devis($dem, $calc);
         if (!$lignes) { throw new RuntimeException('Aucune ligne chiffrable (abonnement sur devis) : devis à établir manuellement.'); }
-        $mention = 'La signature du présent devis vaut acceptation du contrat d’abonnement Arbogestion joint en annexe (conditions générales, grille tarifaire 2026 et conditions particulières). '
-            . 'Les prestations de démarrage sont facturées après leur réalisation ; l’abonnement est facturé selon l’échéancier du contrat. Les interventions de terrain ne sont pas comprises.';
-        if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article 6 du contrat).'; }
+        $ponctuel = empty($calc['abonnement']);
+        $mention = $ponctuel
+            ? 'La signature du présent devis vaut acceptation des conditions de prestation ponctuelle jointes en annexe. Prestation sans abonnement, facturée après sa réalisation. Les interventions de terrain ne sont pas comprises.'
+            : 'La signature du présent devis vaut acceptation du contrat d’abonnement Arbogestion joint en annexe (conditions générales, grille tarifaire 2026 et conditions particulières). '
+              . 'Les prestations de démarrage sont facturées après leur réalisation ; l’abonnement est facturé selon l’échéancier du contrat. Les interventions de terrain ne sont pas comprises.';
+        if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article ' . ($ponctuel ? '5 des conditions' : '6 du contrat') . ').'; }
         if ($dem['profil'] === 'collectivite') { $mention .= ' L’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.'; }
         $desc = 'Demande en ligne n° ' . $id . ' – ' . $calc['nb'] . ' arbres' . ($dem['lieu_label'] ? ' – ' . $dem['lieu_label'] : '');
         $devis = pennylane('POST', '/quotes', [
             'date' => date('Y-m-d'), 'deadline' => date('Y-m-d', strtotime('+3 months')),
             'customer_id' => (int)$client_id, 'language' => 'fr_FR',
-            'pdf_invoice_subject' => 'Arbogestion – ' . PROFILS[$dem['profil']]['formule'],
+            'pdf_invoice_subject' => 'Arbogestion – ' . (empty($calc['abonnement']) ? 'Diagnostic ponctuel' : PROFILS[$dem['profil']]['formule']),
             'pdf_description' => $desc, 'special_mention' => $mention,
             'external_reference' => 'arbo-demande-' . $id . '-' . substr(md5($now), 0, 6),
             'invoice_line_sections' => $sections, 'invoice_lines' => $lignes,
@@ -187,7 +192,7 @@ function traiter_demande(array $in): array {
         . ($dem['profil'] === 'particulier' ? '' : "\nSIREN : {$c['siren']}\nReprésentant : {$c['representant']}\nRéférent : {$c['referent']}")
         . "\nAdresse : {$c['adresse']}, {$c['cp']} {$c['ville']}\nE-mail : {$c['email']}\nTéléphone : " . ($c['tel'] ?: '—')
         . ($dem['site_adresse'] ? "\nSite suivi : {$dem['site_adresse']}" : '') . ($dem['lieu_label'] ? "\nLieu d'intervention : {$dem['lieu_label']}" : '')
-        . "\nNombre d'arbres : {$calc['nb']}\nDate de début souhaitée : " . date_fr($dem['date_debut'])
+        . "\nBesoin : " . (empty($calc['abonnement']) ? 'prestation ponctuelle (sans abonnement)' : ($calc['demarrage_ht'] > 0 ? 'démarrage + suivi annuel' : 'suivi annuel seul')) . "\nNombre d'arbres : {$calc['nb']}\nDate de début souhaitée : " . date_fr($dem['date_debut'])
         . ($dem['profil'] !== 'collectivite' ? "\nPaiement : {$dem['paiement']}" : '')
         . ($dem['contraintes'] ? "\nContraintes : {$dem['contraintes']}" : '')
         . ($dem['execution_anticipee'] ? "\nDemande d'exécution avant la fin du délai de rétractation : oui" : '')
@@ -195,7 +200,7 @@ function traiter_demande(array $in): array {
     $sujet = $erreur ? "[Arbogestion] Demande n° $id à traiter à la main – " . nom_client($dem) : "[Arbogestion] Devis $numero à relire et envoyer – " . nom_client($dem);
     $texte = ($erreur
         ? "La demande a été enregistrée mais le devis n'a pas pu être créé automatiquement dans Pennylane.\nMotif : $erreur\n\n"
-        : "Un devis BROUILLON a été créé dans Pennylane (n° $numero), avec le contrat joint en annexe.\nÀ faire : ouvrir Pennylane > Facturation > Devis, relire, puis l'envoyer au client pour signature.\n\n")
+        : "Un devis BROUILLON a été créé dans Pennylane (n° $numero), avec " . (empty($calc['abonnement']) ? 'les conditions de prestation ponctuelle' : 'le contrat d\'abonnement') . " en annexe.\nÀ faire : ouvrir Pennylane > Facturation > Devis, relire, puis l'envoyer au client pour signature.\n\n")
         . $infos;
     envoyer_mail((string)cfg('mail_kevin'), $sujet, $texte, $c['email']);
     envoyer_mail($c['email'], 'Arbogestion – Votre demande de devis est bien reçue',
