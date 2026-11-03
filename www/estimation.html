@@ -225,6 +225,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .res-bloc:first-of-type{border-top:0;padding-top:0;margin-top:0}
 .res-bloc h3{font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);margin-bottom:6px}
 .seuil{display:block;color:#6d7a2a!important;margin-top:4px;font-weight:700}
+.flottant{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;background:var(--lime);color:var(--vert);font-weight:900;padding:14px 26px;border-radius:40px;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:opacity .25s,transform .25s;white-space:nowrap}
+.flottant.cache{opacity:0;pointer-events:none;transform:translate(-50%,20px)}
 .res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
 @media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets button{flex:1;padding:12px 10px;font-size:.95rem}}
 @media (max-width:600px){.choixb{grid-template-columns:1fr}}
@@ -256,6 +258,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     <div class="kicker">Formules et estimation en ligne</div>
     <h1>Nos formules, et ce que<br>coûte le suivi de vos arbres.</h1>
     <p>Choisissez votre profil : vous découvrez la formule adaptée, ce qu'elle comprend, et vous obtenez une estimation immédiate que vous pouvez nous envoyer pour recevoir un devis.</p>
+    <a class="btn" href="#calculateur" style="margin-top:22px">Calculer mon estimation ↓</a>
     <div class="onglets" role="tablist" aria-label="Votre profil">
       <button role="tab" id="t-particulier" aria-selected="false" data-p="particulier">Particuliers<small>Jardin, parc, propriété</small></button>
       <button role="tab" id="t-pro" aria-selected="false" data-p="pro">Professionnels<small>Entreprises, campings, domaines</small></button>
@@ -289,6 +292,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
           <h3 id="g-titre">Grille tarifaire 2026</h3>
           <div style="overflow-x:auto"><table class="grille" id="grille"></table></div>
           <p style="color:var(--gris);font-size:.85rem;margin-top:10px" id="g-note"></p>
+          <a class="btn" href="#calculateur" style="margin-top:14px;width:100%;text-align:center">Calculer mon estimation ↓</a>
         </div>
         <div class="bloc vert">
           <h3>Conditions principales</h3>
@@ -298,6 +302,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     </div>
   </div>
 </section>
+
+<a href="#calculateur" class="flottant" id="flottant">Calculer mon estimation ↓</a>
 
 <section class="blanc" id="calculateur" style="padding-top:clamp(40px,4vw,72px)">
   <div class="wrap">
@@ -584,6 +590,8 @@ var TARIFS = {
   ['q_rb','q_rh'].forEach(function(id){$(id).addEventListener('input',calcul)});
   $('envoyer').addEventListener('click',function(){var m=$('message');if(!m.dataset.edite)m.value=resume;setTimeout(function(){$('nom').focus({preventScroll:true})},500)});
   $('message').addEventListener('input',function(){this.dataset.edite='1'});
+  var fl=document.getElementById('flottant');
+  if('IntersectionObserver' in window){new IntersectionObserver(function(e){fl.classList.toggle('cache',e[0].isIntersecting||e[0].boundingClientRect.top<0)},{threshold:0}).observe(document.getElementById('calculateur'))}
   fetch('tarifs.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){
     for(var k in j){if(k!=='paliers'&&k[0]!=='_')T[k]=j[k]}
     for(var pr in j.paliers){T.profils[pr].paliers=j.paliers[pr]}
