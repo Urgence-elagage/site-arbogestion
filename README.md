@@ -36,3 +36,14 @@ Source unique : `www/cgv/AAAA-MM-JJ/` (un dossier par version). Elles sont :
 Ne jamais modifier un dossier déjà en vigueur : des clients ont signé sur cette version.
 Format : `# Titre`, `## Titre d'article` puis un paragraphe par ligne, `### Titre` pour un encadré,
 `> texte` pour la mention finale. Les articles sont numérotés automatiquement.
+
+## Espace connecté (https://arbogestion.fr/espace/)
+
+Saisie des devis sans passer par Pennylane : client, calcul selon la grille et/ou lignes libres (conseil, appui
+technique…), aperçu, puis création dans Pennylane (modèle « Devis Arbogestion », annexe + CGV) et envoi au client.
+- Accès : e-mail + mot de passe + code à 6 chiffres d'une application d'authentification (double authentification).
+- Première connexion : bouton « Recevoir le lien d'installation » → lien envoyé uniquement à `mail_kevin` (config.php).
+- Téléphone perdu : utiliser un code de secours, puis en régénérer dans « Sécurité ».
+  Plus aucun code : OVH → Bases de données → phpMyAdmin → vider la table `espace_admin`, puis refaire l'installation.
+- Modèles Pennylane « Devis Arbogestion » et « Facture Arbogestion » trouvés automatiquement par leur nom
+  (forçage possible dans config.php : `pennylane_modele_devis`, `pennylane_modele_facture`).

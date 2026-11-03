@@ -64,6 +64,21 @@ function installer_base(PDO $pdo): void {
         maj_le VARCHAR(19) NULL,
         notes $txt NULL
     )$suffixe");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS espace_admin (
+        id $id,
+        email VARCHAR(255) NOT NULL,
+        mdp_hash VARCHAR(255) NOT NULL,
+        totp_secret VARCHAR(64) NOT NULL,
+        totp_dernier_pas BIGINT NOT NULL DEFAULT 0,
+        secours $txt NOT NULL,
+        cree_le VARCHAR(19) NOT NULL,
+        maj_le VARCHAR(19) NULL
+    )$suffixe");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS espace_tentatives (
+        id $id,
+        cle VARCHAR(80) NOT NULL,
+        quand BIGINT NOT NULL
+    )$suffixe");
 }
 
 /* ---------- Tarifs (fichier unique partagé avec le calculateur) ---------- */
@@ -236,6 +251,35 @@ function pennylane(string $methode, string $chemin, ?array $corps = null, ?strin
         throw new RuntimeException("Pennylane HTTP $code sur $chemin : " . substr((string)$rep, 0, 300));
     }
     return $rep === '' ? [] : (json_decode($rep, true) ?? []);
+}
+
+/*
+ * Modèle Pennylane « Devis Arbogestion » ou « Facture Arbogestion ».
+ * Trouvé automatiquement par son nom (mis en cache 1 jour) ; on peut forcer l'identifiant dans config.php :
+ * 'pennylane_modele_devis' => 123, 'pennylane_modele_facture' => 456 (0 = aucun modèle).
+ */
+function pl_modele(string $type): ?int {
+    $cle = $type === 'devis' ? 'pennylane_modele_devis' : 'pennylane_modele_facture';
+    if (cfg($cle) !== null) { return (int)cfg($cle) ?: null; }
+    $cache = ARBO_APP . '/storage/modeles-pennylane.json';
+    $c = is_file($cache) ? (json_decode((string)file_get_contents($cache), true) ?: []) : [];
+    if (isset($c[$type]) && ($c['_le'] ?? 0) > time() - 86400) { return $c[$type] ?: null; }
+    $norm = fn($t) => strtolower(preg_replace('/[^a-z]/i', '', (string)iconv('UTF-8', 'ASCII//TRANSLIT', (string)$t)));
+    $chemins = $type === 'devis' ? ['/quote_templates', '/customer_invoice_templates'] : ['/customer_invoice_templates'];
+    $trouve = 0;
+    foreach ($chemins as $ch) {
+        try { $l = pennylane('GET', $ch); } catch (Throwable $e) { continue; }
+        foreach (($l['items'] ?? $l) as $m) {
+            if (!is_array($m)) { continue; }
+            $nom = $norm($m['name'] ?? $m['label'] ?? $m['title'] ?? '');
+            if (strpos($nom, 'arbogestion') !== false && strpos($nom, $type) !== false) { $trouve = (int)($m['id'] ?? 0); break 2; }
+        }
+    }
+    $c[$type] = $trouve; $c['_le'] = time();
+    if (!is_dir(dirname($cache))) { @mkdir(dirname($cache), 0750, true); }
+    @file_put_contents($cache, json_encode($c));
+    if (!$trouve) { journal("Modèle Pennylane « " . ucfirst($type) . " Arbogestion » introuvable : document créé avec le modèle par défaut."); }
+    return $trouve ?: null;
 }
 
 function pl_filtre(array $f): string {

@@ -52,7 +52,7 @@ function creer_acompte(array $row, array $calc): ?string {
     $fa = pennylane('POST', '/customer_invoices', [
         'date' => date('Y-m-d'), 'deadline' => date('Y-m-d', strtotime('+8 days')), 'customer_id' => (int)$row['pl_client_id'], 'draft' => true,
         'language' => 'fr_FR', 'pdf_invoice_subject' => 'Facture d’acompte – devis n° ' . $row['pl_devis_numero'], 'invoice_lines' => [$ligne],
-    ]);
+    ] + (pl_modele('facture') ? ['customer_invoice_template_id' => pl_modele('facture')] : []));
     return (string)($fa['id'] ?? '');
 }
 

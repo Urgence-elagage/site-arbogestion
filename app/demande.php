@@ -141,18 +141,21 @@ function texte_estimation(array $dem, array $calc): string {
     return implode("\n", $t);
 }
 
-/** Traite une demande complète. Renvoie ['id'=>…, 'pennylane'=>bool]. */
-function traiter_demande(array $in): array {
-    $dem = valider_demande($in);
-    $dem['cgv_version'] = cgv_version_courante(); // version des CGV jointe au devis (preuve)
-    $calc = calculer($dem['estimation']);
+/*
+ * Enregistre la demande et crée le devis dans Pennylane (modèle « Devis Arbogestion », annexe : contrat ou
+ * conditions particulières + CGV). Utilisé par le formulaire du site et par l'espace connecté.
+ * Renvoie ['id', 'numero', 'devis_id', 'erreur'].
+ */
+function creer_devis(array $dem, array $calc, array $opt = []): array {
+    $origine = (string)($opt['origine'] ?? 'site');
+    $dem['origine'] = $origine;
+    $dem['cgv_version'] = $dem['cgv_version'] ?? cgv_version_courante(); // version des CGV jointe au devis (preuve)
     $pdo = db();
     $now = date('Y-m-d H:i:s');
     $pdo->prepare('INSERT INTO demandes (cree_le, profil, statut, nom_client, email, donnees, calcul, maj_le) VALUES (?,?,?,?,?,?,?,?)')
         ->execute([$now, $dem['profil'], 'recue', nom_client($dem), $dem['client']['email'],
             json_encode($dem, JSON_UNESCAPED_UNICODE), json_encode($calc, JSON_UNESCAPED_UNICODE), $now]);
     $id = (int)$pdo->lastInsertId();
-    $resume = texte_estimation($dem, $calc);
     $erreur = null; $numero = 'DEM-' . $id; $devis_id = null; $client_id = null;
 
     try {
@@ -168,15 +171,20 @@ function traiter_demande(array $in): array {
         if ($calc['acompte_ht'] > 0) { $mention .= ' Un acompte de ' . tarifs()['acompte']['pourcentage'] . ' % des prestations ' . ($ponctuel ? '' : 'de démarrage ') . '(' . eur(round($calc['acompte_ht'] * (1 + tarifs()['tva']), 2)) . ' TTC) est demandé à la signature, le solde étant facturé après réalisation.'; }
         if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article ' . ($ponctuel ? cgv_article('particulier', 'Rétractation') . ' des conditions générales de vente' : '6 du contrat') . ').'; }
         if ($dem['profil'] === 'collectivite') { $mention .= ' L’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.'; }
-        $desc = 'Demande en ligne n° ' . $id . ' – ' . $calc['nb'] . ' arbres' . ($dem['lieu_label'] ? ' – ' . $dem['lieu_label'] : '');
-        $devis = pennylane('POST', '/quotes', [
-            'date' => date('Y-m-d'), 'deadline' => date('Y-m-d', strtotime('+3 months')),
+        if (!empty($opt['mention'])) { $mention = trim($opt['mention']) . ' ' . $mention; }
+        $desc = $origine === 'site'
+            ? 'Demande en ligne n° ' . $id . ' – ' . $calc['nb'] . ' arbres' . ($dem['lieu_label'] ? ' – ' . $dem['lieu_label'] : '')
+            : ((string)($opt['description'] ?? '') ?: ('Réf. ' . $id . ($calc['nb'] ? ' – ' . $calc['nb'] . ' arbres' : '') . ($dem['lieu_label'] ? ' – ' . $dem['lieu_label'] : '')));
+        $objet = (string)($opt['objet'] ?? '') ?: ('Arbogestion – ' . ($ponctuel ? ($calc['nb'] ? 'Diagnostic ponctuel' : 'Prestation de conseil') : PROFILS[$dem['profil']]['formule']));
+        $corps = [
+            'date' => date('Y-m-d'), 'deadline' => date('Y-m-d', strtotime('+' . max(1, (int)($opt['validite_mois'] ?? 3)) . ' months')),
             'customer_id' => (int)$client_id, 'language' => 'fr_FR',
-            'pdf_invoice_subject' => 'Arbogestion – ' . (empty($calc['abonnement']) ? 'Diagnostic ponctuel' : PROFILS[$dem['profil']]['formule']),
-            'pdf_description' => $desc, 'special_mention' => $mention,
+            'pdf_invoice_subject' => $objet, 'pdf_description' => $desc, 'special_mention' => $mention,
             'external_reference' => 'arbo-demande-' . $id . '-' . substr(md5($now), 0, 6),
             'invoice_line_sections' => $sections, 'invoice_lines' => $lignes,
-        ]);
+        ];
+        if ($modele = pl_modele('devis')) { $corps['quote_template_id'] = $modele; }
+        $devis = pennylane('POST', '/quotes', $corps);
         $devis_id = (string)($devis['id'] ?? '');
         $numero = (string)(($devis['quote_number'] ?? '') ?: ('DEM-' . $id));
         $pdf = contrat_pdf($dem, $calc, $numero, date('Y-m-d'), ARBO_APP . '/storage/contrats/contrat-' . $id . '.pdf');
@@ -190,6 +198,32 @@ function traiter_demande(array $in): array {
         $pdo->prepare('UPDATE demandes SET statut=?, pl_client_id=?, notes=?, maj_le=? WHERE id=?')
             ->execute(['erreur_pennylane', $client_id, $erreur, date('Y-m-d H:i:s'), $id]);
     }
+    return ['id' => $id, 'numero' => $numero, 'devis_id' => $devis_id, 'erreur' => $erreur];
+}
+
+/** Envoie au client, par Pennylane, un devis déjà créé (lien de consultation et de signature). */
+function envoyer_devis(int $id): void {
+    $s = db()->prepare('SELECT * FROM demandes WHERE id = ?'); $s->execute([$id]); $row = $s->fetch();
+    if (!$row || !$row['pl_devis_id']) { throw new ErreurDemande('Devis introuvable dans Pennylane.'); }
+    try {
+        pennylane('POST', '/quotes/' . rawurlencode((string)$row['pl_devis_id']) . '/send_by_email', ['recipients' => [$row['email']]]);
+    } catch (RuntimeException $e) {
+        if (strpos($e->getMessage(), 'HTTP 409') !== false) { throw new ErreurDemande('Pennylane prépare encore le PDF du devis. Réessaie dans une à deux minutes.'); }
+        throw $e;
+    }
+    if ($row['statut'] === 'devis_brouillon') {
+        db()->prepare('UPDATE demandes SET statut=?, maj_le=?, notes=? WHERE id=?')
+            ->execute(['devis_envoye', date('Y-m-d H:i:s'), trim(($row['notes'] ?? '') . "\n" . date('d/m/Y H:i') . ' Devis envoyé au client depuis l’espace connecté (' . $row['email'] . ').'), $id]);
+    }
+}
+
+/** Traite une demande complète venant du site. Renvoie ['id'=>…, 'pennylane'=>bool]. */
+function traiter_demande(array $in): array {
+    $dem = valider_demande($in);
+    $calc = calculer($dem['estimation']);
+    $r = creer_devis($dem, $calc, ['origine' => 'site']);
+    $id = $r['id']; $numero = $r['numero']; $erreur = $r['erreur'];
+    $resume = texte_estimation($dem, $calc);
 
     $c = $dem['client'];
     $infos = "Profil : " . PROFILS[$dem['profil']]['nom'] . "\nClient : " . nom_client($dem)

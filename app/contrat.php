@@ -260,9 +260,9 @@ table.cp{width:100%;border-collapse:collapse;margin:6px 0}table.cp td{border-bot
 <h2>Prestation commandée</h2>
 <table class="cp"><tbody>
 <tr><td>Site concerné</td><td><?= h(($dem['site_adresse'] ?? '') ?: trim(($c['adresse'] ?? '') . ', ' . ($c['cp'] ?? '') . ' ' . ($c['ville'] ?? ''), ', ')) ?></td></tr>
-<tr><td>Nombre d’arbres</td><td><?= (int)$calc['nb'] ?> (<?= (int)$T['arbresParJour'] ?> arbres maximum par journée sur place)</td></tr>
+<tr><td>Nombre d’arbres</td><td><?= (int)$calc['nb'] ? (int)$calc['nb'] . ' (' . (int)$T['arbresParJour'] . ' arbres maximum par journée sur place)' : 'Sans objet' ?></td></tr>
 <tr><td>Prestations retenues</td><td><?= implode(' ; ', $presta) ?></td></tr>
-<tr><td>Livrable</td><td>Compte rendu écrit avec les préconisations d’Arbogestion (interventions conseillées et priorités), compris dans le prix</td></tr>
+<tr><td>Livrable</td><td><?= (int)$calc['nb'] ? 'Compte rendu écrit avec les préconisations d’Arbogestion (interventions conseillées et priorités), compris dans le prix' : 'Selon le devis' ?></td></tr>
 <tr><td>Montant</td><td><?= $montant ?> – détail au devis n° <?= h($numero_devis) ?></td></tr>
 <tr><td>Acompte et paiement</td><td><?= h($acompte) ?></td></tr>
 <tr><td>Période souhaitée</td><td>À partir du <?= h(date_fr($dem['date_debut'] ?? date('Y-m-d'))) ?>, date fixée d’un commun accord après signature</td></tr>

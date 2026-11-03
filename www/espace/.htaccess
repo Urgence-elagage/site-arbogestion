@@ -1,0 +1,7 @@
+# Espace connecté : pas d'indexation, pas d'accès direct aux fichiers inclus
+<FilesMatch "\.inc\.php$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow"
+</IfModule>
