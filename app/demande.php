@@ -81,11 +81,11 @@ function pl_client(array $dem): string {
         $f = pl_filtre([['field' => 'external_reference', 'operator' => 'eq', 'value' => $ref]]);
         $l = pennylane('GET', '/customers?filter=' . $f . '&filters=' . $f);
         if (!empty($l['items'][0]['id'])) { return (string)$l['items'][0]['id']; }
-        $r = pennylane('POST', '/individual_customers', [
+        $r = pennylane('POST', '/individual_customers', array_filter([
             'first_name' => $c['prenom'], 'last_name' => $c['nom'], 'emails' => [$c['email']],
             'phone' => $c['tel'] ?: null, 'billing_address' => $adresse, 'external_reference' => $ref,
             'payment_conditions' => 'upon_receipt', 'billing_language' => 'fr_FR',
-        ]);
+        ], fn($v) => $v !== null));
     } else {
         $f = pl_filtre([['field' => 'reg_no', 'operator' => 'eq', 'value' => $c['siren']]]);
         $l = pennylane('GET', '/customers?filter=' . $f . '&filters=' . $f);
