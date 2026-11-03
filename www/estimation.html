@@ -224,6 +224,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .res-bloc{border-top:1px solid rgba(255,255,255,.18);padding-top:14px;margin-top:14px}
 .res-bloc:first-of-type{border-top:0;padding-top:0;margin-top:0}
 .res-bloc h3{font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);margin-bottom:6px}
+.seuil{display:block;color:#6d7a2a!important;margin-top:4px;font-weight:700}
 .res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
 @media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets button{flex:1;padding:12px 10px;font-size:.95rem}}
 @media (max-width:600px){.choixb{grid-template-columns:1fr}}
@@ -320,13 +321,13 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
           <div id="blocPonctuel" style="margin-top:20px">
             <h3 style="color:var(--vert);font-size:1.05rem;margin-bottom:10px">Prestations de démarrage</h3>
             <div class="opts">
-              <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisis dans Grality. Environ 50 arbres par journée de 7 h ; minimum facturé : 1 h.</small></span><span class="px" id="px_diag"></span></label>
-              <label class="opt"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small></span><span class="px" id="px_prev"></span></label>
+              <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisis dans Grality.</small><small class="seuil" id="seuil_diag"></small></span><span class="px" id="px_diag"></span></label>
+              <label class="opt"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small><small class="seuil" id="seuil_prev"></small></span><span class="px" id="px_prev"></span></label>
             </div>
             <h3 style="color:var(--vert);font-size:1.05rem;margin:20px 0 10px">Tests au résistographe <small style="font-weight:400;color:var(--gris)">(facultatif)</small></h3>
             <div class="opts">
               <div class="qte"><span><b style="color:var(--vert)">Partie basse de l'arbre</b><small style="display:block;color:var(--gris)">Test au pied du tronc, remise des données.</small></span><span><input type="number" id="q_rb" min="0" max="500" value="0" aria-label="Nombre de tests en partie basse"> <span class="px" id="px_rb"></span></span></div>
-              <div class="qte"><span><b style="color:var(--vert)">Houppier</b><small style="display:block;color:var(--gris)">Test en hauteur (nacelle ou deux grimpeurs), rapport des données.</small></span><span><input type="number" id="q_rh" min="0" max="100" value="0" aria-label="Nombre de tests dans le houppier"> <span class="px" id="px_rh"></span></span></div>
+              <div class="qte"><span><b style="color:var(--vert)">Houppier</b><small style="display:block;color:var(--gris)">Test en hauteur (nacelle ou grimpeurs), rapport des données. Durée selon l'accès à l'arbre.</small></span><span><input type="number" id="q_rh" min="0" max="100" value="0" aria-label="Nombre de tests dans le houppier"> <span class="px" id="px_rh"></span></span></div>
             </div>
             <label for="adresse" style="margin-top:22px">Lieu d'intervention (pour les frais de déplacement)</label>
             <input id="adresse" list="adresses" autocomplete="off" placeholder="Adresse ou commune, ex. : 46160 Cajarc">
@@ -397,22 +398,12 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
    Paliers d'abonnement : [nombre d'arbres maximum, prix HT annuel]
    ================================================================ */
 var TARIFS = {
-  tva: 0.20,
-  tauxHoraire: 65,                 // € HT de l'heure, sur place
-  arbresParJour: 50,               // recensement + diagnostic sur place
-  heuresParJour: 7,
-  minimumHeures: 1,                // minimum facturé pour le diagnostic sur place
-  previsionnelArbresHeure: 8,      // prévisionnel d'intervention, au temps passé
-  arrondiHeure: 0.25,              // facturation au quart d'heure supérieur
-  deplacementKm: 2.40,             // € HT par km, aller simple, par journée sur place
-  depart: { nom: "Cambes", lon: 1.9419, lat: 44.6156 },
-  resistographe: { base: 50, houppier: 750 },
+  /* Les prix sont chargés depuis tarifs.json (fichier unique partagé avec le serveur). */
   profils: {
     particulier: {
       onglet: "Particuliers", formule: "Formule Particuliers",
       pour: "Pour un jardin, un parc, une propriété, un domaine ou un boisement d'agrément : connaître l'état de vos arbres, anticiper les tailles utiles et éviter les interventions qui les fragilisent.",
       ttc: true, mensuel: true,
-      paliers: [[20, 350], [50, 600], [100, 900], [200, 1300], [500, 2000]],
       inclus: ["Logiciel Grality : 2 accès, carte interactive, fiche de chaque arbre (photos, espèce, dimensions, état sanitaire et mécanique, historique)",
                "Diagnostic visuel annuel d'environ 1/6 du parc, priorisé selon les risques",
                "Planification des travaux et calendrier prévisionnel annuel",
@@ -431,7 +422,6 @@ var TARIFS = {
       onglet: "Professionnels", formule: "Formule Professionnels",
       pour: "Pour les campings, hôtels, domaines, golfs, sites industriels ou tertiaires, copropriétés et bailleurs : sécuriser le public et les salariés, planifier hors saison et justifier d'un entretien suivi auprès des assureurs et des auditeurs.",
       ttc: false, mensuel: true,
-      paliers: [[20, 375], [50, 583.33], [100, 1000], [200, 1500], [300, 2083.33], [400, 2666.67], [500, 3333.33]],
       inclus: ["Logiciel Grality : 2 accès (supplémentaires en option), ouverture temporaire à un assureur ou un auditeur",
                "Diagnostic visuel annuel d'environ 1/6 du parc, priorisé selon les zones fréquentées (emplacements, parkings, voiries, bâtiments)",
                "Planification des travaux selon votre calendrier d'exploitation (hors saison, fermetures)",
@@ -450,7 +440,6 @@ var TARIFS = {
       onglet: "Collectivités", formule: "Formule Collectivités",
       pour: "Pour les communes, intercommunalités et établissements publics : gérer durablement les arbres des parcs, alignements, chemins et abords de bâtiments publics, et programmer le budget des travaux sur plusieurs années.",
       ttc: false, mensuel: false,
-      paliers: [[50, 583.33], [250, 1416.67], [500, 2666.67], [1000, 5000], [2000, 10000], [3000, 15416.67], [4000, 20833.33]],
       inclus: ["Logiciel Grality : 4 accès simultanés, ouverture temporaire à un intervenant extérieur",
                "Diagnostic visuel annuel d'environ 1/6 du parc, priorisé selon les enjeux et les risques",
                "Planification pluriannuelle des travaux (3 à 6 ans) et coordination avec vos services techniques",
@@ -500,7 +489,7 @@ var TARIFS = {
     });
     rows.push('<tr><td>Au-delà de '+prev.toLocaleString('fr-FR')+'</td><td colspan="3">Sur devis</td></tr>');
     $('grille').innerHTML='<thead>'+th+'</thead><tbody>'+rows.join('')+'</tbody>';
-    $('g-note').textContent='Abonnement de suivi. Le démarrage (recensement, diagnostic, prévisionnel) est chiffré à part, au temps passé : '+eur(T.tauxHoraire)+' HT de l\'heure sur place, plus le déplacement.';
+    $('g-note').textContent='Abonnement de suivi. Le démarrage est chiffré à part : recensement et diagnostic '+eur(T.diagnosticParArbre)+' HT par arbre, prévisionnel '+eur(T.previsionnelParArbre)+' HT par arbre (minimum 1 h à '+eur(T.tauxHoraire)+' HT), plus le déplacement.';
     $('fprofil').value={collectivite:'Collectivité',pro:'Gestionnaire professionnel',particulier:'Propriétaire privé'}[profil];
     calcul();
   }
@@ -508,13 +497,14 @@ var TARIFS = {
   function calcul(){
     var P=T.profils[profil];
     var n=Math.max(1,Math.min(10000,parseInt($('nb').value,10)||1));
-    var r=T.resistographe,arbresHeure=T.arbresParJour/T.heuresParJour;
-    var arr=function(x){return Math.ceil(x/T.arrondiHeure-1e-9)*T.arrondiHeure};
-    var hfmt=function(x){var hh=Math.floor(x),mm=Math.round((x-hh)*60);return hh+' h'+(mm?(' '+(mm<10?'0':'')+mm):'')};
-    $('px_diag').textContent=eur(T.tauxHoraire)+' HT / h';
-    $('px_prev').textContent=eur(T.tauxHoraire)+' HT / h';
+    var r=T.resistographe,mini=T.tauxHoraire*T.minimumHeures;
+    var seuil=function(pu){return Math.floor((mini-1e-9)/pu)};
+    $('px_diag').textContent=eur(T.diagnosticParArbre)+' HT / arbre';
+    $('px_prev').textContent=eur(T.previsionnelParArbre)+' HT / arbre';
+    $('seuil_diag').textContent='Jusqu\'à '+seuil(T.diagnosticParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
+    $('seuil_prev').textContent='Jusqu\'à '+seuil(T.previsionnelParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
     $('px_rb').textContent=eur(r.base)+' HT / test';
-    $('px_rh').textContent=eur(r.houppier)+' HT / test';
+    $('px_rh').textContent=eur(r.houppierTauxHoraire)+' HT / h';
     var init=$('b_init').checked,abo=$('b_abo').checked;
     $('blocPonctuel').hidden=!init;
     var html='',txt=['Estimation réalisée sur arbogestion.fr','Profil : '+P.onglet,'Nombre d\'arbres : '+n];
@@ -523,19 +513,16 @@ var TARIFS = {
       if(P.ttc)return '<div class="grand">'+eur(ht*(1+T.tva))+' TTC'+suffixe+'</div><div class="sous">soit '+eur(ht)+' HT</div>';
       return '<div class="grand">'+eur(ht)+' HT'+suffixe+'</div><div class="sous">soit '+eur(ht*(1+T.tva))+' TTC (TVA 20 %)</div>';
     };
-    var li=function(l){return '<li><span>'+l[0]+'</span><b>'+(l[1]==null?'—':eur(l[1])+' HT')+'</b></li>'};
+    var li=function(l){return '<li><span>'+l[0]+'</span><b>'+(l[1]==null?'—':(l[1]==='devis'?'au devis':eur(l[1])+' HT'))+'</b></li>'};
 
     if(init){
       var lignes=[],ht=0,jours=0;
-      if($('o_diag').checked){
-        var hd=Math.max(T.minimumHeures,arr(n/arbresHeure)),mini=(n/arbresHeure)<T.minimumHeures;
-        jours=Math.ceil(n/T.arbresParJour);ht+=hd*T.tauxHoraire;
-        lignes.push(['Recensement et diagnostic ('+hfmt(hd)+' × '+eur(T.tauxHoraire)+(mini?', minimum 1 h':'')+')',hd*T.tauxHoraire]);
-      }
-      if($('o_prev').checked){var hp=arr(n/T.previsionnelArbresHeure);ht+=hp*T.tauxHoraire;lignes.push(['Prévisionnel d\'intervention ('+hfmt(hp)+' × '+eur(T.tauxHoraire)+')',hp*T.tauxHoraire]);}
+      var parArbre=function(nom,pu){var m=n*pu;if(m<mini){ht+=mini;lignes.push([nom+' (forfait 1 h)',mini]);}else{ht+=r2(m);lignes.push([nom+' ('+n+' arbres)',r2(m)]);}};
+      if($('o_diag').checked){parArbre('Recensement et diagnostic',T.diagnosticParArbre);jours=Math.ceil(n/T.arbresParJour);}
+      if($('o_prev').checked){parArbre('Prévisionnel d\'intervention',T.previsionnelParArbre);}
       var qb=Math.max(0,parseInt($('q_rb').value,10)||0),qh=Math.max(0,parseInt($('q_rh').value,10)||0);
       if(qb){ht+=qb*r.base;lignes.push(['Résistographe, partie basse ('+qb+' × '+eur(r.base)+')',qb*r.base]);}
-      if(qh){ht+=qh*r.houppier;lignes.push(['Résistographe, houppier ('+qh+' × '+eur(r.houppier)+')',qh*r.houppier]);}
+      if(qh){if(r.houppierHeuresParTest){var hh=r2(qh*r.houppierHeuresParTest);ht+=r2(hh*r.houppierTauxHoraire);lignes.push(['Résistographe, houppier ('+qh+' test'+(qh>1?'s':'')+')',r2(hh*r.houppierTauxHoraire)]);}else{lignes.push(['Résistographe, houppier ('+qh+' test'+(qh>1?'s':'')+', '+eur(r.houppierTauxHoraire)+' HT / h)','devis']);}}
       if(!jours&&(qb||qh))jours=1;
       if(jours){
         if(lieu.km!=null){var dep=r2(lieu.km*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement ('+jours+' jour'+(jours>1?'s':'')+' × '+String(lieu.km).replace('.',',')+' km × '+eur(T.deplacementKm)+')',dep]);}
@@ -545,7 +532,7 @@ var TARIFS = {
       if(ht>0)html+='<div class="total">'+tot(ht,'')+'</div>';
       html+='</div>';
       txt.push('','Démarrage (une fois) :');
-      lignes.forEach(function(l){if(l[1]!=null)txt.push('- '+l[0]+' : '+eur(l[1])+' HT')});
+      lignes.forEach(function(l){if(l[1]==='devis')txt.push('- '+l[0]+' : chiffré au devis');else if(l[1]!=null)txt.push('- '+l[0]+' : '+eur(l[1])+' HT')});
       if(ht>0)txt.push('Total démarrage : '+eur(ht)+' HT ('+eur(ht*(1+T.tva))+' TTC)');
     }
     if(abo){
@@ -597,7 +584,11 @@ var TARIFS = {
   ['q_rb','q_rh'].forEach(function(id){$(id).addEventListener('input',calcul)});
   $('envoyer').addEventListener('click',function(){var m=$('message');if(!m.dataset.edite)m.value=resume;setTimeout(function(){$('nom').focus({preventScroll:true})},500)});
   $('message').addEventListener('input',function(){this.dataset.edite='1'});
-  afficherOffre();
+  fetch('tarifs.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){
+    for(var k in j){if(k!=='paliers'&&k[0]!=='_')T[k]=j[k]}
+    for(var pr in j.paliers){T.profils[pr].paliers=j.paliers[pr]}
+    afficherOffre();
+  }).catch(function(){document.getElementById('resultats').innerHTML='<p>Les tarifs ne peuvent pas être chargés pour le moment. Contactez-nous pour une estimation.</p>'});
 })();
 </script>
 

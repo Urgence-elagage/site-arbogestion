@@ -1,0 +1,105 @@
+{
+  "_note": "Tarifs Arbogestion 2026, prix HT. Fichier unique utilisé par le calculateur du site ET par le serveur (devis, contrats). Paliers d'abonnement : [nombre d'arbres maximum, prix HT annuel].",
+  "tva": 0.2,
+  "tauxHoraire": 65,
+  "minimumHeures": 1,
+  "diagnosticParArbre": 9.1,
+  "previsionnelParArbre": 8.13,
+  "arbresParJour": 50,
+  "heuresParJour": 7,
+  "deplacementKm": 2.4,
+  "depart": {
+    "nom": "Cambes",
+    "lon": 1.9419,
+    "lat": 44.6156
+  },
+  "resistographe": {
+    "base": 50,
+    "houppierTauxHoraire": 85,
+    "houppierHeuresParTest": null
+  },
+  "paliers": {
+    "particulier": [
+      [
+        20,
+        350
+      ],
+      [
+        50,
+        600
+      ],
+      [
+        100,
+        900
+      ],
+      [
+        200,
+        1300
+      ],
+      [
+        500,
+        2000
+      ]
+    ],
+    "pro": [
+      [
+        20,
+        375
+      ],
+      [
+        50,
+        583.33
+      ],
+      [
+        100,
+        1000
+      ],
+      [
+        200,
+        1500
+      ],
+      [
+        300,
+        2083.33
+      ],
+      [
+        400,
+        2666.67
+      ],
+      [
+        500,
+        3333.33
+      ]
+    ],
+    "collectivite": [
+      [
+        50,
+        583.33
+      ],
+      [
+        250,
+        1416.67
+      ],
+      [
+        500,
+        2666.67
+      ],
+      [
+        1000,
+        5000
+      ],
+      [
+        2000,
+        10000
+      ],
+      [
+        3000,
+        15416.67
+      ],
+      [
+        4000,
+        20833.33
+      ]
+    ]
+  }
+}
