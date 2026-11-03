@@ -107,7 +107,8 @@ function calculer(array $d): array {
         }
     };
     $ponctuel = !empty($d['demarrage']) && empty($d['abonnement']);
-    if ($ponctuel) {
+    // Sur place (prestation ponctuelle ou recensement de départ d'un abonnement) : même règle par journée
+    if ($ponctuel || (!empty($d['demarrage']) && !empty($d['diag']))) {
         // Prestation ponctuelle : forfait sur place jusqu'à N arbres, puis prix par arbre supplémentaire ; préconisations comprises
         $P = $T['ponctuel'];
         $forfait = round((float)$P['forfaitHeures'] * (float)$T['tauxHoraire'], 2);
@@ -116,12 +117,13 @@ function calculer(array $d): array {
         // Chaque journée sur place : forfait de N h (jusqu'à X arbres), puis prix par arbre supplémentaire
         $sup = 0;
         for ($j = 1; $j <= $nbJours; $j++) { $sup += max(0, min($parJour, $n - ($j - 1) * $parJour) - $inclus); }
-        $res['lignes_demarrage'][] = ['label' => 'Diagnostic ponctuel sur place', 'desc' => 'Recensement, diagnostic visuel et préconisations, compte rendu écrit – forfait ' . (int)$P['forfaitHeures'] . ' h par journée sur place, jusqu’à ' . $inclus . ' arbres par journée (' . $parJour . ' arbres maximum par journée)', 'qte' => $nbJours, 'unite' => 'journée', 'pu' => $forfait];
+        $res['lignes_demarrage'][] = ['label' => $ponctuel ? 'Diagnostic ponctuel sur place' : 'Recensement et diagnostic sur place', 'desc' => ($ponctuel ? 'Recensement, diagnostic visuel et préconisations, compte rendu écrit' : 'Recensement et diagnostic initial de chaque arbre, saisi dans Grality') . ' – forfait ' . (int)$P['forfaitHeures'] . ' h par journée sur place, jusqu’à ' . $inclus . ' arbres par journée (' . $parJour . ' arbres maximum par journée)', 'qte' => $nbJours, 'unite' => 'journée', 'pu' => $forfait];
         if ($sup > 0) {
             $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Au-delà de ' . $inclus . ' arbres par journée', 'qte' => $sup, 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
         }
         $res['jours'] = (int)ceil($n / $T['arbresParJour']);
-        $d['diag'] = false; $d['prev'] = false;
+        $d['diag'] = false;
+        if ($ponctuel) { $d['prev'] = false; }
     }
     if (!empty($d['demarrage'])) {
         if (!empty($d['diag'])) {
