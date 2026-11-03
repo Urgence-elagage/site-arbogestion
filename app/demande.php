@@ -43,6 +43,7 @@ function valider_demande(array $in): array {
         'demarrage' => !empty($e['demarrage']), 'diag' => !empty($e['diag']), 'prev' => !empty($e['prev']),
         'rb' => (int)($e['rb'] ?? 0), 'rh' => (int)($e['rh'] ?? 0),
         'km' => (isset($e['km']) && is_numeric($e['km'])) ? (float)$e['km'] : null,
+        'km_peage' => (isset($e['km_peage']) && is_numeric($e['km_peage'])) ? (float)$e['km_peage'] : 0.0,
         'abonnement' => !empty($e['abonnement']),
     ];
     if ($est['nb'] < 1 || $est['nb'] > 10000) { throw new ErreurDemande("Nombre d'arbres invalide."); }
@@ -118,7 +119,8 @@ function lignes_client(array $calc): array {
         if (in_array($l['unite'], ['journée', 'forfait'], true) || str_contains($label, 'Prévisionnel') || $l['unite'] === 'arbre' && !str_contains($label, 'couronne')) { $label .= ' – ' . $pl($n, 'arbre'); }
         elseif ($l['unite'] === 'test') { $label .= ' – ' . $pl((int)$l['qte'], 'test'); }
         elseif (str_contains($label, 'couronne')) { $label .= ' – ' . $pl((int)$l['qte'], 'arbre'); }
-        if ($l['unite'] === 'km') { $label = 'Frais de déplacement'; $km = $calc['jours'] > 0 ? round($l['qte'] / $calc['jours'], 1) : $l['qte']; $desc = 'Depuis Cambes : ' . str_replace('.', ',', (string)$km) . ' km par la route' . ($calc['jours'] > 1 ? ' (' . $calc['jours'] . ' déplacements)' : ''); }
+        if ($l['unite'] === 'km' && str_starts_with($l['label'], 'Frais de déplacement')) { $label = 'Frais de déplacement'; $desc = 'Aller-retour depuis Cambes (2 × ' . str_replace('.', ',', (string)($calc['km'] ?? '')) . ' km par la route)' . ($calc['jours'] > 1 ? ', ' . $calc['jours'] . ' déplacements' : ''); }
+        elseif ($l['unite'] === 'km') { $label = 'Frais de péage (estimation)'; $desc = 'Autoroute à péage, aller-retour'; }
         $out[] = ['label' => $label, 'desc' => $desc, 'qte' => 1, 'unite' => 'forfait', 'pu' => $m];
     }
     return $out;

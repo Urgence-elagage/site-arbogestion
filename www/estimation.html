@@ -353,7 +353,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
             <label for="adresse" style="margin-top:22px">Lieu d'intervention (pour les frais de déplacement)</label>
             <input id="adresse" list="adresses" autocomplete="off" placeholder="Adresse ou commune, ex. : 46160 Cajarc">
             <datalist id="adresses"></datalist>
-            <p id="distInfo" style="color:var(--gris);font-size:.9rem;margin-top:8px">Déplacement calculé depuis notre base de Cambes (Lot), par journée sur place.</p>
+            <p id="distInfo" style="color:var(--gris);font-size:.9rem;margin-top:8px">Déplacement calculé par la route depuis notre base de Cambes (Lot), aller-retour, péages compris.</p>
           </div>
         </div>
       </div>
@@ -581,7 +581,8 @@ var TARIFS = {
       if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Diagnostic dans la couronne ('+qh+' arbre'+(qh>1?'s':'')+')',r2(qh*puh)]);}
       if(!jours&&(qb||qh))jours=1;
       if(jours){
-        if(lieu.km!=null){var dep=r2(lieu.km*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement',dep]);}
+        if(lieu.km!=null){var ar=T.deplacementAllerRetour?2:1,dep=r2(lieu.km*ar*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement (aller-retour)',dep]);
+          if(T.peage&&lieu.kmPeage>0){var pg=r2(lieu.kmPeage*2*T.peage.prixKm*jours);if(pg>=T.peage.minimum){ht+=pg;lignes.push(['Péage (estimation)',pg]);}}}
         else lignes.push(['Déplacement : indiquez le lieu d\'intervention',null]);
       }
       html+='<div class="res-bloc"><h3>'+(abo?'Démarrage — une fois':'Prestation ponctuelle')+'</h3><ul class="lignes">'+(lignes.map(li).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>')+'</ul>';
@@ -627,15 +628,20 @@ var TARIFS = {
     }).catch(function(){});
   }
   function choisir(pt){
-    var D=T.depart;lieu.label=pt.label;$('distInfo').textContent='Calcul de la distance…';
-    var url='https://data.geopf.fr/navigation/itineraire?resource=bdtopo-osrm&profile=car&optimization=fastest&getSteps=false&getBbox=false&distanceUnit=kilometer&start='+D.lon+','+D.lat+'&end='+pt.lon+','+pt.lat;
-    fetch(url).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
-      lieu.km=Math.round(parseFloat(d.distance)*10)/10;$('distInfo').textContent='Distance par la route depuis Cambes : '+String(lieu.km).replace('.',',')+' km (aller simple).';calcul();
+    var D=T.depart;lieu.label=pt.label;lieu.kmPeage=0;$('distInfo').textContent='Calcul de la distance…';
+    var base='https://data.geopf.fr/navigation/itineraire?profile=car&optimization=fastest&getBbox=false&distanceUnit=kilometer&start='+D.lon+','+D.lat+'&end='+pt.lon+','+pt.lat;
+    function fin(km,kp,estime){lieu.km=Math.round(km*10)/10;lieu.kmPeage=Math.round(Math.min(kp,km)*10)/10;
+      $('distInfo').textContent=(estime?'Distance estimée depuis Cambes : environ ':'Distance par la route depuis Cambes : ')+String(lieu.km).replace('.',',')+' km'+(lieu.kmPeage>0?', dont '+String(lieu.kmPeage).replace('.',',')+' km d\'autoroute à péage':'')+'. Déplacement compté aller-retour.';calcul();}
+    fetch(base+'&resource=bdtopo-pgr&getSteps=true&waysAttributes=acces_vehicule_leger').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+      var km=parseFloat(d.distance);if(!(km>0))throw 0;var kp=0;
+      (d.portions||[]).forEach(function(po){(po.steps||[]).forEach(function(st){var a=JSON.stringify(st.attributes||{}).toLowerCase();if(a.indexOf('péage')>-1||a.indexOf('peage')>-1||a.indexOf('p\\u00e9age')>-1)kp+=parseFloat(st.distance)||0})});
+      if(kp>km*1.05)kp=kp/1000;fin(km,kp,false);
     }).catch(function(){
-      lieu.km=Math.round(hav(D,pt)*1.3*10)/10;$('distInfo').textContent='Distance estimée depuis Cambes : environ '+String(lieu.km).replace('.',',')+' km (aller simple).';calcul();
+      fetch(base+'&resource=bdtopo-valhalla&getSteps=false').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){var km=parseFloat(d.distance);if(!(km>0))throw 0;fin(km,0,false)})
+      .catch(function(){fin(hav(D,pt)*1.3,0,true)});
     });
   }
-  $('adresse').addEventListener('input',function(){var v=this.value.trim();if(sugg[v]){choisir(sugg[v]);return}lieu={label:'',km:null};calcul();clearTimeout(minuteur);if(v.length>=3)minuteur=setTimeout(function(){chercher(v)},250)});
+  $('adresse').addEventListener('input',function(){var v=this.value.trim();if(sugg[v]){choisir(sugg[v]);return}lieu={label:'',km:null,kmPeage:0};calcul();clearTimeout(minuteur);if(v.length>=3)minuteur=setTimeout(function(){chercher(v)},250)});
   $('adresse').addEventListener('change',function(){var v=this.value.trim();if(sugg[v])choisir(sugg[v]);else if(v.length>=3)chercher(v)});
 
   document.querySelectorAll('.onglets button').forEach(function(b){b.addEventListener('click',function(){profil=b.dataset.p;try{history.replaceState(null,'','#'+profil)}catch(e){}afficherOffre()})});
@@ -708,7 +714,7 @@ var TARIFS = {
     var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
       site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
       client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
-      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:true,prev:$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,abonnement:$('b_abo').checked}};
+      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:true,prev:$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,km_peage:lieu.kmPeage||0,abonnement:$('b_abo').checked}};
     if(!corps.estimation.demarrage&&!corps.estimation.abonnement){err.textContent='Dans le calculateur, cochez le démarrage, le suivi annuel, ou les deux.';return}
     var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
     fetch('api/demande.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)})
