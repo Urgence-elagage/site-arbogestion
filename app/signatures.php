@@ -72,6 +72,10 @@ function traiter_signatures(): array {
     $rows = db()->query("SELECT * FROM demandes WHERE pl_devis_id IS NOT NULL AND statut IN ('devis_brouillon','devis_envoye') ORDER BY id")->fetchAll();
     foreach ($rows as $row) {
         $id = (int)$row['id'];
+        if (!ctype_digit((string)$row['pl_devis_id'])) { // demande faite en mode essai : rien à suivre dans Pennylane
+            if (!cfg('mode_essai')) { maj_demande($id, ['statut' => 'essai']); }
+            continue;
+        }
         try {
             $q = pennylane('GET', '/quotes/' . rawurlencode($row['pl_devis_id']));
             $statut = (string)($q['status'] ?? '');
@@ -121,7 +125,7 @@ function suite_signature(array $row): string {
             "Le devis {$row['pl_devis_numero']} (prestation ponctuelle, sans abonnement) a été signé." . $acompte_txt . (!empty($dem['execution_anticipee']) ? "\nLe client a demandé une exécution avant la fin du délai de rétractation." : ($dem['profil'] === 'particulier' ? "\nAttention : particulier sans demande d'exécution anticipée, intervenir après le délai de rétractation de 14 jours." : '')) . "\n\nÀ faire : convenir de la date d'intervention avec le client ({$c['email']}" . (empty($c['tel']) ? '' : ", {$c['tel']}") . "), puis facturer le solde après réalisation (Pennylane > Devis > Transformer en facture, en déduisant l'acompte).");
         envoyer_mail($c['email'], 'Arbogestion – Votre devis ' . $row['pl_devis_numero'] . ' est validé',
             "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}. Nous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
-        return 'prestation ponctuelle : rendez-vous à fixer';
+        return 'prestation ponctuelle : rendez-vous à fixer' . ($acompte ? " ; facture d'acompte brouillon créée" : (!empty($calc['acompte_ht']) ? " ; ACOMPTE NON CRÉÉ (voir courriel)" : ''));
     }
 
     // Particuliers et pros : début après le délai de rétractation pour un particulier (sauf demande d'exécution anticipée)
