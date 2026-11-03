@@ -10,6 +10,7 @@
   "deplacementKm": 1.2,
   "deplacementAllerRetour": true,
   "peage": {"prixKm": 0.09, "minimum": 1},
+  "eloignement": {"heuresTrajetMax": 3, "hebergementParJour": 150},
   "depart": {
     "nom": "Cambes",
     "lon": 1.9419,

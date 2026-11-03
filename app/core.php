@@ -163,11 +163,18 @@ function calculer(array $d): array {
         if ($res['jours'] && $km !== null) {
             $ar = !empty($T['deplacementAllerRetour']) ? 2 : 1;
             $res['km'] = $km;
-            $res['lignes_demarrage'][] = ['label' => 'Frais de déplacement depuis Cambes', 'desc' => $res['jours'] . ' journée(s) × ' . str_replace('.', ',', (string)$km) . ' km' . ($ar === 2 ? ' × 2 (aller-retour)' : '') . ' × ' . number_format((float)$T['deplacementKm'], 2, ',', ' ') . ' €', 'qte' => round($km * $ar * $res['jours'], 1), 'unite' => 'km', 'pu' => (float)$T['deplacementKm']];
+            // Au-delà de N h de route (aller) : un seul aller-retour pour toute la mission, hébergement et repas par journée sur place
+            $E = $T['eloignement'] ?? null; $duree = isset($d['duree_h']) && is_numeric($d['duree_h']) ? (float)$d['duree_h'] : null;
+            $res['loin'] = $E && $duree !== null && $duree > (float)$E['heuresTrajetMax'];
+            $trajets = $res['loin'] ? 1 : $res['jours'];
+            $res['lignes_demarrage'][] = ['label' => 'Frais de déplacement depuis Cambes', 'desc' => $trajets . ' trajet(s) × ' . str_replace('.', ',', (string)$km) . ' km' . ($ar === 2 ? ' × 2 (aller-retour)' : '') . ' × ' . number_format((float)$T['deplacementKm'], 2, ',', ' ') . ' €', 'qte' => round($km * $ar * $trajets, 1), 'unite' => 'km', 'pu' => (float)$T['deplacementKm']];
             $kp = round(max(0, min($km, (float)($d['km_peage'] ?? 0))), 1);
             $P = $T['peage'] ?? null;
-            if ($P && $kp > 0 && $kp * 2 * $res['jours'] * (float)$P['prixKm'] >= (float)$P['minimum']) {
-                $res['lignes_demarrage'][] = ['label' => 'Frais de péage', 'desc' => $res['jours'] . ' journée(s) × ' . str_replace('.', ',', (string)$kp) . ' km à péage × 2 (aller-retour) × ' . number_format((float)$P['prixKm'], 2, ',', ' ') . ' €', 'qte' => round($kp * 2 * $res['jours'], 1), 'unite' => 'km', 'pu' => (float)$P['prixKm']];
+            if ($P && $kp > 0 && $kp * 2 * $trajets * (float)$P['prixKm'] >= (float)$P['minimum']) {
+                $res['lignes_demarrage'][] = ['label' => 'Frais de péage', 'desc' => $trajets . ' trajet(s) × ' . str_replace('.', ',', (string)$kp) . ' km à péage × 2 (aller-retour) × ' . number_format((float)$P['prixKm'], 2, ',', ' ') . ' €', 'qte' => round($kp * 2 * $trajets, 1), 'unite' => 'km', 'pu' => (float)$P['prixKm']];
+            }
+            if ($res['loin']) {
+                $res['lignes_demarrage'][] = ['label' => 'Hébergement et repas', 'desc' => 'Plus de ' . (int)$E['heuresTrajetMax'] . ' h de route depuis Cambes (' . str_replace('.', ',', (string)round($duree, 1)) . ' h) : ' . $res['jours'] . ' jour(s) × ' . eur((float)$E['hebergementParJour']), 'qte' => $res['jours'], 'unite' => 'jour', 'pu' => (float)$E['hebergementParJour']];
             }
         }
         foreach ($res['lignes_demarrage'] as $l) { $res['demarrage_ht'] += round($l['qte'] * $l['pu'], 2); }

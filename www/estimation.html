@@ -581,8 +581,9 @@ var TARIFS = {
       if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Diagnostic dans la couronne ('+qh+' arbre'+(qh>1?'s':'')+')',r2(qh*puh)]);}
       if(!jours&&(qb||qh))jours=1;
       if(jours){
-        if(lieu.km!=null){var ar=T.deplacementAllerRetour?2:1,dep=r2(lieu.km*ar*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement (aller-retour)',dep]);
-          if(T.peage&&lieu.kmPeage>0){var pg=r2(lieu.kmPeage*2*T.peage.prixKm*jours);if(pg>=T.peage.minimum){ht+=pg;lignes.push(['Péage (estimation)',pg]);}}}
+        if(lieu.km!=null){var E=T.eloignement,loin=E&&lieu.dureeH>E.heuresTrajetMax,tr=loin?1:jours,ar=T.deplacementAllerRetour?2:1,dep=r2(lieu.km*ar*T.deplacementKm*tr);ht+=dep;lignes.push(['Déplacement (aller-retour)',dep]);
+          if(T.peage&&lieu.kmPeage>0){var pg=r2(lieu.kmPeage*2*T.peage.prixKm*tr);if(pg>=T.peage.minimum){ht+=pg;lignes.push(['Péage (estimation)',pg]);}}
+          if(loin){var hb=r2(jours*E.hebergementParJour);ht+=hb;lignes.push(['Hébergement et repas ('+jours+' jour'+(jours>1?'s':'')+')',hb]);}}
         else lignes.push(['Déplacement : indiquez le lieu d\'intervention',null]);
       }
       html+='<div class="res-bloc"><h3>'+(abo?'Démarrage — une fois':'Prestation ponctuelle')+'</h3><ul class="lignes">'+(lignes.map(li).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>')+'</ul>';
@@ -629,19 +630,19 @@ var TARIFS = {
   }
   function choisir(pt){
     var D=T.depart;lieu.label=pt.label;lieu.kmPeage=0;$('distInfo').textContent='Calcul de la distance…';
-    var base='https://data.geopf.fr/navigation/itineraire?profile=car&optimization=fastest&getBbox=false&distanceUnit=kilometer&start='+D.lon+','+D.lat+'&end='+pt.lon+','+pt.lat;
-    function fin(km,kp,estime){lieu.km=Math.round(km*10)/10;lieu.kmPeage=Math.round(Math.min(kp,km)*10)/10;
-      $('distInfo').textContent=(estime?'Distance estimée depuis Cambes : environ ':'Distance par la route depuis Cambes : ')+String(lieu.km).replace('.',',')+' km'+(lieu.kmPeage>0?', dont '+String(lieu.kmPeage).replace('.',',')+' km d\'autoroute à péage':'')+'. Déplacement compté aller-retour.';calcul();}
+    var base='https://data.geopf.fr/navigation/itineraire?profile=car&optimization=fastest&getBbox=false&distanceUnit=kilometer&timeUnit=hour&start='+D.lon+','+D.lat+'&end='+pt.lon+','+pt.lat;
+    function fin(km,kp,estime,h){lieu.km=Math.round(km*10)/10;lieu.dureeH=(h>0?h:km/75);lieu.kmPeage=Math.round(Math.min(kp,km)*10)/10;
+      $('distInfo').textContent=(estime?'Distance estimée depuis Cambes : environ ':'Distance par la route depuis Cambes : ')+String(lieu.km).replace('.',',')+' km'+(lieu.kmPeage>0?', dont '+String(lieu.kmPeage).replace('.',',')+' km d\'autoroute à péage':'')+(T.eloignement&&lieu.dureeH>T.eloignement.heuresTrajetMax?'. Plus de '+T.eloignement.heuresTrajetMax+' h de route : un seul aller-retour, hébergement et repas comptés par jour sur place.':'. Déplacement compté aller-retour.');calcul();}
     fetch(base+'&resource=bdtopo-pgr&getSteps=true&waysAttributes=acces_vehicule_leger').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
       var km=parseFloat(d.distance);if(!(km>0))throw 0;var kp=0;
       (d.portions||[]).forEach(function(po){(po.steps||[]).forEach(function(st){var a=JSON.stringify(st.attributes||{}).toLowerCase();if(a.indexOf('péage')>-1||a.indexOf('peage')>-1||a.indexOf('p\\u00e9age')>-1)kp+=parseFloat(st.distance)||0})});
-      if(kp>km*1.05)kp=kp/1000;fin(km,kp,false);
+      if(kp>km*1.05)kp=kp/1000;var h=parseFloat(d.duration);if(h>30)h=h/60;fin(km,kp,false,h);
     }).catch(function(){
-      fetch(base+'&resource=bdtopo-valhalla&getSteps=false').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){var km=parseFloat(d.distance);if(!(km>0))throw 0;fin(km,0,false)})
-      .catch(function(){fin(hav(D,pt)*1.3,0,true)});
+      fetch(base+'&resource=bdtopo-valhalla&getSteps=false').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){var km=parseFloat(d.distance);if(!(km>0))throw 0;var h=parseFloat(d.duration);if(h>30)h=h/60;fin(km,0,false,h)})
+      .catch(function(){fin(hav(D,pt)*1.3,0,true,0)});
     });
   }
-  $('adresse').addEventListener('input',function(){var v=this.value.trim();if(sugg[v]){choisir(sugg[v]);return}lieu={label:'',km:null,kmPeage:0};calcul();clearTimeout(minuteur);if(v.length>=3)minuteur=setTimeout(function(){chercher(v)},250)});
+  $('adresse').addEventListener('input',function(){var v=this.value.trim();if(sugg[v]){choisir(sugg[v]);return}lieu={label:'',km:null,kmPeage:0,dureeH:0};calcul();clearTimeout(minuteur);if(v.length>=3)minuteur=setTimeout(function(){chercher(v)},250)});
   $('adresse').addEventListener('change',function(){var v=this.value.trim();if(sugg[v])choisir(sugg[v]);else if(v.length>=3)chercher(v)});
 
   document.querySelectorAll('.onglets button').forEach(function(b){b.addEventListener('click',function(){profil=b.dataset.p;try{history.replaceState(null,'','#'+profil)}catch(e){}afficherOffre()})});
@@ -714,7 +715,7 @@ var TARIFS = {
     var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
       site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
       client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
-      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:true,prev:$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,km_peage:lieu.kmPeage||0,abonnement:$('b_abo').checked}};
+      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:true,prev:$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,km_peage:lieu.kmPeage||0,duree_h:lieu.dureeH||null,abonnement:$('b_abo').checked}};
     if(!corps.estimation.demarrage&&!corps.estimation.abonnement){err.textContent='Dans le calculateur, cochez le démarrage, le suivi annuel, ou les deux.';return}
     var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
     fetch('api/demande.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)})
