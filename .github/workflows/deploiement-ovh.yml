@@ -1,0 +1,48 @@
+name: Mise en ligne sur OVH
+
+on:
+  push:
+    branches: [main]
+    paths: ["www/**", ".github/workflows/deploiement-ovh.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: deploiement-ovh
+  cancel-in-progress: false
+
+jobs:
+  deploiement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifications avant envoi
+        run: |
+          php -l www/contact.php
+          python3 -c "import re,json;h=open('www/index.html',encoding='utf8').read();json.loads(re.search(r'ld\+json\">(.*?)</script>',h,re.S).group(1));print('index.html OK')"
+          python3 -c "import xml.dom.minidom as m;m.parse('www/sitemap.xml');print('sitemap OK')"
+
+      - name: Installer lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Envoyer le site sur OVH
+        env:
+          HOTE: ${{ secrets.OVH_HOTE }}
+          UTILISATEUR: ${{ secrets.OVH_UTILISATEUR }}
+          MOT_DE_PASSE: ${{ secrets.OVH_MOT_DE_PASSE }}
+        run: |
+          lftp -u "$UTILISATEUR","$MOT_DE_PASSE" "sftp://$HOTE" -e "
+            set sftp:auto-confirm yes;
+            set net:max-retries 3;
+            set net:timeout 30;
+            mirror --reverse --only-newer --verbose --parallel=4 \
+              --exclude-glob .git* \
+              www/ arbogestion/www/;
+            bye"
+
+      - name: Vérifier que le site répond
+        run: |
+          sleep 5
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://arbogestion.fr/)
+          echo "arbogestion.fr répond : $code"
+          test "$code" = "200"
