@@ -101,5 +101,19 @@
         20833.33
       ]
     ]
+  },
+  "ponctuel": {
+    "_note": "Prestation ponctuelle (sans abonnement) : forfait sur place jusqu'à N arbres, puis prix par arbre supplémentaire. Préconisations comprises.",
+    "forfaitHeures": 2,
+    "arbresInclus": 7,
+    "prixArbreSupplementaire": 9.1
+  },
+  "acompte": {
+    "_note": "Acompte demandé à la signature du devis, sur les prestations ponctuelles et de démarrage (l'abonnement est facturé par l'abonnement).",
+    "pourcentage": 50,
+    "profils": [
+      "particulier",
+      "pro"
+    ]
   }
 }

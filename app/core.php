@@ -106,6 +106,18 @@ function calculer(array $d): array {
             $res['lignes_demarrage'][] = ['label' => $label, 'desc' => $desc, 'qte' => $n, 'unite' => 'arbre', 'pu' => $pu];
         }
     };
+    $ponctuel = !empty($d['demarrage']) && empty($d['abonnement']);
+    if ($ponctuel) {
+        // Prestation ponctuelle : forfait sur place jusqu'à N arbres, puis prix par arbre supplémentaire ; préconisations comprises
+        $P = $T['ponctuel'];
+        $forfait = round((float)$P['forfaitHeures'] * (float)$T['tauxHoraire'], 2);
+        $res['lignes_demarrage'][] = ['label' => 'Diagnostic ponctuel sur place', 'desc' => 'Recensement, diagnostic visuel et préconisations, compte rendu écrit – forfait jusqu’à ' . (int)$P['arbresInclus'] . ' arbres', 'qte' => 1, 'unite' => 'forfait', 'pu' => $forfait];
+        if ($n > (int)$P['arbresInclus']) {
+            $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Au-delà de ' . (int)$P['arbresInclus'] . ' arbres', 'qte' => $n - (int)$P['arbresInclus'], 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
+        }
+        $res['jours'] = (int)ceil($n / $T['arbresParJour']);
+        $d['diag'] = false; $d['prev'] = false;
+    }
     if (!empty($d['demarrage'])) {
         if (!empty($d['diag'])) {
             $ligne_arbres('Recensement et diagnostic sur place', 'Localisation, identification et analyse sanitaire de chaque arbre, saisie dans Grality', (float)$T['diagnosticParArbre']);
@@ -130,6 +142,8 @@ function calculer(array $d): array {
         foreach ($res['lignes_demarrage'] as $l) { $res['demarrage_ht'] += round($l['qte'] * $l['pu'], 2); }
         $res['demarrage_ht'] = round($res['demarrage_ht'], 2);
     }
+    $A = $T['acompte'] ?? null;
+    $res['acompte_ht'] = ($A && in_array($d['profil'], $A['profils'], true) && $res['demarrage_ht'] > 0) ? round($res['demarrage_ht'] * $A['pourcentage'] / 100, 2) : 0.0;
     if (!empty($d['abonnement'])) {
         $p = palier($d['profil'], $n);
         $res['abonnement'] = $p ? $p + ['sur_devis' => false] : ['sur_devis' => true];

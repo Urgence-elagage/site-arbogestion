@@ -13,6 +13,7 @@
 <style>
 :root{--vert:#1e3d33;--vert2:#163028;--lime:#b7c93b;--creme:#f6f5f0;--texte:#2b2b2b;--gris:#5f655f;--bleu:#eaf3fb}
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth;font-size:clamp(16px,calc(12px + .45vw),20px);scroll-padding-top:110px}
 body{font-family:Lato,system-ui,sans-serif;color:var(--texte);background:var(--creme);line-height:1.6}
 img{max-width:100%;display:block}
@@ -337,8 +338,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
           <div id="blocPonctuel" style="margin-top:20px">
             <h3 style="color:var(--vert);font-size:1.05rem;margin-bottom:10px" id="t-prestations">Prestations de démarrage</h3>
             <div class="opts">
-              <label class="opt"><input type="checkbox" id="o_diag" checked><span><b>Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisis dans Grality.</small><small class="seuil" id="seuil_diag"></small></span><span class="px" id="px_diag"></span></label>
-              <label class="opt"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small><small class="seuil" id="seuil_prev"></small></span><span class="px" id="px_prev"></span></label>
+              <label class="opt" id="l_diag"><input type="checkbox" id="o_diag" checked><span><b id="t_diag">Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisis dans Grality.</small><small class="seuil" id="seuil_diag"></small></span><span class="px" id="px_diag"></span></label>
+              <label class="opt" id="l_prev"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small><small class="seuil" id="seuil_prev"></small></span><span class="px" id="px_prev"></span></label>
             </div>
             <h3 style="color:var(--vert);font-size:1.05rem;margin:20px 0 10px">Tests au résistographe <small style="font-weight:400;color:var(--gris)">(facultatif)</small></h3>
             <p style="color:var(--gris);font-size:.92rem;margin:-4px 0 12px">Le résistographe est un appareil qui fait pénétrer une aiguille très fine dans le bois en mesurant sa résistance. Il révèle, sans abattre ni abîmer l'arbre, les zones creuses, pourries ou fissurées invisibles de l'extérieur. Utile quand un arbre présente un doute sur sa solidité.</p>
@@ -539,7 +540,11 @@ var TARIFS = {
     var seuil=function(pu){return Math.floor((mini-1e-9)/pu)};
     $('px_diag').textContent=eur(T.diagnosticParArbre)+' HT / arbre';
     $('px_prev').textContent=eur(T.previsionnelParArbre)+' HT / arbre';
-    $('seuil_diag').textContent='Jusqu\'à '+seuil(T.diagnosticParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
+    var Pn=T.ponctuel,forf=Pn.forfaitHeures*T.tauxHoraire,ponct=$('b_init').checked&&!$('b_abo').checked;
+    $('l_prev').style.display=ponct?'none':'';$('o_diag').disabled=ponct;if(ponct)$('o_diag').checked=true;
+    $('t_diag').textContent=ponct?'Diagnostic sur place, préconisations comprises':'Recensement et diagnostic sur place';
+    if(ponct){$('px_diag').textContent=eur(forf)+' HT';$('seuil_diag').textContent='Forfait de '+Pn.forfaitHeures+' h sur place jusqu\'à '+Pn.arbresInclus+' arbres, puis '+eur(Pn.prixArbreSupplementaire)+' HT par arbre supplémentaire. Compte rendu et préconisations compris.';}
+    else $('seuil_diag').textContent='Jusqu\'à '+seuil(T.diagnosticParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
     $('seuil_prev').textContent='Jusqu\'à '+seuil(T.previsionnelParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
     $('px_rb').textContent=eur(r.base)+' HT / test';
     $('px_rh').textContent=eur(r.houppierTauxHoraire*r.houppierHeuresParTest)+' HT / arbre';
@@ -554,10 +559,15 @@ var TARIFS = {
     var li=function(l){return '<li><span>'+l[0]+'</span><b>'+(l[1]==null?'—':(l[1]==='devis'?'au devis':eur(l[1])+' HT'))+'</b></li>'};
 
     if(init){
-      var lignes=[],ht=0,jours=0;
+      var lignes=[],ht=0,jours=0,txtAc='';
       var parArbre=function(nom,pu){var m=n*pu;if(m<mini){ht+=mini;lignes.push([nom+' (forfait 1 h)',mini]);}else{ht+=r2(m);lignes.push([nom+' ('+n+' arbres)',r2(m)]);}};
+      if(ponct){ht+=forf;lignes.push(['Diagnostic ponctuel (forfait '+Pn.forfaitHeures+' h, jusqu\'à '+Pn.arbresInclus+' arbres)',forf]);
+        if(n>Pn.arbresInclus){var sup=r2((n-Pn.arbresInclus)*Pn.prixArbreSupplementaire);ht+=sup;lignes.push(['Arbres supplémentaires ('+(n-Pn.arbresInclus)+' × '+eur(Pn.prixArbreSupplementaire)+')',sup]);}
+        jours=Math.ceil(n/T.arbresParJour);}
+      else{
       if($('o_diag').checked){parArbre('Recensement et diagnostic',T.diagnosticParArbre);jours=Math.ceil(n/T.arbresParJour);}
       if($('o_prev').checked){parArbre('Prévisionnel d\'intervention',T.previsionnelParArbre);}
+      }
       var qb=Math.max(0,parseInt($('q_rb').value,10)||0),qh=Math.max(0,parseInt($('q_rh').value,10)||0);
       if(qb){ht+=qb*r.base;lignes.push(['Résistographe au pied du tronc ('+qb+' × '+eur(r.base)+')',qb*r.base]);}
       if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Résistographe en hauteur ('+qh+' arbre'+(qh>1?'s':'')+' × '+eur(puh)+')',r2(qh*puh)]);}
@@ -567,7 +577,8 @@ var TARIFS = {
         else lignes.push(['Déplacement : indiquez le lieu d\'intervention',null]);
       }
       html+='<div class="res-bloc"><h3>'+(abo?'Démarrage — une fois':'Prestation ponctuelle')+'</h3><ul class="lignes">'+(lignes.map(li).join('')||'<li><span>Sélectionnez au moins une prestation.</span></li>')+'</ul>';
-      if(ht>0)html+='<div class="total">'+tot(ht,'')+'</div>';
+      if(ht>0){html+='<div class="total">'+tot(ht,'')+'</div>';
+        if(T.acompte&&T.acompte.profils.indexOf(profil)>=0){var ac=r2(ht*T.acompte.pourcentage/100);html+='<div class="sous" style="margin-top:8px;color:var(--lime);font-weight:700">Acompte à la signature ('+T.acompte.pourcentage+' %) : '+(P.ttc?eur(ac*(1+T.tva))+' TTC':eur(ac)+' HT')+'</div>';txtAc=' — acompte '+T.acompte.pourcentage+' % : '+eur(ac*(1+T.tva))+' TTC';}}
       html+='</div>';
       txt.push('','Démarrage (une fois) :');
       lignes.forEach(function(l){if(l[1]==='devis')txt.push('- '+l[0]+' : chiffré au devis');else if(l[1]!=null)txt.push('- '+l[0]+' : '+eur(l[1])+' HT')});
@@ -670,7 +681,7 @@ var TARIFS = {
     var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
       site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
       client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
-      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:$('o_diag').checked,prev:$('o_prev').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,abonnement:$('b_abo').checked}};
+      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:$('o_diag').checked,prev:$('o_prev').checked&&$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,abonnement:$('b_abo').checked}};
     if(!corps.estimation.demarrage&&!corps.estimation.abonnement){err.textContent='Dans le calculateur, cochez le démarrage, le suivi annuel, ou les deux.';return}
     var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
     fetch('api/demande.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)})

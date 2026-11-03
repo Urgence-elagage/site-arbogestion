@@ -38,6 +38,24 @@ function abonnement_pennylane(array $row, array $dem, array $calc, string $debut
     ];
 }
 
+/** Facture d'acompte BROUILLON dans Pennylane (compte 4191) : Kevin la finalise et choisit le mode de paiement. */
+function creer_acompte(array $row, array $calc): ?string {
+    if (empty($calc['acompte_ht'])) { return null; }
+    $A = tarifs()['acompte'];
+    $ligne = ['label' => 'Acompte de ' . $A['pourcentage'] . ' % – devis n° ' . $row['pl_devis_numero'], 'description' => 'Acompte à la signature sur les prestations du devis ; le solde est facturé après réalisation',
+        'quantity' => 1, 'unit' => 'forfait', 'raw_currency_unit_price' => prix6($calc['acompte_ht']), 'vat_rate' => 'FR_200'];
+    try {
+        $f = pl_filtre([['field' => 'number', 'operator' => 'eq', 'value' => '4191']]);
+        $la = pennylane('GET', '/ledger_accounts?filter=' . $f . '&filters=' . $f);
+        if (!empty($la['items'][0]['id'])) { $ligne['ledger_account_id'] = (int)$la['items'][0]['id']; }
+    } catch (Throwable $e) { journal('Compte 4191 introuvable : ' . $e->getMessage()); }
+    $fa = pennylane('POST', '/customer_invoices', [
+        'date' => date('Y-m-d'), 'deadline' => date('Y-m-d', strtotime('+8 days')), 'customer_id' => (int)$row['pl_client_id'], 'draft' => true,
+        'language' => 'fr_FR', 'pdf_invoice_subject' => 'Facture d’acompte – devis n° ' . $row['pl_devis_numero'], 'invoice_lines' => [$ligne],
+    ]);
+    return (string)($fa['id'] ?? '');
+}
+
 function maj_demande(int $id, array $champs): void {
     $champs['maj_le'] = date('Y-m-d H:i:s');
     $set = implode(', ', array_map(fn($k) => "$k = ?", array_keys($champs)));
@@ -92,10 +110,15 @@ function suite_signature(array $row): string {
         return 'collectivité : lien bon de commande envoyé';
     }
 
-    if (!$avec_abonnement) { // prestation ponctuelle (ou abonnement sur devis) : rien à automatiser
-        maj_demande($id, ['statut' => 'signe_ponctuel', 'notes' => ajouter_note($row, 'Devis signé (prestation ponctuelle).')]);
+    $acompte = null; $acompte_txt = '';
+    if (!empty($calc['acompte_ht'])) {
+        try { $acompte = creer_acompte($row, $calc); $acompte_txt = "\nFacture d'acompte de " . eur(round($calc['acompte_ht'] * 1.2, 2)) . " TTC créée en BROUILLON dans Pennylane : à finaliser et envoyer au client avec le mode de paiement choisi."; }
+        catch (Throwable $e) { $acompte_txt = "\nATTENTION : la facture d'acompte n'a pas pu être créée (" . $e->getMessage() . ") : à faire à la main."; }
+    }
+    if (!$avec_abonnement) { // prestation ponctuelle (ou abonnement sur devis) : rien de récurrent
+        maj_demande($id, ['statut' => 'signe_ponctuel', 'notes' => ajouter_note($row, 'Devis signé (prestation ponctuelle).' . ($acompte ? " Acompte brouillon $acompte." : ''))]);
         envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']} (prestation ponctuelle)",
-            "Le devis {$row['pl_devis_numero']} (prestation ponctuelle, sans abonnement) a été signé." . (!empty($dem['execution_anticipee']) ? "\nLe client a demandé une exécution avant la fin du délai de rétractation." : ($dem['profil'] === 'particulier' ? "\nAttention : particulier sans demande d'exécution anticipée, intervenir après le délai de rétractation de 14 jours." : '')) . "\n\nÀ faire : convenir de la date d'intervention avec le client ({$c['email']}" . (empty($c['tel']) ? '' : ", {$c['tel']}") . "), puis facturer après réalisation (Pennylane > Devis > Transformer en facture).");
+            "Le devis {$row['pl_devis_numero']} (prestation ponctuelle, sans abonnement) a été signé." . $acompte_txt . (!empty($dem['execution_anticipee']) ? "\nLe client a demandé une exécution avant la fin du délai de rétractation." : ($dem['profil'] === 'particulier' ? "\nAttention : particulier sans demande d'exécution anticipée, intervenir après le délai de rétractation de 14 jours." : '')) . "\n\nÀ faire : convenir de la date d'intervention avec le client ({$c['email']}" . (empty($c['tel']) ? '' : ", {$c['tel']}") . "), puis facturer le solde après réalisation (Pennylane > Devis > Transformer en facture, en déduisant l'acompte).");
         envoyer_mail($c['email'], 'Arbogestion – Votre devis ' . $row['pl_devis_numero'] . ' est validé',
             "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}. Nous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
         return 'prestation ponctuelle : rendez-vous à fixer';
@@ -125,7 +148,7 @@ function suite_signature(array $row): string {
     }
     maj_demande($id, ['statut' => 'signe_mandat_demande', 'pl_abonnement_id' => $abo_id, 'notes' => ajouter_note($row, 'Devis signé : ' . implode(', ', $faits) . '.')]);
     envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']}",
-        "Le devis {$row['pl_devis_numero']} a été signé.\nFait automatiquement : " . implode(' ; ', $faits) . ".\n\nÀ faire de ton côté : planifier le démarrage, puis facturer le démarrage après réalisation (Pennylane > Devis > Transformer en facture, en retirant la ligne d'abonnement, facturée par l'abonnement).");
+        "Le devis {$row['pl_devis_numero']} a été signé.\nFait automatiquement : " . implode(' ; ', $faits) . "." . $acompte_txt . "\n\nÀ faire de ton côté : planifier le démarrage, puis facturer le démarrage après réalisation (Pennylane > Devis > Transformer en facture, en retirant la ligne d'abonnement, facturée par l'abonnement, et en déduisant l'acompte).");
     return implode(', ', $faits);
 }
 

@@ -47,7 +47,7 @@ function valider_demande(array $in): array {
     ];
     if ($est['nb'] < 1 || $est['nb'] > 10000) { throw new ErreurDemande("Nombre d'arbres invalide."); }
     if (!$est['demarrage'] && !$est['abonnement']) { throw new ErreurDemande('Choisissez une formule : prestation ponctuelle, démarrage + suivi, ou suivi seul.'); }
-    if ($est['demarrage'] && !$est['diag'] && !$est['prev'] && !$est['rb'] && !$est['rh']) { throw new ErreurDemande('Sélectionnez au moins une prestation.'); }
+    if ($est['demarrage'] && $est['abonnement'] && !$est['diag'] && !$est['prev'] && !$est['rb'] && !$est['rh']) { throw new ErreurDemande('Sélectionnez au moins une prestation.'); }
     if (empty($in['consentement'])) { throw new ErreurDemande('Merci de cocher la case de consentement.'); }
     $debut = (string)($in['date_debut'] ?? '');
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $debut) || strtotime($debut) < strtotime('today')) {
@@ -134,7 +134,8 @@ function lignes_devis(array $dem, array $calc): array {
 function texte_estimation(array $dem, array $calc): string {
     $T = tarifs(); $t = [];
     foreach ($calc['lignes_demarrage'] as $l) { $t[] = '- ' . $l['label'] . ' : ' . str_replace(['.'], [','], (string)$l['qte']) . ' ' . $l['unite'] . ' × ' . eur($l['pu']) . ' = ' . eur(round($l['qte'] * $l['pu'], 2)) . ' HT'; }
-    if ($calc['demarrage_ht'] > 0) { $t[] = '  Total démarrage : ' . eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)'; }
+    if ($calc['demarrage_ht'] > 0) { $t[] = '  Total ' . ($calc['abonnement'] ? 'démarrage' : 'prestation') . ' : ' . eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)'; }
+    if (!empty($calc['acompte_ht'])) { $t[] = '  Acompte à la signature (' . $T['acompte']['pourcentage'] . ' %) : ' . eur(round($calc['acompte_ht'] * (1 + $T['tva']), 2)) . ' TTC'; }
     $ab = $calc['abonnement'];
     if ($ab) { $t[] = empty($ab['sur_devis']) ? '- Abonnement ' . PROFILS[$dem['profil']]['formule'] . " jusqu'à {$ab['max']} arbres : " . eur($ab['prix']) . ' HT / an (' . $dem['paiement'] . ')' : '- Abonnement : au-delà du dernier palier, sur devis'; }
     return implode("\n", $t);
@@ -162,6 +163,7 @@ function traiter_demande(array $in): array {
             ? 'La signature du présent devis vaut acceptation des conditions de prestation ponctuelle jointes en annexe. Prestation sans abonnement, facturée après sa réalisation. Les interventions de terrain ne sont pas comprises.'
             : 'La signature du présent devis vaut acceptation du contrat d’abonnement Arbogestion joint en annexe (conditions générales, grille tarifaire 2026 et conditions particulières). '
               . 'Les prestations de démarrage sont facturées après leur réalisation ; l’abonnement est facturé selon l’échéancier du contrat. Les interventions de terrain ne sont pas comprises.';
+        if ($calc['acompte_ht'] > 0) { $mention .= ' Un acompte de ' . tarifs()['acompte']['pourcentage'] . ' % des prestations ' . ($ponctuel ? '' : 'de démarrage ') . '(' . eur(round($calc['acompte_ht'] * (1 + tarifs()['tva']), 2)) . ' TTC) est demandé à la signature, le solde étant facturé après réalisation.'; }
         if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article ' . ($ponctuel ? '5 des conditions' : '6 du contrat') . ').'; }
         if ($dem['profil'] === 'collectivite') { $mention .= ' L’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.'; }
         $desc = 'Demande en ligne n° ' . $id . ' – ' . $calc['nb'] . ' arbres' . ($dem['lieu_label'] ? ' – ' . $dem['lieu_label'] : '');
