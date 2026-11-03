@@ -116,7 +116,7 @@ function calculer(array $d): array {
     // Prix au nombre d'arbres, avec un minimum d'1 h au taux horaire : seuil calculé automatiquement
     $ligne_arbres = function (string $label, string $desc, float $pu) use ($n, $mini, &$res) {
         if ($n * $pu < $mini) {
-            $res['lignes_demarrage'][] = ['label' => $label, 'desc' => $desc . ' – forfait minimum (1 h)', 'qte' => 1, 'unite' => 'heure', 'pu' => $mini];
+            $res['lignes_demarrage'][] = ['label' => $label, 'desc' => $desc, 'qte' => 1, 'unite' => 'forfait', 'pu' => $mini];
         } else {
             $res['lignes_demarrage'][] = ['label' => $label, 'desc' => $desc, 'qte' => $n, 'unite' => 'arbre', 'pu' => $pu];
         }
@@ -134,9 +134,9 @@ function calculer(array $d): array {
         // Chaque journée sur place : forfait de N h (jusqu'à X arbres), puis prix par arbre supplémentaire
         $sup = 0;
         for ($j = 1; $j <= $nbJours; $j++) { $sup += max(0, min($parJour, $n - ($j - 1) * $parJour) - $inclus); }
-        $res['lignes_demarrage'][] = ['label' => $ponctuel ? 'Diagnostic ponctuel sur place' : 'Recensement et diagnostic sur place', 'desc' => ($ponctuel ? 'Recensement, diagnostic visuel et préconisations, compte rendu écrit' : 'Recensement et diagnostic initial de chaque arbre, saisi dans Grality') . ' – forfait ' . (int)$P['forfaitHeures'] . ' h par journée sur place, jusqu’à ' . $inclus . ' arbres par journée (' . $parJour . ' arbres maximum par journée)', 'qte' => $nbJours, 'unite' => 'journée', 'pu' => $forfait];
+        $res['lignes_demarrage'][] = ['label' => $ponctuel ? 'Diagnostic ponctuel sur place' : 'Recensement et diagnostic sur place', 'desc' => ($ponctuel ? 'Recensement, diagnostic visuel et préconisations, compte rendu écrit' : 'Recensement et diagnostic initial de chaque arbre, saisi dans Grality'), 'qte' => $nbJours, 'unite' => 'journée', 'pu' => $forfait];
         if ($sup > 0) {
-            $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Au-delà de ' . $inclus . ' arbres par journée', 'qte' => $sup, 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
+            $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Arbres diagnostiqués en plus', 'qte' => $sup, 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
         }
         $res['jours'] = (int)ceil($n / $T['arbresParJour']);
         $d['diag'] = false;
@@ -156,7 +156,7 @@ function calculer(array $d): array {
         if ($rb) { $res['lignes_demarrage'][] = ['label' => 'Test au résistographe au pied du tronc', 'desc' => 'Mesure de la résistance du bois à la base de l’arbre, remise des résultats', 'qte' => $rb, 'unite' => 'test', 'pu' => (float)$R['base']]; }
         if ($rh) {
             $puh = round((float)$R['houppierTauxHoraire'] * (float)$R['houppierHeuresParTest'], 2);
-            $res['lignes_demarrage'][] = ['label' => 'Diagnostic dans la couronne de l\'arbre', 'desc' => 'Test au résistographe dans la couronne, rapport des résultats', 'qte' => $rh, 'unite' => 'arbre', 'pu' => $puh];
+            $res['lignes_demarrage'][] = ['label' => 'Diagnostic dans la couronne de l\'arbre', 'desc' => 'Prestation réalisée avec un arboriste grimpeur', 'qte' => $rh, 'unite' => 'arbre', 'pu' => $puh];
         }
         if (!$res['jours'] && ($rb || $rh)) { $res['jours'] = 1; }
         $km = isset($d['km']) && $d['km'] !== null && $d['km'] !== '' ? round(max(0, min(1500, (float)$d['km'])), 1) : null;
