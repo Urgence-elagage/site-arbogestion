@@ -46,7 +46,7 @@ function valider_demande(array $in): array {
         'abonnement' => !empty($e['abonnement']),
     ];
     if ($est['nb'] < 1 || $est['nb'] > 10000) { throw new ErreurDemande("Nombre d'arbres invalide."); }
-    if (!$est['demarrage'] && !$est['abonnement']) { throw new ErreurDemande('Choisissez une formule : prestation ponctuelle, démarrage + suivi, ou suivi seul.'); }
+    if (!$est['demarrage'] && !$est['abonnement']) { throw new ErreurDemande('Choisissez une formule : prestation ponctuelle, recensement et diagnostic initial + abonnement de suivi, ou abonnement de suivi seul.'); }
     if ($est['demarrage'] && $est['abonnement'] && !$est['diag'] && !$est['prev'] && !$est['rb'] && !$est['rh']) { throw new ErreurDemande('Sélectionnez au moins une prestation.'); }
     if (empty($in['consentement'])) { throw new ErreurDemande('Merci de cocher la case de consentement.'); }
     $debut = (string)($in['date_debut'] ?? '');
@@ -230,7 +230,7 @@ function traiter_demande(array $in): array {
         . ($dem['profil'] === 'particulier' ? '' : "\nSIREN : {$c['siren']}\nReprésentant : {$c['representant']}\nRéférent : {$c['referent']}")
         . "\nAdresse : {$c['adresse']}, {$c['cp']} {$c['ville']}\nE-mail : {$c['email']}\nTéléphone : " . ($c['tel'] ?: '—')
         . ($dem['site_adresse'] ? "\nSite suivi : {$dem['site_adresse']}" : '') . ($dem['lieu_label'] ? "\nLieu d'intervention : {$dem['lieu_label']}" : '')
-        . "\nBesoin : " . (empty($calc['abonnement']) ? 'prestation ponctuelle (sans abonnement)' : ($calc['demarrage_ht'] > 0 ? 'démarrage + suivi annuel' : 'suivi annuel seul')) . "\nNombre d'arbres : {$calc['nb']}\nDate de début souhaitée : " . date_fr($dem['date_debut'])
+        . "\nBesoin : " . (empty($calc['abonnement']) ? 'prestation ponctuelle (sans abonnement)' : ($calc['demarrage_ht'] > 0 ? 'recensement et diagnostic initial + abonnement de suivi annuel' : 'abonnement de suivi annuel seul')) . "\nNombre d'arbres : {$calc['nb']}\nDate de début souhaitée : " . date_fr($dem['date_debut'])
         . ($dem['profil'] !== 'collectivite' ? "\nPaiement : " . (empty($calc['abonnement']) ? 'carte bancaire' : $dem['paiement']) : '')
         . ($dem['contraintes'] ? "\nContraintes : {$dem['contraintes']}" : '')
         . ($dem['execution_anticipee'] ? "\nDemande d'exécution avant la fin du délai de rétractation : oui" : '')
