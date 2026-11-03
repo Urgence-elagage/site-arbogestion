@@ -347,7 +347,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
             <p style="color:var(--gris);font-size:.92rem;margin:-4px 0 12px">Le résistographe est un appareil qui fait pénétrer une aiguille très fine dans le bois en mesurant sa résistance. Il révèle, sans abattre ni abîmer l'arbre, les zones creuses, pourries ou fissurées invisibles de l'extérieur. Utile quand un arbre présente un doute sur sa solidité.</p>
             <div class="opts">
               <div class="qte"><span><b style="color:var(--vert)">Au pied du tronc</b><small style="display:block;color:var(--gris)">Nombre de tests à la base de l'arbre, là où se concentrent souvent les pourritures. Remise des résultats.</small></span><span><input type="number" id="q_rb" min="0" max="500" value="0" aria-label="Nombre de tests au pied du tronc"> <span class="px" id="px_rb"></span></span></div>
-              <div class="qte"><span><b style="color:var(--vert)">En hauteur, dans les branches</b><small style="display:block;color:var(--gris)">Nombre d'arbres à tester dans les grosses branches, accessibles par nacelle ou par grimpeur. Rapport des résultats.</small></span><span><input type="number" id="q_rh" min="0" max="100" value="0" aria-label="Nombre d'arbres à tester en hauteur"> <span class="px" id="px_rh"></span></span></div>
+              <div class="qte"><span><b style="color:var(--vert)">Diagnostic dans la couronne de l'arbre</b><small style="display:block;color:var(--gris)">Nombre d'arbres à diagnostiquer dans leur couronne. Rapport des résultats.</small></span><span><input type="number" id="q_rh" min="0" max="100" value="0" aria-label="Nombre d'arbres à diagnostiquer dans leur couronne"> <span class="px" id="px_rh"></span></span></div>
             </div>
             <label for="adresse" style="margin-top:22px">Lieu d'intervention (pour les frais de déplacement)</label>
             <input id="adresse" list="adresses" autocomplete="off" placeholder="Adresse ou commune, ex. : 46160 Cajarc">
@@ -577,7 +577,7 @@ var TARIFS = {
       if(!ponct&&$('o_prev').checked){parArbre('Prévisionnel d\'intervention',T.previsionnelParArbre);}
       var qb=Math.max(0,parseInt($('q_rb').value,10)||0),qh=Math.max(0,parseInt($('q_rh').value,10)||0);
       if(qb){ht+=qb*r.base;lignes.push(['Résistographe au pied du tronc ('+qb+' × '+eur(r.base)+')',qb*r.base]);}
-      if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Résistographe en hauteur ('+qh+' arbre'+(qh>1?'s':'')+' × '+eur(puh)+')',r2(qh*puh)]);}
+      if(qh){var puh=r.houppierTauxHoraire*r.houppierHeuresParTest;ht+=r2(qh*puh);lignes.push(['Diagnostic dans la couronne ('+qh+' arbre'+(qh>1?'s':'')+' × '+eur(puh)+')',r2(qh*puh)]);}
       if(!jours&&(qb||qh))jours=1;
       if(jours){
         if(lieu.km!=null){var dep=r2(lieu.km*T.deplacementKm*jours);ht+=dep;lignes.push(['Déplacement ('+jours+' jour'+(jours>1?'s':'')+' × '+String(lieu.km).replace('.',',')+' km × '+eur(T.deplacementKm)+')',dep]);}

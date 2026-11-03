@@ -156,7 +156,7 @@ function calculer(array $d): array {
         if ($rb) { $res['lignes_demarrage'][] = ['label' => 'Test au résistographe au pied du tronc', 'desc' => 'Mesure de la résistance du bois à la base de l’arbre, remise des résultats', 'qte' => $rb, 'unite' => 'test', 'pu' => (float)$R['base']]; }
         if ($rh) {
             $puh = round((float)$R['houppierTauxHoraire'] * (float)$R['houppierHeuresParTest'], 2);
-            $res['lignes_demarrage'][] = ['label' => 'Test au résistographe en hauteur, dans les branches', 'desc' => 'Accès par nacelle ou par grimpeur, rapport des résultats', 'qte' => $rh, 'unite' => 'arbre', 'pu' => $puh];
+            $res['lignes_demarrage'][] = ['label' => 'Diagnostic dans la couronne de l\'arbre', 'desc' => 'Test au résistographe dans la couronne, rapport des résultats', 'qte' => $rh, 'unite' => 'arbre', 'pu' => $puh];
         }
         if (!$res['jours'] && ($rb || $rh)) { $res['jours'] = 1; }
         $km = isset($d['km']) && $d['km'] !== null && $d['km'] !== '' ? round(max(0, min(1500, (float)$d['km'])), 1) : null;
