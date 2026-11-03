@@ -231,7 +231,7 @@ function traiter_demande(array $in): array {
         . "\nAdresse : {$c['adresse']}, {$c['cp']} {$c['ville']}\nE-mail : {$c['email']}\nTéléphone : " . ($c['tel'] ?: '—')
         . ($dem['site_adresse'] ? "\nSite suivi : {$dem['site_adresse']}" : '') . ($dem['lieu_label'] ? "\nLieu d'intervention : {$dem['lieu_label']}" : '')
         . "\nBesoin : " . (empty($calc['abonnement']) ? 'prestation ponctuelle (sans abonnement)' : ($calc['demarrage_ht'] > 0 ? 'démarrage + suivi annuel' : 'suivi annuel seul')) . "\nNombre d'arbres : {$calc['nb']}\nDate de début souhaitée : " . date_fr($dem['date_debut'])
-        . ($dem['profil'] !== 'collectivite' ? "\nPaiement : {$dem['paiement']}" : '')
+        . ($dem['profil'] !== 'collectivite' ? "\nPaiement : " . (empty($calc['abonnement']) ? 'carte bancaire' : $dem['paiement']) : '')
         . ($dem['contraintes'] ? "\nContraintes : {$dem['contraintes']}" : '')
         . ($dem['execution_anticipee'] ? "\nDemande d'exécution avant la fin du délai de rétractation : oui" : '')
         . "\n\nEstimation recalculée :\n$resume" . ($dem['message'] ? "\n\nMessage du client :\n{$dem['message']}" : '');

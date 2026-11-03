@@ -237,7 +237,7 @@ function conditions_ponctuelles_html(array $dem, array $calc, string $numero_dev
         : h($c['denomination'] ?? '') . ', SIREN ' . h($c['siren'] ?? '') . ', ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '') . ($col && !empty($c['habilitation']) ? ', habilité(e) par ' . h($c['habilitation']) : '') . '. Référent : ' . h($c['referent'] ?? '') . ', ' . h($c['email'] ?? '');
     $presta = array_map(fn($l) => h($l['label']), $calc['lignes_demarrage']);
     $montant = $part ? eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC (' . eur($calc['demarrage_ht']) . ' HT)' : eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)';
-    $acompte = $col ? 'Aucun – facture après réalisation, déposée sur Chorus Pro' : (int)$T['acompte']['pourcentage'] . ' % du devis à la signature (prélèvement SEPA, carte bancaire ou virement), solde après réalisation';
+    $acompte = $col ? 'Aucun – facture après réalisation, déposée sur Chorus Pro' : (int)$T['acompte']['pourcentage'] . ' % du devis à la signature, solde après réalisation, par carte bancaire';
     ob_start(); ?>
 <!doctype html><html lang="fr"><head><meta charset="utf-8"><style>
 @page{margin:16mm 16mm 18mm 16mm}

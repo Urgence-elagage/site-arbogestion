@@ -400,6 +400,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
       <div class="ligne">
         <div><label for="date_debut">Date de début souhaitée</label><input id="date_debut" type="date"></div>
         <div id="f-paiement"><label for="paiement">Paiement de l'abonnement</label><select id="paiement"><option value="mensuel">Mensuel, par prélèvement</option><option value="annuel">Annuel</option></select></div>
+        <div id="f-carte" hidden><label>Paiement</label><p style="margin:6px 0 0;color:var(--gris)">Par carte bancaire : acompte de 50 % à la signature, solde après la prestation.</p></div>
       </div>
       <div id="f-contraintes"><label for="contraintes">Contraintes d'exploitation (saison, horaires d'accès)</label><input id="contraintes"></div>
       <label for="message">Précisions sur votre site et votre besoin</label>
@@ -538,6 +539,7 @@ var TARIFS = {
   }
 
   function calcul(){
+    if(typeof adapterPaiement==='function')try{adapterPaiement()}catch(e){}
     var P=T.profils[profil];
     var n=Math.max(1,Math.min(10000,parseInt($('nb').value,10)||1));
     var r=T.resistographe,mini=T.tauxHoraire*T.minimumHeures;
@@ -651,15 +653,20 @@ var TARIFS = {
   $('envoyer').addEventListener('click',function(){setTimeout(function(){var f=profil==='particulier'?$('prenom'):$('siren');f.focus({preventScroll:true})},500)});
 
   /* ----- Formulaire de demande de devis ----- */
+  function adapterPaiement(){
+    var col=profil==='collectivite',ponct=$('b_init').checked&&!$('b_abo').checked;
+    $('f-paiement').hidden=col||ponct;$('f-carte').hidden=col||!ponct;
+    $('d-rappel').textContent=col?'Après signature, vous pourrez déposer votre bon de commande en ligne.':(ponct?'Après signature, vous recevrez le lien pour régler l\'acompte par carte bancaire.':'Après signature, vous recevrez le lien pour mettre en place le prélèvement SEPA.');
+  }
   function adapterFormulaire(){
     var part=profil==='particulier',col=profil==='collectivite';
     $('f-entreprise').hidden=part;$('f-particulier').hidden=!part;
-    $('f-habilitation').hidden=!col;$('f-paiement').hidden=col;$('f-contraintes').hidden=profil!=='pro';$('f-anticipe').hidden=!part;
+    $('f-habilitation').hidden=!col;$('f-contraintes').hidden=profil!=='pro';$('f-anticipe').hidden=!part;
     $('l-denomination').textContent=col?'Nom de la collectivité *':'Raison sociale *';
     $('l-representant').textContent=col?'Représentant (nom, fonction : maire, président…) *':'Représentant légal (nom, fonction) *';
     $('representant').placeholder=col?'Ex. : Marie Dupont, maire':'Ex. : Paul Martin, gérant';
     $('l-adr').textContent=part?'':(col?'(mairie ou siège)':'(siège)');
-    $('d-rappel').textContent=col?'Après signature, vous pourrez déposer votre bon de commande en ligne.':'Après signature, vous recevrez le lien pour mettre en place le prélèvement SEPA.';
+    adapterPaiement();
   }
   var dd=new Date();dd.setMonth(dd.getMonth()+1,1);$('date_debut').value=dd.toISOString().slice(0,10);$('date_debut').min=new Date().toISOString().slice(0,10);
   $('siren').addEventListener('input',function(){
