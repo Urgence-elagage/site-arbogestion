@@ -105,6 +105,25 @@ function pl_client(array $dem): string {
     return (string)($r['id'] ?? '');
 }
 
+/** Contact signataire du client (nécessaire pour l'envoi en signature électronique depuis Pennylane). Non bloquant. */
+function pl_contact(string $client_id, array $dem): void {
+    $c = $dem['client'];
+    try {
+        $cl = pennylane('GET', '/customers/' . $client_id);
+        foreach (($cl['contacts'] ?? []) as $ct) { if (strcasecmp((string)($ct['email'] ?? ''), $c['email']) === 0) { return; } }
+        if ($dem['profil'] === 'particulier') { $prenom = $c['prenom']; $nom = $c['nom']; $role = null; }
+        else {
+            $qui = trim(explode(',', (string)($c['referent'] ?: $c['representant']))[0]);
+            $role = trim(substr((string)($c['referent'] ?: $c['representant']), strlen($qui)), " ,") ?: null;
+            $m = preg_split('/\s+/', $qui, 2); $prenom = $m[0] ?? $qui; $nom = $m[1] ?? $qui;
+        }
+        pennylane('POST', '/customers/' . $client_id . '/contacts', array_filter([
+            'first_name' => $prenom, 'last_name' => $nom, 'email' => $c['email'], 'role' => $role,
+            'mobile_number' => $c['tel'] ?: null,
+        ], fn($v) => $v !== null && $v !== ''));
+    } catch (Throwable $e) { journal('Contact Pennylane non créé : ' . $e->getMessage()); }
+}
+
 function prix6(float $v): string { return number_format($v, 6, '.', ''); }
 
 /**
@@ -184,6 +203,7 @@ function creer_devis(array $dem, array $calc, array $opt = []): array {
 
     try {
         $client_id = pl_client($dem);
+        if ($client_id !== '') { pl_contact($client_id, $dem); }
         [$sections, $lignes] = lignes_devis($dem, $calc);
         if (!$lignes) { throw new RuntimeException('Aucune ligne chiffrable (abonnement sur devis) : devis à établir manuellement.'); }
         $ponctuel = empty($calc['abonnement']);
