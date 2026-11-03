@@ -543,7 +543,7 @@ var TARIFS = {
     var Pn=T.ponctuel,forf=Pn.forfaitHeures*T.tauxHoraire,ponct=$('b_init').checked&&!$('b_abo').checked;
     $('l_prev').style.display=ponct?'none':'';$('o_diag').disabled=ponct;if(ponct)$('o_diag').checked=true;
     $('t_diag').textContent=ponct?'Diagnostic sur place, préconisations comprises':'Recensement et diagnostic sur place';
-    if(ponct){$('px_diag').textContent=eur(forf)+' HT';$('seuil_diag').textContent='Forfait de '+Pn.forfaitHeures+' h sur place jusqu\'à '+Pn.arbresInclus+' arbres, puis '+eur(Pn.prixArbreSupplementaire)+' HT par arbre supplémentaire. Compte rendu et préconisations compris.';}
+    if(ponct){$('px_diag').textContent=eur(forf)+' HT';$('seuil_diag').textContent='Forfait de '+Pn.forfaitHeures+' h sur place jusqu\'à '+Pn.arbresInclus+' arbres, puis '+eur(Pn.prixArbreSupplementaire)+' HT par arbre supplémentaire. '+T.arbresParJour+' arbres maximum par journée : au-delà, une journée de plus (forfait et déplacement). Compte rendu et préconisations compris.';}
     else $('seuil_diag').textContent='Jusqu\'à '+seuil(T.diagnosticParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
     $('seuil_prev').textContent='Jusqu\'à '+seuil(T.previsionnelParArbre)+' arbres : '+eur(mini)+' HT (1 h minimum).';
     $('px_rb').textContent=eur(r.base)+' HT / test';
@@ -561,9 +561,10 @@ var TARIFS = {
     if(init){
       var lignes=[],ht=0,jours=0,txtAc='';
       var parArbre=function(nom,pu){var m=n*pu;if(m<mini){ht+=mini;lignes.push([nom+' (forfait 1 h)',mini]);}else{ht+=r2(m);lignes.push([nom+' ('+n+' arbres)',r2(m)]);}};
-      if(ponct){ht+=forf;lignes.push(['Diagnostic ponctuel (forfait '+Pn.forfaitHeures+' h, jusqu\'à '+Pn.arbresInclus+' arbres)',forf]);
-        if(n>Pn.arbresInclus){var sup=r2((n-Pn.arbresInclus)*Pn.prixArbreSupplementaire);ht+=sup;lignes.push(['Arbres supplémentaires ('+(n-Pn.arbresInclus)+' × '+eur(Pn.prixArbreSupplementaire)+')',sup]);}
-        jours=Math.ceil(n/T.arbresParJour);}
+      if(ponct){jours=Math.ceil(n/T.arbresParJour);var nsup=0;
+        for(var j=1;j<=jours;j++){nsup+=Math.max(0,Math.min(T.arbresParJour,n-(j-1)*T.arbresParJour)-Pn.arbresInclus)}
+        ht+=r2(jours*forf);lignes.push(['Diagnostic ponctuel (forfait '+Pn.forfaitHeures+' h'+(jours>1?' × '+jours+' journées':'')+')',r2(jours*forf)]);
+        if(nsup){var sup=r2(nsup*Pn.prixArbreSupplementaire);ht+=sup;lignes.push(['Arbres supplémentaires ('+nsup+' × '+eur(Pn.prixArbreSupplementaire)+')',sup]);}}
       else{
       if($('o_diag').checked){parArbre('Recensement et diagnostic',T.diagnosticParArbre);jours=Math.ceil(n/T.arbresParJour);}
       if($('o_prev').checked){parArbre('Prévisionnel d\'intervention',T.previsionnelParArbre);}

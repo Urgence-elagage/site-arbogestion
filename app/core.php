@@ -111,9 +111,14 @@ function calculer(array $d): array {
         // Prestation ponctuelle : forfait sur place jusqu'à N arbres, puis prix par arbre supplémentaire ; préconisations comprises
         $P = $T['ponctuel'];
         $forfait = round((float)$P['forfaitHeures'] * (float)$T['tauxHoraire'], 2);
-        $res['lignes_demarrage'][] = ['label' => 'Diagnostic ponctuel sur place', 'desc' => 'Recensement, diagnostic visuel et préconisations, compte rendu écrit – forfait jusqu’à ' . (int)$P['arbresInclus'] . ' arbres', 'qte' => 1, 'unite' => 'forfait', 'pu' => $forfait];
-        if ($n > (int)$P['arbresInclus']) {
-            $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Au-delà de ' . (int)$P['arbresInclus'] . ' arbres', 'qte' => $n - (int)$P['arbresInclus'], 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
+        $parJour = (int)$T['arbresParJour']; $inclus = (int)$P['arbresInclus'];
+        $nbJours = (int)ceil($n / $parJour);
+        // Chaque journée sur place : forfait de N h (jusqu'à X arbres), puis prix par arbre supplémentaire
+        $sup = 0;
+        for ($j = 1; $j <= $nbJours; $j++) { $sup += max(0, min($parJour, $n - ($j - 1) * $parJour) - $inclus); }
+        $res['lignes_demarrage'][] = ['label' => 'Diagnostic ponctuel sur place', 'desc' => 'Recensement, diagnostic visuel et préconisations, compte rendu écrit – forfait ' . (int)$P['forfaitHeures'] . ' h par journée sur place, jusqu’à ' . $inclus . ' arbres par journée (' . $parJour . ' arbres maximum par journée)', 'qte' => $nbJours, 'unite' => 'journée', 'pu' => $forfait];
+        if ($sup > 0) {
+            $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Au-delà de ' . $inclus . ' arbres par journée', 'qte' => $sup, 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
         }
         $res['jours'] = (int)ceil($n / $T['arbresParJour']);
         $d['diag'] = false; $d['prev'] = false;
