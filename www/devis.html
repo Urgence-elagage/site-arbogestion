@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demande de devis — Arbogestion</title>
+<meta name="description" content="Calculez en ligne une estimation indicative pour l'inventaire, le diagnostic, le prévisionnel d'intervention ou le suivi annuel de vos arbres avec Arbogestion, arboriste conseil dans le Lot.">
+<meta name="robots" content="noindex, nofollow">
+
+<link rel="icon" href="img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--vert:#1e3d33;--vert2:#163028;--lime:#b7c93b;--creme:#f6f5f0;--texte:#2b2b2b;--gris:#5f655f;--bleu:#eaf3fb}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;font-size:clamp(16px,calc(12px + .45vw),20px);scroll-padding-top:110px}
+body{font-family:Lato,system-ui,sans-serif;color:var(--texte);background:var(--creme);line-height:1.6}
+img{max-width:100%;display:block}
+a{color:inherit}
+.wrap{width:min(1440px,90vw);margin:0 auto}
+@media (max-width:600px){.wrap{width:auto;padding:0 18px}}
+
+/* En-tête */
+header{position:relative;color:#fff;background:var(--vert2) url(img/fond-entete.jpg) center/cover no-repeat;min-height:min(82vh,860px);display:flex;align-items:center}
+header .wrap{width:min(1440px,90vw)}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(22,48,40,.96) 0%,rgba(30,61,51,.88) 45%,rgba(30,61,51,.45) 100%)}
+header>*{position:relative}
+/* Bandeau fixe */
+.topbar{position:sticky;top:0;z-index:50;background:rgba(22,48,40,.97);color:#fff;box-shadow:0 2px 18px rgba(0,0,0,.25);backdrop-filter:blur(6px)}
+nav{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:12px 0;transition:padding .25s}
+nav .logo img{height:clamp(78px,7vw,110px);border-radius:10px;background:#fff;padding:5px;transition:height .25s}
+.topbar.reduit nav{padding:6px 0}
+.topbar.reduit nav .logo img{height:72px}
+nav ul{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px clamp(14px,1.6vw,30px);list-style:none;font-size:.95rem;font-weight:700}
+nav ul a{text-decoration:none;opacity:.9;padding:6px 0;border-bottom:2px solid transparent}
+nav ul a:hover{opacity:1;color:var(--lime);border-bottom-color:var(--lime)}
+nav ul .cta a{background:var(--lime);color:var(--vert);opacity:1;padding:8px 16px;border-radius:6px;border:0}
+nav ul .cta a:hover{color:var(--vert);filter:brightness(1.05)}
+.burger{display:none;background:none;border:0;color:#fff;cursor:pointer;padding:8px}
+.burger span{display:block;width:28px;height:3px;background:#fff;margin:6px 0;border-radius:2px;transition:.25s}
+.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:clamp(32px,5vw,90px);align-items:center;padding:clamp(40px,6vw,90px) 0}
+.hero .bar{width:72px;height:5px;background:var(--lime);margin-bottom:28px}
+.hero h1{font-size:clamp(2.1rem,3.4vw,3.7rem);line-height:1.06;font-weight:900}
+.hero p{font-size:1.2rem;max-width:40ch;margin-top:22px;opacity:.95}
+.hero .tags{margin-top:26px;color:var(--lime);font-weight:700;letter-spacing:.05em;font-size:.85rem;text-transform:uppercase}
+.btn{display:inline-block;margin-top:34px;background:var(--lime);color:var(--vert);font-weight:900;padding:14px 26px;border-radius:6px;text-decoration:none}
+.btn:hover{filter:brightness(1.05)}
+.hero figure{position:relative;max-width:520px;justify-self:end;width:100%}
+.hero figure img{border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);aspect-ratio:4/5;object-fit:cover;object-position:center top;width:100%}
+.hero figcaption{position:absolute;left:18px;bottom:18px;background:rgba(22,48,40,.85);padding:10px 14px;border-radius:8px;font-size:.85rem}
+.ambition{display:grid;grid-template-columns:repeat(3,auto);gap:22px;margin-top:36px;padding-top:26px;border-top:1px solid rgba(255,255,255,.25);width:max-content;max-width:100%}
+.ambition b{display:block;font-size:1.3rem;color:var(--lime)}
+.ambition span{font-size:.85rem;opacity:.85}
+
+/* Sections */
+section{padding:clamp(56px,7vw,120px) 0}
+.kicker{color:var(--lime);font-weight:900;letter-spacing:.12em;font-size:.75rem;text-transform:uppercase;margin-bottom:10px}
+section h2{color:var(--vert);font-size:clamp(1.7rem,3vw,3rem);line-height:1.12;font-weight:900;margin-bottom:16px}
+.lead{font-size:1.15rem;color:var(--gris);max-width:62ch}
+.blanc{background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px;margin-top:40px}
+.etape .num{color:var(--lime);font-weight:900;font-size:1.6rem}
+.etape h3,.carte h3,.col h3{color:var(--vert);font-size:1.12rem;margin:4px 0 6px}
+.etape p,.carte p,.col p{color:var(--gris)}
+.deux{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,72px);align-items:center}
+.deux.inv>:first-child{order:2}
+figure.shot img{border-radius:10px;box-shadow:0 14px 36px rgba(0,0,0,.14);border:1px solid #e3e3dc}
+figure.shot figcaption{font-size:.82rem;color:var(--gris);margin-top:10px}
+.encart{background:var(--vert);color:#fff;border-radius:12px;padding:32px;margin-top:44px}
+.encart h3{font-size:1.3rem;margin-bottom:10px}
+.encart .liste{display:flex;flex-wrap:wrap;gap:24px;margin-top:18px;color:var(--lime);font-weight:700}
+.note{font-size:.9rem;color:var(--gris);margin-top:18px;border-left:4px solid var(--lime);padding-left:14px}
+.note.bleue{background:var(--bleu);border-left-color:#4a7fb5;padding:12px 14px;border-radius:6px}
+.cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-top:36px}
+.carte{border-top:4px solid var(--lime);padding-top:14px}
+.legende{display:flex;flex-wrap:wrap;gap:16px;margin-top:18px;font-size:.9rem;color:var(--gris)}
+.legende i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.galerie{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2vw,36px);margin-top:40px}
+
+.terrain{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;margin-top:40px}
+.terrain .pile{display:grid;gap:24px}
+.terrain figure{position:relative;border-radius:12px;overflow:hidden;box-shadow:0 14px 36px rgba(0,0,0,.14)}
+.terrain img{width:100%;height:100%;object-fit:cover}
+.terrain figcaption{position:absolute;left:14px;bottom:14px;right:14px;background:rgba(22,48,40,.88);color:#fff;padding:10px 14px;border-radius:8px;font-size:.9rem}
+.terrain figcaption b{color:var(--lime)}
+
+.soustitre{color:var(--vert);font-size:1.35rem;margin-top:56px}
+.publics{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,2vw,32px);margin-top:22px}
+.public{background:#fff;border-radius:12px;padding:26px;box-shadow:0 8px 24px rgba(0,0,0,.06);border-top:5px solid var(--lime)}
+.public .tag{display:inline-block;background:var(--vert);color:var(--lime);font-weight:900;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:4px}
+.public h4{color:var(--vert);font-size:1.12rem;margin:14px 0 8px;line-height:1.3}
+.public p{color:var(--gris)}
+
+.public.large{grid-column:1/-1}
+.points{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:12px 32px;margin-top:16px}
+.points li{position:relative;padding-left:22px;color:var(--gris)}
+.points li::before{content:"";position:absolute;left:0;top:.55em;width:10px;height:10px;border-radius:50%;background:var(--lime)}
+.points b{color:var(--vert)}
+
+/* Contact */
+#contact{background:var(--vert);color:#fff}
+#contact h2,#contact .kicker{color:#fff}
+#contact .kicker{color:var(--lime)}
+#contact p{opacity:.95}
+form{background:#fff;color:var(--texte);border-radius:12px;padding:30px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+form .ligne{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{display:block;font-weight:700;font-size:.9rem;color:var(--vert);margin:14px 0 6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cfd3cc;border-radius:6px;font:inherit;background:#fbfbf8}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--lime);border-color:var(--lime)}
+textarea{min-height:130px;resize:vertical}
+.pot{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
+form .btn{margin-top:22px;border:0;cursor:pointer;font:inherit;font-weight:900}
+form small{display:block;margin-top:12px;color:var(--gris);font-size:.8rem}
+
+footer{background:var(--vert2);color:#cfd6d2;font-size:.85rem;padding:36px 0}
+footer h3{color:#fff;font-size:1rem;margin-bottom:8px}
+footer p{margin-bottom:6px}
+footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}
+
+@media (max-width:1100px){
+  .burger{display:block}
+  nav ul{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--vert2);padding:8px 5vw 18px;box-shadow:0 12px 24px rgba(0,0,0,.3)}
+  nav ul.ouvert{display:flex}
+  nav ul li{border-bottom:1px solid rgba(255,255,255,.1)}
+  nav ul a{display:block;padding:14px 0;font-size:1.05rem}
+  nav ul .cta{border:0;margin-top:12px}
+  nav ul .cta a{display:inline-block}
+}
+@media (max-width:820px){
+  header{min-height:0}
+  nav .logo img{height:64px}
+  .topbar.reduit nav .logo img{height:52px}
+  .hero figure{justify-self:start}
+  .hero,.deux,.galerie,.terrain,form .ligne{grid-template-columns:1fr}
+  .deux.inv>:first-child{order:0}
+  .hero figure{max-width:380px}
+  .ambition{grid-template-columns:1fr 1fr 1fr;width:100%;gap:12px}
+  .ambition b{font-size:1.1rem}
+  .encart{padding:24px}
+  form{padding:22px}
+}
+@media (max-width:420px){.ambition{grid-template-columns:1fr}}
+@media (max-width:760px){.publics,.points{grid-template-columns:1fr}}
+
+/* Calculateur */
+.pagehead{background:var(--vert);color:#fff;padding:clamp(40px,5vw,80px) 0}
+.pagehead h1{font-size:clamp(2rem,3.4vw,3.2rem);line-height:1.1;font-weight:900}
+.pagehead p{max-width:60ch;margin-top:14px;opacity:.92;font-size:1.1rem}
+.calc{display:grid;grid-template-columns:1.25fr .75fr;gap:clamp(24px,3vw,48px);align-items:start}
+.etapec{background:#fff;border-radius:12px;padding:clamp(20px,2vw,32px);box-shadow:0 8px 24px rgba(0,0,0,.06);margin-bottom:22px}
+.etapec h2{font-size:1.25rem;margin-bottom:16px}
+.etapec h2 span{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--lime);color:var(--vert);font-size:.95rem;margin-right:10px}
+.choix{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.choix label{margin:0;cursor:pointer}
+.choix input{position:absolute;opacity:0;width:0}
+.choix .c{display:block;border:2px solid #dcdfd8;border-radius:10px;padding:14px 16px;height:100%;transition:.15s;color:var(--texte);font-weight:400}
+.choix .c b{display:block;color:var(--vert);font-size:1.05rem;margin-bottom:2px}
+.choix .c small{color:var(--gris);font-size:.85rem}
+.choix input:checked+.c{border-color:var(--lime);background:#f6f9e6;box-shadow:0 0 0 3px rgba(183,201,59,.25)}
+.choix input:focus-visible+.c{outline:2px solid var(--vert)}
+.nb{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.nb input[type=number]{width:140px;font-size:1.3rem;font-weight:900;color:var(--vert)}
+.nb input[type=range]{flex:1;min-width:200px;accent-color:#8fa224;padding:0;border:0;background:none}
+.opts{display:grid;gap:10px}
+.opt{display:flex;gap:12px;align-items:flex-start;border:1px solid #e3e5df;border-radius:8px;padding:12px 14px;margin:0;font-weight:400;color:var(--texte);cursor:pointer}
+.opt input[type=checkbox]:disabled{opacity:.6;cursor:default}
+.opt input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:#8fa224;flex:none}
+.opt b{color:var(--vert)}
+.opt small{display:block;color:var(--gris)}
+.opt .px{margin-left:auto;white-space:nowrap;font-weight:700;color:var(--vert)}
+.qte{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid #e3e5df;border-radius:8px;padding:12px 14px;flex-wrap:wrap}
+.qte input{width:90px}
+.inclus{list-style:none;display:grid;gap:6px;margin-top:12px}
+.inclus li{padding-left:22px;position:relative;color:var(--gris)}
+.inclus li::before{content:"✓";position:absolute;left:0;color:#8fa224;font-weight:900}
+.resultat{position:sticky;top:130px;background:var(--vert);color:#fff;border-radius:14px;padding:clamp(22px,2vw,32px);box-shadow:0 20px 50px rgba(0,0,0,.2)}
+.resultat h2{color:#fff;font-size:1.2rem;margin-bottom:14px}
+.lignes{list-style:none;font-size:.95rem}
+.lignes b{white-space:nowrap}
+.lignes li{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.12)}
+.total{margin-top:16px}
+.total .grand{font-size:clamp(2rem,3vw,2.6rem);font-weight:900;color:var(--lime);line-height:1.1}
+.total .sous{opacity:.85;font-size:.95rem;margin-top:4px}
+.resultat .avert{font-size:.8rem;opacity:.8;margin-top:16px;line-height:1.5}
+.resultat .btn{width:100%;text-align:center;margin-top:18px;border:0;cursor:pointer;font:inherit;font-weight:900}
+.surdevis{background:rgba(255,255,255,.08);border-radius:8px;padding:12px;margin-top:10px}
+#demande{scroll-margin-top:130px}
+@media (max-width:900px){.calc{grid-template-columns:1fr}.resultat{position:static}}
+
+/* Onglets */
+.onglets{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}
+.onglets button{font:inherit;font-weight:900;font-size:1.02rem;padding:14px 22px;border-radius:10px 10px 0 0;border:0;cursor:pointer;background:rgba(255,255,255,.12);color:#fff}
+.onglets button[aria-selected=true]{background:var(--creme);color:var(--vert)}
+.onglets button small{display:block;font-weight:400;font-size:.8rem;opacity:.8}
+.offre{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(24px,3vw,48px)}
+.offre h2{margin-bottom:8px}
+.offre .pour{color:var(--gris);font-size:1.05rem;max-width:60ch}
+.bloc{background:#fff;border-radius:12px;padding:clamp(20px,2vw,30px);box-shadow:0 8px 24px rgba(0,0,0,.06);margin-top:22px}
+.bloc h3{color:var(--vert);font-size:1.15rem;margin-bottom:12px}
+.bloc.vert{background:var(--vert);color:#fff}
+.bloc.vert h3{color:var(--lime)}
+.etapes3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:6px}
+.etapes3 div{border-top:4px solid var(--lime);padding-top:10px}
+.etapes3 b{color:var(--vert);display:block}
+.etapes3 span{color:var(--gris);font-size:.92rem}
+.grille{width:100%;border-collapse:collapse;font-size:.95rem}
+.grille th,.grille td{padding:9px 10px;text-align:right;border-bottom:1px solid #e6e8e2}
+.grille th:first-child,.grille td:first-child{text-align:left}
+.grille thead th{background:var(--vert);color:#fff;font-weight:700}
+.grille thead th:first-child{border-radius:8px 0 0 0}.grille thead th:last-child{border-radius:0 8px 0 0}
+.grille tr.actif td{background:#f2f6dc;font-weight:900;color:var(--vert)}
+.conds{list-style:none;display:grid;gap:8px}
+.conds li{padding-left:22px;position:relative}
+.conds li::before{content:"";position:absolute;left:0;top:.6em;width:9px;height:9px;border-radius:50%;background:var(--lime)}
+.bloc.vert .conds li{color:#e7ece9}
+.choixb{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choixb.trois{grid-template-columns:repeat(3,1fr)}
+.choixb input[type=radio]+.c::before{border-radius:50%}
+.choixb label{margin:0;cursor:pointer;font-weight:400;color:var(--texte)}
+.choixb input{position:absolute;opacity:0;width:0}
+.choixb .c{display:flex;gap:10px;border:2px solid #dcdfd8;border-radius:10px;padding:14px 16px;height:100%}
+.choixb .c::before{content:"";flex:none;width:20px;height:20px;border-radius:5px;border:2px solid #b9bdb4;margin-top:2px}
+.choixb input:checked+.c{border-color:var(--lime);background:#f6f9e6}
+.choixb input:checked+.c::before{background:#8fa224 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10l3 3 7-7' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E") center/14px no-repeat;border-color:#8fa224}
+.choixb input:focus-visible+.c{outline:2px solid var(--vert)}
+.choixb b{display:block;color:var(--vert)}
+.choixb small{color:var(--gris)}
+.res-bloc{border-top:1px solid rgba(255,255,255,.18);padding-top:14px;margin-top:14px}
+.res-bloc:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.res-bloc h3{font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--lime);margin-bottom:6px}
+.seuil{display:block;color:#6d7a2a!important;margin-top:4px;font-weight:700}
+.flottant{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;background:var(--lime);color:var(--vert);font-weight:900;padding:14px 26px;border-radius:40px;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:opacity .25s,transform .25s;white-space:nowrap}
+.flottant.cache{opacity:0;pointer-events:none;transform:translate(-50%,20px)}
+.res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
+@media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets button{flex:1;padding:12px 10px;font-size:.95rem}}
+@media (max-width:760px){.choixb,.choixb.trois{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+
+<div class="topbar" id="topbar">
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="index.html"><img src="img/logo.png" alt="Arbogestion — Chaque arbre compte"></a>
+      <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false"><span></span><span></span><span></span></button>
+      <ul id="menu">
+        <li><a href="index.html#methode">La méthode</a></li>
+        <li><a href="index.html#terrain">Sur le terrain</a></li>
+        <li><a href="index.html#carto">Cartographie</a></li>
+        <li><a href="index.html#risque">Risque</a></li>
+        <li><a href="index.html#carnet">Carnet de santé</a></li>
+        <li><a href="index.html#climat">Fraîcheur &amp; carbone</a></li>
+        <li><a href="estimation.html" style="color:var(--lime)">Estimation</a></li>
+        <li class="cta"><a href="index.html#contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<section id="demande" style="padding-top:clamp(28px,3vw,48px)">
+  <div class="wrap">
+    <div class="kicker">Demande de devis</div>
+    <h1 style="font-size:clamp(2rem,3.4vw,3rem)">Recevoir votre devis et votre contrat.</h1>
+    <p class="lead">Complétez vos coordonnées : nous vérifions votre demande, puis vous recevez par courriel votre devis et le contrat correspondant, à signer en ligne. <span id="d-rappel"></span></p>
+    <div id="sans-estim" class="bloc" hidden style="margin-top:24px"><h3>Commencez par votre estimation</h3><p>Pour demander un devis, faites d'abord votre estimation en ligne : elle nous permet de préparer un devis précis.</p><p style="margin-top:14px"><a class="btn" href="estimation.html#calculateur">Calculer mon estimation</a></p></div>
+    <div class="calc" id="avec-estim" style="margin-top:24px">
+      <div id="col-form">
+    <form id="fdevis" class="bloc" novalidate>
+      <div id="f-entreprise">
+        <div class="ligne">
+          <div><label for="siren">Numéro SIREN *</label><input id="siren" inputmode="numeric" maxlength="11" placeholder="9 chiffres"><small id="siren-info" style="color:var(--gris)">Le nom et l'adresse se remplissent automatiquement.</small></div>
+          <div><label for="denomination" id="l-denomination">Raison sociale *</label><input id="denomination" autocomplete="organization"></div>
+        </div>
+        <div class="ligne">
+          <div><label for="representant" id="l-representant">Représentant légal (nom, fonction) *</label><input id="representant" placeholder="Ex. : Paul Martin, gérant"></div>
+          <div><label for="referent">Interlocuteur référent (nom, fonction)</label><input id="referent" placeholder="Si différent du représentant"></div>
+        </div>
+        <div id="f-habilitation"><label for="habilitation">Délibération ou décision d'engagement (si déjà prise)</label><input id="habilitation" placeholder="Ex. : délibération n° 2026-45 du 12 octobre 2026"></div>
+      </div>
+      <div id="f-particulier" class="ligne">
+        <div><label for="prenom">Prénom *</label><input id="prenom" autocomplete="given-name"></div>
+        <div><label for="nomp">Nom *</label><input id="nomp" autocomplete="family-name"></div>
+      </div>
+      <label for="adr">Adresse <span id="l-adr">(siège)</span> *</label><input id="adr" list="adrs" autocomplete="off" placeholder="Commencez à taper : numéro, rue, commune…"><datalist id="adrs"></datalist>
+      <div class="ligne">
+        <div><label for="cp">Code postal *</label><input id="cp" inputmode="numeric" autocomplete="postal-code"></div>
+        <div><label for="ville">Commune *</label><input id="ville" autocomplete="address-level2"></div>
+      </div>
+      <div class="ligne">
+        <div><label for="email">E-mail *</label><input id="email" type="email" autocomplete="email"></div>
+        <div><label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel"></div>
+      </div>
+      <label for="site_adresse">Adresse du site suivi, si différente</label><input id="site_adresse" list="sites" autocomplete="off" placeholder="Commencez à taper l'adresse"><datalist id="sites"></datalist>
+      <div class="ligne">
+        <div><label for="date_debut">Date de début souhaitée</label><input id="date_debut" type="date"></div>
+        <div id="f-paiement"><label for="paiement">Paiement de l'abonnement</label><select id="paiement"><option value="mensuel">Mensuel, par prélèvement</option><option value="annuel">Annuel</option></select></div>
+        <div id="f-carte" hidden><label>Paiement</label><p style="margin:6px 0 0;color:var(--gris)">Par carte bancaire : acompte de 50 % à la signature, solde après la prestation.</p></div>
+      </div>
+      <div id="f-contraintes"><label for="contraintes">Contraintes d'exploitation (saison, horaires d'accès)</label><input id="contraintes"></div>
+      <label for="message">Précisions sur votre site et votre besoin</label>
+      <textarea id="message" placeholder="Type d'arbres, accès, urgence, questions…"></textarea>
+      <div class="pot" aria-hidden="true"><label for="site_web">Site web</label><input id="site_web" tabindex="-1" autocomplete="off"></div>
+      <label class="opt" id="f-anticipe" style="margin-top:16px"><input type="checkbox" id="anticipe"><span><b>Je souhaite que les prestations commencent avant la fin du délai de rétractation de 14 jours</b><small>Si vous vous rétractez ensuite, seul le service déjà fourni vous sera facturé.</small></span></label>
+      <label class="opt" style="margin-top:10px"><input type="checkbox" id="consent"><span><b>J'accepte que mes données soient utilisées pour établir mon devis et mon contrat *</b><small>Elles sont transmises à notre outil de facturation (Pennylane) et ne sont ni vendues ni cédées. Droits d'accès et de suppression : contact@arbogestion.fr.</small></span></label>
+      <p style="margin-top:10px;font-size:.9rem">Votre devis sera accompagné de nos <a href="cgv.php" target="_blank" rel="noopener">conditions générales de vente</a> ; sa signature vaut acceptation de celles-ci.</p>
+      <p id="f-erreur" class="err" role="alert" style="color:#8a2b2b;font-weight:700;margin-top:14px"></p>
+      <button class="btn" type="submit" id="f-bouton">Demander mon devis</button>
+      <small style="display:block;margin-top:12px;color:var(--gris)">Aucun engagement à ce stade : le devis n'engage qu'une fois signé.</small>
+    </form>
+    <div id="f-merci" class="bloc vert" hidden><h3>Demande bien reçue</h3><p>Merci. Vous allez recevoir un courriel de confirmation avec le récapitulatif de votre estimation. Nous vous adressons votre devis et votre contrat, à signer en ligne, sous 48 heures ouvrées.</p></div>
+      </div>
+      <aside class="resultat" aria-live="polite">
+        <h2>Votre estimation</h2>
+        <p id="r-profil" style="opacity:.85;margin:-4px 0 12px"></p>
+        <div id="resultats"></div>
+        <a class="btn" id="modifier" href="estimation.html#calculateur" style="background:transparent;border:2px solid var(--lime);color:var(--lime)">Modifier mon estimation</a>
+        <p class="avert">Estimation indicative et non contractuelle. Le devis définitif est établi après vérification de votre demande.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<footer id="mentions">
+  <div class="wrap cols">
+    <div>
+      <h3>Mentions légales</h3>
+      <p>Éditeur du site : Arbogestion, SAS au capital de 1 000 €, immatriculée au RCS de Cahors sous le numéro 105 612 543.</p>
+      <p>Siège social : 133 rue Madeleine Brès, 46100 Cambes</p>
+      <p>Directeur de la publication : Kevin Cazes-Bouchet, président.</p>
+      <p><a href="cgv.php" style="color:inherit">Conditions générales de vente</a> · <a href="espace/" style="color:inherit">Espace Arbogestion</a></p>
+    </div>
+    <div>
+      <h3>Hébergement et données</h3>
+      <p>OVH SAS — 2 rue Kellermann, 59100 Roubaix, France — www.ovhcloud.com</p>
+      <p style="margin-top:12px">Ce site ne dépose aucun cookie. Les données du formulaire de contact sont utilisées uniquement pour répondre à votre demande ; vous pouvez en demander la rectification ou la suppression par courrier au siège.</p>
+      <p>Visuels : logo Arbogestion et captures du logiciel Grality. Fonds cartographiques : Google, Airbus, Maxar Technologies, © OpenStreetMap.</p>
+      <p>© 2026 Arbogestion — Chaque arbre compte.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var E=null;
+  try{E=JSON.parse(sessionStorage.getItem('arbo_estimation')||'null')}catch(e){}
+  if(!E){try{var m=location.hash.match(/e=([^&]+)/);if(m)E=JSON.parse(decodeURIComponent(m[1]))}catch(e){}}
+  if(!E||!E.estimation){$('avec-estim').hidden=true;$('sans-estim').hidden=false;$('d-rappel').textContent='';return}
+  var profil=E.profil,lieu={label:E.lieu_label||''};
+  var NOMS={particulier:'Particulier',pro:'Professionnel',collectivite:'Collectivité'};
+  var BES={ponctuel:'Prestation ponctuelle, sans abonnement',complet:'Recensement et diagnostic initial + abonnement de suivi annuel',suivi:'Abonnement de suivi annuel seul'};
+  $('r-profil').textContent=(NOMS[profil]||'')+' · '+(BES[E.besoin]||'')+(E.estimation.nb?' · '+E.estimation.nb+' arbre'+(E.estimation.nb>1?'s':''):'');
+  $('resultats').innerHTML=E.html||'';
+  $('modifier').href='estimation.html#'+profil;
+  var ponctuel=E.estimation.demarrage&&!E.estimation.abonnement;
+  /* ----- Saisie d'adresse assistée (Base Adresse Nationale) ----- */
+  function autoAdresse(champ,liste,remplir){
+    var props={},t=null,el=$(champ);
+    function chercherA(q){fetch('https://api-adresse.data.gouv.fr/search/?limit=6&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
+      props={};var dl=$(liste);dl.innerHTML='';
+      (d.features||[]).forEach(function(f){var l=f.properties.label;props[l]=f.properties;var o=document.createElement('option');o.value=l;dl.appendChild(o)});
+    }).catch(function(){})}
+    function verifier(){var v=el.value.trim();if(props[v]){remplir(props[v]);props={};$(liste).innerHTML='';return true}return false}
+    el.addEventListener('input',function(){if(verifier())return;clearTimeout(t);var v=el.value.trim();if(v.length>=4)t=setTimeout(function(){chercherA(v)},250)});
+    el.addEventListener('change',verifier);
+  }
+  autoAdresse('adr','adrs',function(p){$('adr').value=p.type==='municipality'?'':(p.name||'');$('cp').value=p.postcode||'';$('ville').value=p.city||'';if(!$('adr').value)$('adr').focus()});
+  autoAdresse('site_adresse','sites',function(p){$('site_adresse').value=p.label});
+
+  /* ----- Formulaire de demande de devis ----- */
+  function adapterPaiement(){
+    var col=profil==='collectivite',ponct=ponctuel;
+    $('f-paiement').hidden=col||ponct;$('f-carte').hidden=col||!ponct;
+    $('d-rappel').textContent=col?'Après signature, vous pourrez déposer votre bon de commande en ligne.':(ponct?'Après signature, vous recevrez le lien pour régler l\'acompte par carte bancaire.':'Après signature, vous recevrez le lien pour mettre en place le prélèvement SEPA.');
+  }
+  function adapterFormulaire(){
+    var part=profil==='particulier',col=profil==='collectivite';
+    $('f-entreprise').hidden=part;$('f-particulier').hidden=!part;
+    $('f-habilitation').hidden=!col;$('f-contraintes').hidden=profil!=='pro';$('f-anticipe').hidden=!part;
+    $('l-denomination').textContent=col?'Nom de la collectivité *':'Raison sociale *';
+    $('l-representant').textContent=col?'Représentant (nom, fonction : maire, président…) *':'Représentant légal (nom, fonction) *';
+    $('representant').placeholder=col?'Ex. : Marie Dupont, maire':'Ex. : Paul Martin, gérant';
+    $('l-adr').textContent=part?'':(col?'(mairie ou siège)':'(siège)');
+    adapterPaiement();
+  }
+  var dd=new Date();dd.setMonth(dd.getMonth()+1,1);$('date_debut').value=dd.toISOString().slice(0,10);$('date_debut').min=new Date().toISOString().slice(0,10);
+  $('siren').addEventListener('input',function(){
+    var s=this.value.replace(/\D/g,'');if(s.length!==9){$('siren-info').textContent='Le nom et l\'adresse se remplissent automatiquement.';return}
+    $('siren-info').textContent='Recherche…';
+    fetch('https://recherche-entreprises.api.gouv.fr/search?q='+s+'&per_page=1').then(function(r){return r.json()}).then(function(d){
+      var e=d.results&&d.results[0];if(!e||e.siren!==s){$('siren-info').textContent='SIREN non trouvé : complétez à la main.';return}
+      var si=e.siege||{};$('denomination').value=e.nom_raison_sociale||e.nom_complet||'';
+      $('adr').value=[si.numero_voie,si.indice_repetition,si.type_voie,si.libelle_voie].filter(Boolean).join(' ')||si.adresse||'';
+      $('cp').value=si.code_postal||'';$('ville').value=si.libelle_commune||'';
+      if(!$('representant').value&&e.dirigeants&&e.dirigeants[0]&&e.dirigeants[0].nom){var g=e.dirigeants[0];$('representant').value=[g.prenoms,g.nom].filter(Boolean).join(' ')+(g.qualite?', '+g.qualite:'')}
+      $('siren-info').textContent='Trouvé : '+(e.nom_complet||'')+'. Vérifiez les informations.';
+    }).catch(function(){$('siren-info').textContent='Recherche indisponible : complétez à la main.'});
+  });
+  $('fdevis').addEventListener('submit',function(ev){
+    ev.preventDefault();var err=$('f-erreur');err.textContent='';
+    var part=profil==='particulier',v=function(id){return $(id).value.trim()};
+    var manque=[];
+    if(part){if(!v('prenom'))manque.push('prénom');if(!v('nomp'))manque.push('nom')}
+    else{if(v('siren').replace(/\D/g,'').length!==9)manque.push('SIREN');if(!v('denomination'))manque.push('raison sociale');if(!v('representant'))manque.push('représentant')}
+    if(!v('adr')||!v('cp')||!v('ville'))manque.push('adresse');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email')))manque.push('e-mail');
+    if(!$('consent').checked)manque.push('consentement');
+    if(manque.length){err.textContent='À compléter : '+manque.join(', ')+'.';return}
+    var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
+      site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
+      client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
+      estimation:E.estimation};
+    
+    var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
+    fetch('api/demande.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j}})})
+      .then(function(x){if(x.ok&&x.j.ok){$('fdevis').hidden=true;$('f-merci').hidden=false;try{sessionStorage.removeItem('arbo_estimation')}catch(e){}$('f-merci').scrollIntoView({block:'center'})}else{err.textContent=(x.j&&x.j.message)||'Erreur, merci de réessayer.';bt.disabled=false;bt.textContent='Demander mon devis'}})
+      .catch(function(){err.textContent='Connexion impossible, merci de réessayer.';bt.disabled=false;bt.textContent='Demander mon devis'});
+  });
+  adapterFormulaire();
+})();
+</script>
+
+<script>
+(function(){
+  var bar=document.getElementById('topbar'),b=document.getElementById('burger'),m=document.getElementById('menu');
+  b.addEventListener('click',function(){var o=m.classList.toggle('ouvert');b.setAttribute('aria-expanded',o)});
+  m.addEventListener('click',function(e){if(e.target.tagName==='A'){m.classList.remove('ouvert');b.setAttribute('aria-expanded','false')}});
+  function f(){bar.classList.toggle('reduit',window.scrollY>60)}
+  window.addEventListener('scroll',f,{passive:true});f();
+})();
+</script>
+</body>
+</html>

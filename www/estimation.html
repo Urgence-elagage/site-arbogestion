@@ -360,63 +360,14 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
       <aside class="resultat" aria-live="polite">
         <h2>Votre estimation</h2>
         <div id="resultats"></div>
-        <a class="btn" href="#demande" id="envoyer">Recevoir cette estimation et un devis</a>
+        <a class="btn" href="devis.html" id="envoyer">Demander un devis →</a>
         <p class="avert">Estimation indicative et non contractuelle, établie à partir de nos tarifs 2026. Les interventions de terrain font l'objet de devis séparés. Le devis définitif est établi après échange et, si besoin, visite du site.</p>
       </aside>
     </div>
   </div>
 </section>
 
-<section id="demande">
-  <div class="wrap">
-    <div class="kicker">Demande de devis</div>
-    <h2>Recevoir votre devis et votre contrat.</h2>
-    <p class="lead">Complétez vos coordonnées : nous vérifions votre demande, puis vous recevez par courriel votre devis et le contrat correspondant, à signer en ligne. <span id="d-rappel"></span></p>
-    <form id="fdevis" class="bloc" style="margin-top:24px" novalidate>
-      <div id="f-entreprise">
-        <div class="ligne">
-          <div><label for="siren">Numéro SIREN *</label><input id="siren" inputmode="numeric" maxlength="11" placeholder="9 chiffres"><small id="siren-info" style="color:var(--gris)">Le nom et l'adresse se remplissent automatiquement.</small></div>
-          <div><label for="denomination" id="l-denomination">Raison sociale *</label><input id="denomination" autocomplete="organization"></div>
-        </div>
-        <div class="ligne">
-          <div><label for="representant" id="l-representant">Représentant légal (nom, fonction) *</label><input id="representant" placeholder="Ex. : Paul Martin, gérant"></div>
-          <div><label for="referent">Interlocuteur référent (nom, fonction)</label><input id="referent" placeholder="Si différent du représentant"></div>
-        </div>
-        <div id="f-habilitation"><label for="habilitation">Délibération ou décision d'engagement (si déjà prise)</label><input id="habilitation" placeholder="Ex. : délibération n° 2026-45 du 12 octobre 2026"></div>
-      </div>
-      <div id="f-particulier" class="ligne">
-        <div><label for="prenom">Prénom *</label><input id="prenom" autocomplete="given-name"></div>
-        <div><label for="nomp">Nom *</label><input id="nomp" autocomplete="family-name"></div>
-      </div>
-      <label for="adr">Adresse <span id="l-adr">(siège)</span> *</label><input id="adr" list="adrs" autocomplete="off" placeholder="Commencez à taper : numéro, rue, commune…"><datalist id="adrs"></datalist>
-      <div class="ligne">
-        <div><label for="cp">Code postal *</label><input id="cp" inputmode="numeric" autocomplete="postal-code"></div>
-        <div><label for="ville">Commune *</label><input id="ville" autocomplete="address-level2"></div>
-      </div>
-      <div class="ligne">
-        <div><label for="email">E-mail *</label><input id="email" type="email" autocomplete="email"></div>
-        <div><label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel"></div>
-      </div>
-      <label for="site_adresse">Adresse du site suivi, si différente</label><input id="site_adresse" list="sites" autocomplete="off" placeholder="Commencez à taper l'adresse"><datalist id="sites"></datalist>
-      <div class="ligne">
-        <div><label for="date_debut">Date de début souhaitée</label><input id="date_debut" type="date"></div>
-        <div id="f-paiement"><label for="paiement">Paiement de l'abonnement</label><select id="paiement"><option value="mensuel">Mensuel, par prélèvement</option><option value="annuel">Annuel</option></select></div>
-        <div id="f-carte" hidden><label>Paiement</label><p style="margin:6px 0 0;color:var(--gris)">Par carte bancaire : acompte de 50 % à la signature, solde après la prestation.</p></div>
-      </div>
-      <div id="f-contraintes"><label for="contraintes">Contraintes d'exploitation (saison, horaires d'accès)</label><input id="contraintes"></div>
-      <label for="message">Précisions sur votre site et votre besoin</label>
-      <textarea id="message" placeholder="Type d'arbres, accès, urgence, questions…"></textarea>
-      <div class="pot" aria-hidden="true"><label for="site_web">Site web</label><input id="site_web" tabindex="-1" autocomplete="off"></div>
-      <label class="opt" id="f-anticipe" style="margin-top:16px"><input type="checkbox" id="anticipe"><span><b>Je souhaite que les prestations commencent avant la fin du délai de rétractation de 14 jours</b><small>Si vous vous rétractez ensuite, seul le service déjà fourni vous sera facturé.</small></span></label>
-      <label class="opt" style="margin-top:10px"><input type="checkbox" id="consent"><span><b>J'accepte que mes données soient utilisées pour établir mon devis et mon contrat *</b><small>Elles sont transmises à notre outil de facturation (Pennylane) et ne sont ni vendues ni cédées. Droits d'accès et de suppression : contact@arbogestion.fr.</small></span></label>
-      <p style="margin-top:10px;font-size:.9rem">Votre devis sera accompagné de nos <a href="cgv.php" target="_blank" rel="noopener">conditions générales de vente</a> ; sa signature vaut acceptation de celles-ci.</p>
-      <p id="f-erreur" class="err" role="alert" style="color:#8a2b2b;font-weight:700;margin-top:14px"></p>
-      <button class="btn" type="submit" id="f-bouton">Demander mon devis</button>
-      <small style="display:block;margin-top:12px;color:var(--gris)">Aucun engagement à ce stade : le devis n'engage qu'une fois signé.</small>
-    </form>
-    <div id="f-merci" class="bloc vert" hidden><h3>Demande bien reçue</h3><p>Merci. Vous allez recevoir un courriel de confirmation avec le récapitulatif de votre estimation. Nous vous adressons votre devis et votre contrat, à signer en ligne, sous 48 heures ouvrées.</p></div>
-  </div>
-</section>
+
 
 <footer id="mentions">
   <div class="wrap cols">
@@ -425,7 +376,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
       <p>Éditeur du site : Arbogestion, SAS au capital de 1 000 €, immatriculée au RCS de Cahors sous le numéro 105 612 543.</p>
       <p>Siège social : 133 rue Madeleine Brès, 46100 Cambes</p>
       <p>Directeur de la publication : Kevin Cazes-Bouchet, président.</p>
-      <p><a href="cgv.php" style="color:inherit">Conditions générales de vente</a></p>
+      <p><a href="cgv.php" style="color:inherit">Conditions générales de vente</a> · <a href="espace/" style="color:inherit">Espace Arbogestion</a></p>
     </div>
     <div>
       <h3>Hébergement et données</h3>
@@ -535,12 +486,10 @@ var TARIFS = {
     rows.push('<tr><td>Au-delà de '+prev.toLocaleString('fr-FR')+'</td><td colspan="3">Sur devis</td></tr>');
     $('grille').innerHTML='<thead>'+th+'</thead><tbody>'+rows.join('')+'</tbody>';
     $('g-note').textContent='Abonnement de suivi. Le démarrage (recensement, diagnostic et prévisionnel d\'intervention) est chiffré à part selon le nombre d\'arbres : utilisez le calculateur ci-dessous.';
-    adapterFormulaire();
     calcul();
   }
 
   function calcul(){
-    if(typeof adapterPaiement==='function')try{adapterPaiement()}catch(e){}
     var P=T.profils[profil];
     var n=Math.max(1,Math.min(10000,parseInt($('nb').value,10)||1));
     var r=T.resistographe,mini=T.tauxHoraire*T.minimumHeures;
@@ -657,72 +606,15 @@ var TARIFS = {
   document.querySelectorAll('[data-besoin]').forEach(function(a){a.addEventListener('click',function(){var r=$('m_'+a.dataset.besoin);r.checked=true;besoin()})});
   ['o_diag','o_prev'].forEach(function(id){$(id).addEventListener('change',calcul)});
   ['q_rb','q_rh'].forEach(function(id){$(id).addEventListener('input',calcul)});
-  $('envoyer').addEventListener('click',function(){setTimeout(function(){var f=profil==='particulier'?$('prenom'):$('siren');f.focus({preventScroll:true})},500)});
-
-  /* ----- Saisie d'adresse assistée (Base Adresse Nationale) ----- */
-  function autoAdresse(champ,liste,remplir){
-    var props={},t=null,el=$(champ);
-    function chercherA(q){fetch('https://api-adresse.data.gouv.fr/search/?limit=6&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
-      props={};var dl=$(liste);dl.innerHTML='';
-      (d.features||[]).forEach(function(f){var l=f.properties.label;props[l]=f.properties;var o=document.createElement('option');o.value=l;dl.appendChild(o)});
-    }).catch(function(){})}
-    function verifier(){var v=el.value.trim();if(props[v]){remplir(props[v]);props={};$(liste).innerHTML='';return true}return false}
-    el.addEventListener('input',function(){if(verifier())return;clearTimeout(t);var v=el.value.trim();if(v.length>=4)t=setTimeout(function(){chercherA(v)},250)});
-    el.addEventListener('change',verifier);
-  }
-  autoAdresse('adr','adrs',function(p){$('adr').value=p.type==='municipality'?'':(p.name||'');$('cp').value=p.postcode||'';$('ville').value=p.city||'';if(!$('adr').value)$('adr').focus()});
-  autoAdresse('site_adresse','sites',function(p){$('site_adresse').value=p.label});
-
-  /* ----- Formulaire de demande de devis ----- */
-  function adapterPaiement(){
-    var col=profil==='collectivite',ponct=$('b_init').checked&&!$('b_abo').checked;
-    $('f-paiement').hidden=col||ponct;$('f-carte').hidden=col||!ponct;
-    $('d-rappel').textContent=col?'Après signature, vous pourrez déposer votre bon de commande en ligne.':(ponct?'Après signature, vous recevrez le lien pour régler l\'acompte par carte bancaire.':'Après signature, vous recevrez le lien pour mettre en place le prélèvement SEPA.');
-  }
-  function adapterFormulaire(){
-    var part=profil==='particulier',col=profil==='collectivite';
-    $('f-entreprise').hidden=part;$('f-particulier').hidden=!part;
-    $('f-habilitation').hidden=!col;$('f-contraintes').hidden=profil!=='pro';$('f-anticipe').hidden=!part;
-    $('l-denomination').textContent=col?'Nom de la collectivité *':'Raison sociale *';
-    $('l-representant').textContent=col?'Représentant (nom, fonction : maire, président…) *':'Représentant légal (nom, fonction) *';
-    $('representant').placeholder=col?'Ex. : Marie Dupont, maire':'Ex. : Paul Martin, gérant';
-    $('l-adr').textContent=part?'':(col?'(mairie ou siège)':'(siège)');
-    adapterPaiement();
-  }
-  var dd=new Date();dd.setMonth(dd.getMonth()+1,1);$('date_debut').value=dd.toISOString().slice(0,10);$('date_debut').min=new Date().toISOString().slice(0,10);
-  $('siren').addEventListener('input',function(){
-    var s=this.value.replace(/\D/g,'');if(s.length!==9){$('siren-info').textContent='Le nom et l\'adresse se remplissent automatiquement.';return}
-    $('siren-info').textContent='Recherche…';
-    fetch('https://recherche-entreprises.api.gouv.fr/search?q='+s+'&per_page=1').then(function(r){return r.json()}).then(function(d){
-      var e=d.results&&d.results[0];if(!e||e.siren!==s){$('siren-info').textContent='SIREN non trouvé : complétez à la main.';return}
-      var si=e.siege||{};$('denomination').value=e.nom_raison_sociale||e.nom_complet||'';
-      $('adr').value=[si.numero_voie,si.indice_repetition,si.type_voie,si.libelle_voie].filter(Boolean).join(' ')||si.adresse||'';
-      $('cp').value=si.code_postal||'';$('ville').value=si.libelle_commune||'';
-      if(!$('representant').value&&e.dirigeants&&e.dirigeants[0]&&e.dirigeants[0].nom){var g=e.dirigeants[0];$('representant').value=[g.prenoms,g.nom].filter(Boolean).join(' ')+(g.qualite?', '+g.qualite:'')}
-      $('siren-info').textContent='Trouvé : '+(e.nom_complet||'')+'. Vérifiez les informations.';
-    }).catch(function(){$('siren-info').textContent='Recherche indisponible : complétez à la main.'});
+  $('envoyer').addEventListener('click',function(ev){
+    ev.preventDefault();
+    var init=$('b_init').checked,abo=$('b_abo').checked;
+    var E={profil:profil,besoin:document.querySelector('input[name=besoin]:checked').value,lieu_label:lieu.label,html:$('resultats').innerHTML,
+      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:init,diag:true,prev:abo,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,km_peage:lieu.kmPeage||0,duree_h:lieu.dureeH||null,abonnement:abo}};
+    var ok=false;try{sessionStorage.setItem('arbo_estimation',JSON.stringify(E));ok=true}catch(e){}
+    if(ok)location.href='devis.html';else{delete E.html;location.href='devis.html#e='+encodeURIComponent(JSON.stringify(E))}
   });
-  $('fdevis').addEventListener('submit',function(ev){
-    ev.preventDefault();var err=$('f-erreur');err.textContent='';
-    var part=profil==='particulier',v=function(id){return $(id).value.trim()};
-    var manque=[];
-    if(part){if(!v('prenom'))manque.push('prénom');if(!v('nomp'))manque.push('nom')}
-    else{if(v('siren').replace(/\D/g,'').length!==9)manque.push('SIREN');if(!v('denomination'))manque.push('raison sociale');if(!v('representant'))manque.push('représentant')}
-    if(!v('adr')||!v('cp')||!v('ville'))manque.push('adresse');
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email')))manque.push('e-mail');
-    if(!$('consent').checked)manque.push('consentement');
-    if(manque.length){err.textContent='À compléter : '+manque.join(', ')+'.';return}
-    var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
-      site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
-      client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
-      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:true,prev:$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,km_peage:lieu.kmPeage||0,duree_h:lieu.dureeH||null,abonnement:$('b_abo').checked}};
-    if(!corps.estimation.demarrage&&!corps.estimation.abonnement){err.textContent='Dans le calculateur, cochez le démarrage, le suivi annuel, ou les deux.';return}
-    var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
-    fetch('api/demande.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)})
-      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j}})})
-      .then(function(x){if(x.ok&&x.j.ok){$('fdevis').hidden=true;$('f-merci').hidden=false;$('f-merci').scrollIntoView({block:'center'})}else{err.textContent=(x.j&&x.j.message)||'Erreur, merci de réessayer.';bt.disabled=false;bt.textContent='Demander mon devis'}})
-      .catch(function(){err.textContent='Connexion impossible, merci de réessayer.';bt.disabled=false;bt.textContent='Demander mon devis'});
-  });
+
   var fl=document.getElementById('flottant');
   if('IntersectionObserver' in window){new IntersectionObserver(function(e){fl.classList.toggle('cache',e[0].isIntersecting||e[0].boundingClientRect.top<0)},{threshold:0}).observe(document.getElementById('calculateur'))}
   fetch('tarifs.json',{cache:'no-cache'}).then(function(r){return r.json()}).then(function(j){

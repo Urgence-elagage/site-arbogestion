@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /contact.php
 Disallow: /estimation.html
+Disallow: /devis.html
 Disallow: /api/
 Disallow: /bon-de-commande.php
 Disallow: /cron.php
