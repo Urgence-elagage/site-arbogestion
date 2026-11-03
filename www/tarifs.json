@@ -7,7 +7,7 @@
   "previsionnelParArbre": 8.13,
   "arbresParJour": 50,
   "heuresParJour": 7,
-  "deplacementKm": 0.67,
+  "deplacementKm": 1.2,
   "deplacementAllerRetour": true,
   "peage": {"prixKm": 0.09, "minimum": 1},
   "depart": {
