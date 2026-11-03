@@ -164,6 +164,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .nb input[type=range]{flex:1;min-width:200px;accent-color:#8fa224;padding:0;border:0;background:none}
 .opts{display:grid;gap:10px}
 .opt{display:flex;gap:12px;align-items:flex-start;border:1px solid #e3e5df;border-radius:8px;padding:12px 14px;margin:0;font-weight:400;color:var(--texte);cursor:pointer}
+.opt input[type=checkbox]:disabled{opacity:.6;cursor:default}
 .opt input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:#8fa224;flex:none}
 .opt b{color:var(--vert)}
 .opt small{display:block;color:var(--gris)}
@@ -337,6 +338,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
           <input type="checkbox" id="b_init" checked hidden><input type="checkbox" id="b_abo" checked hidden>
           <div id="blocPonctuel" style="margin-top:20px">
             <h3 style="color:var(--vert);font-size:1.05rem;margin-bottom:10px" id="t-prestations">Prestations de démarrage</h3>
+            <p id="inclus_note" class="note" style="margin:0 0 12px">Le démarrage comprend toujours le recensement, le diagnostic et le prévisionnel d'intervention : c'est la base du suivi et de l'estimation budgétaire.</p>
             <div class="opts">
               <label class="opt" id="l_diag"><input type="checkbox" id="o_diag" checked><span><b id="t_diag">Recensement et diagnostic sur place</b><small>Localisation, identification et analyse sanitaire de chaque arbre (état général, maladies, points de vigilance, photos), saisis dans Grality.</small><small class="seuil" id="seuil_diag"></small></span><span class="px" id="px_diag"></span></label>
               <label class="opt" id="l_prev"><input type="checkbox" id="o_prev" checked><span><b>Prévisionnel d'intervention</b><small>Planification des interventions (élagage, abattage, traitements…), calendrier et estimation budgétaire.</small><small class="seuil" id="seuil_prev"></small></span><span class="px" id="px_prev"></span></label>
@@ -541,7 +543,11 @@ var TARIFS = {
     $('px_diag').textContent=eur(T.diagnosticParArbre)+' HT / arbre';
     $('px_prev').textContent=eur(T.previsionnelParArbre)+' HT / arbre';
     var Pn=T.ponctuel,forf=Pn.forfaitHeures*T.tauxHoraire,ponct=$('b_init').checked&&!$('b_abo').checked;
-    $('l_prev').style.display=ponct?'none':'';$('o_diag').disabled=ponct;if(ponct)$('o_diag').checked=true;
+    var demAbo=$('b_init').checked&&$('b_abo').checked;
+    $('l_prev').style.display=ponct?'none':'';
+    $('o_diag').disabled=true;$('o_diag').checked=true;
+    $('o_prev').disabled=demAbo;if(demAbo)$('o_prev').checked=true;
+    $('inclus_note').hidden=!demAbo;
     $('t_diag').textContent=ponct?'Diagnostic sur place, préconisations comprises':'Recensement et diagnostic sur place';
     if(ponct){$('px_diag').textContent=eur(forf)+' HT';$('seuil_diag').textContent='Forfait de '+Pn.forfaitHeures+' h sur place jusqu\'à '+Pn.arbresInclus+' arbres, puis '+eur(Pn.prixArbreSupplementaire)+' HT par arbre supplémentaire. '+T.arbresParJour+' arbres maximum par journée : au-delà, une journée de plus (forfait et déplacement). Compte rendu et préconisations compris.';}
     else{$('px_diag').textContent=eur(forf)+' HT';$('seuil_diag').textContent='Forfait de '+Pn.forfaitHeures+' h sur place jusqu\'à '+Pn.arbresInclus+' arbres, puis '+eur(Pn.prixArbreSupplementaire)+' HT par arbre supplémentaire. '+T.arbresParJour+' arbres maximum par journée : au-delà, une journée de plus (forfait et déplacement).';}
@@ -680,7 +686,7 @@ var TARIFS = {
     var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
       site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
       client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
-      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:$('o_diag').checked,prev:$('o_prev').checked&&$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,abonnement:$('b_abo').checked}};
+      estimation:{nb:parseInt($('nb').value,10)||1,demarrage:$('b_init').checked,diag:true,prev:$('b_abo').checked,rb:parseInt($('q_rb').value,10)||0,rh:parseInt($('q_rh').value,10)||0,km:lieu.km,abonnement:$('b_abo').checked}};
     if(!corps.estimation.demarrage&&!corps.estimation.abonnement){err.textContent='Dans le calculateur, cochez le démarrage, le suivi annuel, ou les deux.';return}
     var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
     fetch('api/demande.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)})

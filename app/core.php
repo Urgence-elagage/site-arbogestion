@@ -107,6 +107,8 @@ function calculer(array $d): array {
         }
     };
     $ponctuel = !empty($d['demarrage']) && empty($d['abonnement']);
+    // Démarrage d'un abonnement : recensement, diagnostic ET prévisionnel toujours inclus (base du budget)
+    if (!empty($d['demarrage']) && !empty($d['abonnement'])) { $d['diag'] = true; $d['prev'] = true; }
     // Sur place (prestation ponctuelle ou recensement de départ d'un abonnement) : même règle par journée
     if ($ponctuel || (!empty($d['demarrage']) && !empty($d['diag']))) {
         // Prestation ponctuelle : forfait sur place jusqu'à N arbres, puis prix par arbre supplémentaire ; préconisations comprises
