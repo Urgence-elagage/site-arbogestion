@@ -16,7 +16,7 @@
   "resistographe": {
     "base": 50,
     "houppierTauxHoraire": 85,
-    "houppierHeuresParTest": null
+    "houppierHeuresParTest": 2
   },
   "paliers": {
     "particulier": [

@@ -3,7 +3,7 @@ name: Mise en ligne sur OVH
 on:
   push:
     branches: [main]
-    paths: ["www/**", ".github/workflows/deploiement-ovh.yml"]
+    paths: ["www/**", "app/**", ".github/workflows/deploiement-ovh.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -18,7 +18,8 @@ jobs:
 
       - name: Vérifications avant envoi
         run: |
-          php -l www/contact.php
+          for f in www/*.php www/api/*.php app/*.php; do php -l "$f"; done
+          python3 -c "import json;json.load(open('www/tarifs.json'));print('tarifs OK')"
           python3 -c "import re,json;h=open('www/index.html',encoding='utf8').read();json.loads(re.search(r'ld\+json\">(.*?)</script>',h,re.S).group(1));print('index.html OK')"
           python3 -c "import xml.dom.minidom as m;m.parse('www/sitemap.xml');print('sitemap OK')"
 
@@ -38,6 +39,9 @@ jobs:
             mirror --reverse --only-newer --verbose --parallel=4 \
               --exclude-glob .git* \
               www/ arbogestion/www/;
+            mirror --reverse --only-newer --verbose --parallel=4 \
+              --exclude-glob config.php --exclude-glob storage/ --exclude-glob .git* \
+              app/ arbogestion/app/;
             bye"
 
       - name: Vérifier que le site répond

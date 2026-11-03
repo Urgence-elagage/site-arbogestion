@@ -2,5 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /contact.php
 Disallow: /estimation.html
+Disallow: /api/
+Disallow: /bon-de-commande.php
+Disallow: /cron.php
 
 Sitemap: https://arbogestion.fr/sitemap.xml

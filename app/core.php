@@ -117,13 +117,10 @@ function calculer(array $d): array {
         $R = $T['resistographe'];
         $rb = max(0, min(500, (int)($d['rb'] ?? 0)));
         $rh = max(0, min(100, (int)($d['rh'] ?? 0)));
-        if ($rb) { $res['lignes_demarrage'][] = ['label' => 'Test au résistographe, partie basse', 'desc' => 'Test au pied du tronc, remise des données', 'qte' => $rb, 'unite' => 'test', 'pu' => (float)$R['base']]; }
+        if ($rb) { $res['lignes_demarrage'][] = ['label' => 'Test au résistographe au pied du tronc', 'desc' => 'Mesure de la résistance du bois à la base de l’arbre, remise des résultats', 'qte' => $rb, 'unite' => 'test', 'pu' => (float)$R['base']]; }
         if ($rh) {
-            if (!empty($R['houppierHeuresParTest'])) {
-                $res['lignes_demarrage'][] = ['label' => 'Test au résistographe, houppier', 'desc' => $rh . ' test(s) en hauteur (nacelle ou grimpeurs), rapport des données', 'qte' => round($rh * (float)$R['houppierHeuresParTest'], 2), 'unite' => 'heure', 'pu' => (float)$R['houppierTauxHoraire']];
-            } else {
-                $res['houppier_sur_devis'] = $rh;
-            }
+            $puh = round((float)$R['houppierTauxHoraire'] * (float)$R['houppierHeuresParTest'], 2);
+            $res['lignes_demarrage'][] = ['label' => 'Test au résistographe en hauteur, dans les branches', 'desc' => 'Accès par nacelle ou par grimpeur, rapport des résultats', 'qte' => $rh, 'unite' => 'arbre', 'pu' => $puh];
         }
         if (!$res['jours'] && ($rb || $rh)) { $res['jours'] = 1; }
         $km = isset($d['km']) && $d['km'] !== null && $d['km'] !== '' ? round(max(0, min(1500, (float)$d['km'])), 1) : null;
@@ -169,16 +166,24 @@ function verifier_jeton(string $t): ?int {
 }
 
 /* ---------- Courriel ---------- */
-function envoyer_mail(string $a, string $sujet, string $texte, ?string $repondre_a = null): bool {
+function envoyer_mail(string $a, string $sujet, string $texte, ?string $repondre_a = null, ?string $piece_jointe = null): bool {
     if (cfg('mail_capture')) { // tests
-        file_put_contents(cfg('mail_capture'), "À: $a\nSujet: $sujet\n\n$texte\n-----\n", FILE_APPEND);
+        file_put_contents(cfg('mail_capture'), "À: $a\nSujet: $sujet\n" . ($piece_jointe ? 'PJ: ' . basename($piece_jointe) . "\n" : '') . "\n$texte\n-----\n", FILE_APPEND);
         return true;
     }
     $from = (string)cfg('mail_from', 'noreply@arbogestion.fr');
-    $entetes = "From: Arbogestion <$from>\r\n"
-        . ($repondre_a ? "Reply-To: $repondre_a\r\n" : '')
-        . "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
-    return @mail($a, '=?UTF-8?B?' . base64_encode($sujet) . '?=', $texte, $entetes, '-f' . $from);
+    $entetes = "From: Arbogestion <$from>\r\n" . ($repondre_a ? "Reply-To: $repondre_a\r\n" : '') . "MIME-Version: 1.0\r\n";
+    if ($piece_jointe && is_file($piece_jointe)) {
+        $b = 'arbo' . bin2hex(random_bytes(8));
+        $entetes .= "Content-Type: multipart/mixed; boundary=\"$b\"\r\n";
+        $corps = "--$b\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n$texte\r\n"
+            . "--$b\r\nContent-Type: application/pdf; name=\"" . basename($piece_jointe) . "\"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"" . basename($piece_jointe) . "\"\r\n\r\n"
+            . chunk_split(base64_encode((string)file_get_contents($piece_jointe))) . "--$b--";
+    } else {
+        $entetes .= "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
+        $corps = $texte;
+    }
+    return @mail($a, '=?UTF-8?B?' . base64_encode($sujet) . '?=', $corps, $entetes, '-f' . $from);
 }
 
 /* ---------- Client API Pennylane v2 ---------- */
