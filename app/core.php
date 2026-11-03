@@ -210,6 +210,7 @@ function envoyer_mail(string $a, string $sujet, string $texte, ?string $repondre
         return true;
     }
     $from = (string)cfg('mail_from', 'noreply@arbogestion.fr');
+    $repondre_a = $repondre_a ?: (string)cfg('mail_kevin', 'contact@arbogestion.fr');
     $entetes = "From: Arbogestion <$from>\r\n" . ($repondre_a ? "Reply-To: $repondre_a\r\n" : '') . "MIME-Version: 1.0\r\n";
     if ($piece_jointe && is_file($piece_jointe)) {
         $b = 'arbo' . bin2hex(random_bytes(8));

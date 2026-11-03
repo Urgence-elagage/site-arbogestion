@@ -133,7 +133,7 @@ function lignes_devis(array $dem, array $calc): array {
 
 function texte_estimation(array $dem, array $calc): string {
     $T = tarifs(); $t = [];
-    foreach ($calc['lignes_demarrage'] as $l) { $t[] = '- ' . $l['label'] . ' : ' . str_replace(['.'], [','], (string)$l['qte']) . ' ' . $l['unite'] . ' × ' . eur($l['pu']) . ' = ' . eur(round($l['qte'] * $l['pu'], 2)) . ' HT'; }
+    foreach ($calc['lignes_demarrage'] as $l) { $t[] = '- ' . $l['label'] . ' : ' . str_replace(['.'], [','], (string)$l['qte']) . ' ' . $l['unite'] . ((float)$l['qte'] > 1 && !str_ends_with($l['unite'], 's') ? 's' : '') . ' × ' . eur($l['pu']) . ' = ' . eur(round($l['qte'] * $l['pu'], 2)) . ' HT'; }
     if ($calc['demarrage_ht'] > 0) { $t[] = '  Total ' . ($calc['abonnement'] ? 'démarrage' : 'prestation') . ' : ' . eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)'; }
     if (!empty($calc['acompte_ht'])) { $t[] = '  Acompte à la signature (' . $T['acompte']['pourcentage'] . ' %) : ' . eur(round($calc['acompte_ht'] * (1 + $T['tva']), 2)) . ' TTC'; }
     $ab = $calc['abonnement'];
@@ -240,7 +240,7 @@ function traiter_demande(array $in): array {
         ? "La demande a été enregistrée mais le devis n'a pas pu être créé automatiquement dans Pennylane.\nMotif : $erreur\n\n"
         : "Un devis BROUILLON a été créé dans Pennylane (n° $numero), avec " . (empty($calc['abonnement']) ? 'les conditions particulières et les CGV' : 'le contrat d\'abonnement et les CGV') . " en annexe.\nÀ faire : ouvrir Pennylane > Facturation > Devis, relire, puis l'envoyer au client pour signature.\n\n")
         . $infos;
-    envoyer_mail((string)cfg('mail_kevin'), $sujet, $texte, $c['email']);
+    envoyer_mail((string)cfg('mail_kevin'), $sujet, $texte);
     envoyer_mail($c['email'], 'Arbogestion – Votre demande de devis est bien reçue',
         "Bonjour,\n\nNous avons bien reçu votre demande d'estimation (référence $id). Nous vérifions les informations et vous adressons votre devis et votre contrat par courriel, à signer en ligne, sous 48 heures ouvrées.\n\nRécapitulatif de votre estimation :\n$resume\n\nCette estimation est indicative ; le devis fait foi.\n\nBien cordialement,\nArbogestion – arboriste conseil\n133 rue Madeleine Brès, 46100 Cambes\nhttps://arbogestion.fr",
         (string)cfg('mail_kevin'));
