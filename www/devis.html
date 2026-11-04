@@ -283,7 +283,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
         <div><label for="prenom">Prénom *</label><input id="prenom" autocomplete="given-name"></div>
         <div><label for="nomp">Nom *</label><input id="nomp" autocomplete="family-name"></div>
       </div>
-      <label for="adr">Adresse <span id="l-adr">(siège)</span> *</label><input id="adr" list="adrs" autocomplete="off" placeholder="Commencez à taper : numéro, rue, commune…"><datalist id="adrs"></datalist>
+      <label for="adr">Adresse <span id="l-adr">(siège)</span> *</label><input id="adr" list="adrs" autocomplete="off" placeholder="Commencez à taper : numéro, rue, commune…">
       <div class="ligne">
         <div><label for="cp">Code postal *</label><input id="cp" inputmode="numeric" autocomplete="postal-code"></div>
         <div><label for="ville">Commune *</label><input id="ville" autocomplete="address-level2"></div>
@@ -292,7 +292,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
         <div><label for="email">E-mail *</label><input id="email" type="email" autocomplete="email"></div>
         <div><label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel"></div>
       </div>
-      <label for="site_adresse">Adresse du site suivi, si différente</label><input id="site_adresse" list="sites" autocomplete="off" placeholder="Commencez à taper l'adresse"><datalist id="sites"></datalist>
+      <label for="site_adresse">Adresse du site suivi, si différente</label><input id="site_adresse" list="sites" autocomplete="off" placeholder="Commencez à taper l'adresse">
       <div class="ligne">
         <div><label for="date_debut">Date de début souhaitée</label><input id="date_debut" type="date"></div>
         <div id="f-paiement"><label for="paiement">Paiement de l'abonnement</label><select id="paiement"><option value="mensuel">Mensuel, par prélèvement</option><option value="annuel">Annuel</option></select></div>
@@ -341,6 +341,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   </div>
 </footer>
 
+<script src="js/adresse.js?v=1"></script>
 <script>
 (function(){
   var $=function(id){return document.getElementById(id)};
@@ -356,18 +357,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   $('modifier').href='estimation.html#'+profil;
   var ponctuel=E.estimation.demarrage&&!E.estimation.abonnement;
   /* ----- Saisie d'adresse assistée (Base Adresse Nationale) ----- */
-  function autoAdresse(champ,liste,remplir){
-    var props={},t=null,el=$(champ);
-    function chercherA(q){fetch('https://api-adresse.data.gouv.fr/search/?limit=6&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
-      props={};var dl=$(liste);dl.innerHTML='';
-      (d.features||[]).forEach(function(f){var l=f.properties.label;props[l]=f.properties;var o=document.createElement('option');o.value=l;dl.appendChild(o)});
-    }).catch(function(){})}
-    function verifier(){var v=el.value.trim();if(props[v]){remplir(props[v]);props={};$(liste).innerHTML='';return true}return false}
-    el.addEventListener('input',function(){if(verifier())return;clearTimeout(t);var v=el.value.trim();if(v.length>=4)t=setTimeout(function(){chercherA(v)},250)});
-    el.addEventListener('change',verifier);
-  }
-  autoAdresse('adr','adrs',function(p){$('adr').value=p.type==='municipality'?'':(p.name||'');$('cp').value=p.postcode||'';$('ville').value=p.city||'';if(!$('adr').value)$('adr').focus()});
-  autoAdresse('site_adresse','sites',function(p){$('site_adresse').value=p.label});
+  autoAdresseBAN($('adr'),function(p){$('adr').value=p.type==='municipality'?'':(p.name||'');$('cp').value=p.postcode||'';$('ville').value=p.city||'';if(!$('adr').value)$('adr').focus()});
+  autoAdresseBAN($('site_adresse'),function(p){$('site_adresse').value=p.label});
 
   /* ----- Formulaire de demande de devis ----- */
   function adapterPaiement(){

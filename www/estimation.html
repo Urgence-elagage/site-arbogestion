@@ -352,7 +352,6 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
             </div>
             <label for="adresse" style="margin-top:22px">Lieu d'intervention (pour les frais de déplacement)</label>
             <input id="adresse" list="adresses" autocomplete="off" placeholder="Adresse ou commune, ex. : 46160 Cajarc">
-            <datalist id="adresses"></datalist>
             <p id="distInfo" style="color:var(--gris);font-size:.9rem;margin-top:8px">Déplacement calculé par la route depuis notre base de Cambes (Lot), aller-retour, péages compris.</p>
           </div>
         </div>
@@ -388,6 +387,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   </div>
 </footer>
 
+<script src="js/adresse.js?v=1"></script>
 <script>
 /* ================================================================
    TARIFS ARBOGESTION 2026 — prix HT. Modifier ici uniquement.
@@ -569,14 +569,6 @@ var TARIFS = {
 
   /* Adresse : Base Adresse Nationale ; distance routière : Géoplateforme IGN */
   function hav(a,b){var R=6371,t=Math.PI/180,dLa=(b.lat-a.lat)*t,dLo=(b.lon-a.lon)*t;var x=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLo/2)*Math.sin(dLo/2);return 2*R*Math.asin(Math.sqrt(x))}
-  var sugg={},minuteur=null;
-  function chercher(q){
-    fetch('https://api-adresse.data.gouv.fr/search/?limit=6&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){
-      sugg={};var dl=$('adresses');dl.innerHTML='';
-      (d.features||[]).forEach(function(f){var l=f.properties.label;sugg[l]={lon:f.geometry.coordinates[0],lat:f.geometry.coordinates[1],label:l};var o=document.createElement('option');o.value=l;dl.appendChild(o)});
-      if(sugg[$('adresse').value])choisir(sugg[$('adresse').value]);
-    }).catch(function(){});
-  }
   function choisir(pt){
     var D=T.depart;lieu.label=pt.label;lieu.kmPeage=0;$('distInfo').textContent='Calcul de la distance…';
     var base='https://data.geopf.fr/navigation/itineraire?profile=car&optimization=fastest&getBbox=false&distanceUnit=kilometer&timeUnit=hour&start='+D.lon+','+D.lat+'&end='+pt.lon+','+pt.lat;
@@ -591,8 +583,7 @@ var TARIFS = {
       .catch(function(){fin(hav(D,pt)*1.3,0,true,0)});
     });
   }
-  $('adresse').addEventListener('input',function(){var v=this.value.trim();if(sugg[v]){choisir(sugg[v]);return}lieu={label:'',km:null,kmPeage:0,dureeH:0};calcul();clearTimeout(minuteur);if(v.length>=3)minuteur=setTimeout(function(){chercher(v)},250)});
-  $('adresse').addEventListener('change',function(){var v=this.value.trim();if(sugg[v])choisir(sugg[v]);else if(v.length>=3)chercher(v)});
+  autoAdresseBAN($('adresse'),function(p,c){$('adresse').value=p.label;choisir({lon:c[0],lat:c[1],label:p.label})},{saisie:function(){if(lieu.km!=null){lieu={label:'',km:null,kmPeage:0,dureeH:0};calcul()}}});
 
   document.querySelectorAll('.onglets button').forEach(function(b){b.addEventListener('click',function(){profil=b.dataset.p;try{history.replaceState(null,'','#'+profil)}catch(e){}afficherOffre()})});
   $('nb').addEventListener('input',function(){var v=parseInt(this.value,10)||1;$('nbr').value=Math.min(v,1000);calcul()});
