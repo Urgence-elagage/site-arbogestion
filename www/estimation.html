@@ -189,10 +189,21 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 @media (max-width:900px){.calc{grid-template-columns:1fr}.resultat{position:static}}
 
 /* Onglets */
-.onglets{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}
-.onglets button{font:inherit;font-weight:900;font-size:1.02rem;padding:14px 22px;border-radius:10px 10px 0 0;border:0;cursor:pointer;background:rgba(255,255,255,.12);color:#fff}
-.onglets button[aria-selected=true]{background:var(--creme);color:var(--vert)}
-.onglets button small{display:block;font-weight:400;font-size:.8rem;opacity:.8}
+.profil-choix{margin-top:30px}
+.profil-choix .q{font-weight:900;font-size:1.25rem;color:#fff;margin-bottom:12px}
+.onglets{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:900px}
+.onglets button{font:inherit;display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px;border-radius:14px;border:2px solid rgba(255,255,255,.25);cursor:pointer;background:rgba(255,255,255,.08);color:#fff;transition:background .15s,border-color .15s}
+.onglets button:hover{border-color:var(--lime);background:rgba(255,255,255,.14)}
+.onglets button svg{flex:none;width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.onglets button b{display:block;font-size:1.08rem;font-weight:900}
+.onglets button small{display:block;font-weight:400;font-size:.85rem;opacity:.85}
+.onglets button[aria-selected=true]{background:var(--lime);border-color:var(--lime);color:var(--vert)}
+body.sans-profil .onglets button{padding:22px 20px;border-color:var(--lime)}
+body.sans-profil .onglets button svg{width:42px;height:42px;color:var(--lime)}
+body.sans-profil #offre,body.sans-profil #calculateur,body.sans-profil #flottant,body.sans-profil .pagehead .btn{display:none!important}
+.aide-profil{color:rgba(255,255,255,.75);font-size:.92rem;margin-top:12px}body:not(.sans-profil) .aide-profil{display:none}
+.profil-rappel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f1f5e0;border:1px solid #dfe6bf;border-radius:10px;padding:10px 14px;margin-bottom:18px;color:var(--vert)}
+.profil-rappel a{color:var(--vert);font-weight:700}
 .offre{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(24px,3vw,48px)}
 .offre h2{margin-bottom:8px}
 .offre .pour{color:var(--gris);font-size:1.05rem;max-width:60ch}
@@ -233,11 +244,11 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .flottant{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:40;background:var(--lime);color:var(--vert);font-weight:900;padding:14px 26px;border-radius:40px;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:opacity .25s,transform .25s;white-space:nowrap}
 .flottant.cache{opacity:0;pointer-events:none;transform:translate(-50%,20px)}
 .res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
-@media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets button{flex:1;padding:12px 10px;font-size:.95rem}}
+@media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets{grid-template-columns:1fr}}
 @media (max-width:760px){.choixb,.choixb.trois{grid-template-columns:1fr}}
 </style>
 </head>
-<body>
+<body class="sans-profil">
 
 <div class="topbar" id="topbar">
   <div class="wrap">
@@ -264,15 +275,19 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     <h1>Nos formules, et ce que<br>coûte le suivi de vos arbres.</h1>
     <p>Choisissez votre profil : vous découvrez la formule adaptée, ce qu'elle comprend, et vous obtenez une estimation immédiate que vous pouvez nous envoyer pour recevoir un devis.</p>
     <a class="btn" href="#calculateur" style="margin-top:22px">Calculer mon estimation ↓</a>
-    <div class="onglets" role="tablist" aria-label="Votre profil">
-      <button role="tab" id="t-particulier" aria-selected="false" data-p="particulier">Particuliers<small>Jardin, parc, propriété</small></button>
-      <button role="tab" id="t-pro" aria-selected="false" data-p="pro">Professionnels<small>Entreprises, campings, domaines</small></button>
-      <button role="tab" id="t-collectivite" aria-selected="true" data-p="collectivite">Collectivités<small>Communes, intercommunalités</small></button>
+    <div class="profil-choix">
+      <p class="q" id="q-profil">Pour commencer, vous êtes :</p>
+      <div class="onglets" role="tablist" aria-labelledby="q-profil">
+        <button role="tab" id="t-particulier" aria-selected="false" data-p="particulier"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg><span><b>Un particulier</b><small>Jardin, parc, propriété</small></span></button>
+        <button role="tab" id="t-pro" aria-selected="false" data-p="pro"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7.5" width="18" height="12.5" rx="2"/><path d="M8.5 7.5V5.5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/></svg><span><b>Un professionnel</b><small>Entreprise, camping, domaine</small></span></button>
+        <button role="tab" id="t-collectivite" aria-selected="false" data-p="collectivite"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 12 4l9 5.5"/><path d="M4 9.5h16"/><path d="M6 9.5V18M10 9.5V18M14 9.5V18M18 9.5V18"/><path d="M3 20.5h18"/></svg><span><b>Une collectivité</b><small>Commune, intercommunalité</small></span></button>
+      </div>
+      <p class="aide-profil">La formule, les tarifs et le calculateur s'affichent selon votre choix.</p>
     </div>
   </div>
 </div>
 
-<section style="padding-top:clamp(28px,3vw,48px)">
+<section id="offre" style="padding-top:clamp(28px,3vw,48px)">
   <div class="wrap">
     <div class="offre">
       <div>
@@ -319,6 +334,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   <div class="wrap">
     <div class="kicker">Estimation</div>
     <h2>Calculez votre estimation.</h2>
+    <p class="profil-rappel" style="margin-top:18px">Votre profil : <b id="rappel-profil"></b> <a href="#q-profil">Changer</a></p>
     <div class="calc" style="margin-top:28px">
       <div>
         <div class="etapec" style="background:var(--creme)">
@@ -458,13 +474,17 @@ var TARIFS = {
   var T=TARIFS;
   var r2=function(v){return Math.round(v*100)/100};
   var eur=function(v){v=r2(v);return v.toLocaleString('fr-FR',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})+' €'};
-  var profil='collectivite',resume='',lieu={label:'',km:null};
+  var profil=null,resume='',lieu={label:'',km:null};
   try{var m=location.hash.match(/(particulier|pro|collectivite)/);if(m)profil=m[1]}catch(e){}
 
   function palier(n){var l=T.profils[profil].paliers;for(var i=0;i<l.length;i++){if(n<=l[i][0])return {i:i,max:l[i][0],prix:l[i][1]}}return null}
 
   function afficherOffre(){
+    document.body.classList.toggle('sans-profil',!profil);
+    document.querySelectorAll('.onglets button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.p===profil)});
+    if(!profil)return;
     var P=T.profils[profil];
+    $('rappel-profil').textContent={particulier:'particulier',pro:'professionnel',collectivite:'collectivité'}[profil];
     document.querySelectorAll('.onglets button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.p===profil)});
     $('o-titre').textContent=P.formule;
     $('o-pour').textContent=P.pour;
@@ -490,6 +510,7 @@ var TARIFS = {
   }
 
   function calcul(){
+    if(!profil)return;
     var P=T.profils[profil];
     var n=Math.max(1,Math.min(10000,parseInt($('nb').value,10)||1));
     var r=T.resistographe,mini=T.tauxHoraire*T.minimumHeures;
@@ -585,7 +606,7 @@ var TARIFS = {
   }
   autoAdresseBAN($('adresse'),function(p,c){$('adresse').value=p.label;choisir({lon:c[0],lat:c[1],label:p.label})},{saisie:function(){if(lieu.km!=null){lieu={label:'',km:null,kmPeage:0,dureeH:0};calcul()}}});
 
-  document.querySelectorAll('.onglets button').forEach(function(b){b.addEventListener('click',function(){profil=b.dataset.p;try{history.replaceState(null,'','#'+profil)}catch(e){}afficherOffre()})});
+  document.querySelectorAll('.onglets button').forEach(function(b){b.addEventListener('click',function(){var premier=!profil;profil=b.dataset.p;try{history.replaceState(null,'','#'+profil)}catch(e){}afficherOffre();if(premier){var o=document.getElementById('offre');setTimeout(function(){o.scrollIntoView({behavior:'smooth',block:'start'})},60)}})});
   $('nb').addEventListener('input',function(){var v=parseInt(this.value,10)||1;$('nbr').value=Math.min(v,1000);calcul()});
   $('nbr').addEventListener('input',function(){$('nb').value=this.value;calcul()});
   function besoin(){var v=document.querySelector('input[name=besoin]:checked').value;
