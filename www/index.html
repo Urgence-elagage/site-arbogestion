@@ -172,16 +172,16 @@ nav ul .cta a{background:var(--lime);color:var(--vert);opacity:1;padding:8px 16p
 nav ul .cta a:hover{color:var(--vert);filter:brightness(1.05)}
 .burger{display:none;background:none;border:0;color:#fff;cursor:pointer;padding:8px}
 .burger span{display:block;width:28px;height:3px;background:#fff;margin:6px 0;border-radius:2px;transition:.25s}
-.hero{display:grid;grid-template-columns:1.2fr .8fr;gap:clamp(32px,5vw,90px);align-items:center;padding:clamp(40px,6vw,90px) 0}
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(32px,5vw,90px);align-items:center;padding:clamp(40px,6vw,90px) 0}
 .hero .bar{width:72px;height:5px;background:var(--lime);margin-bottom:28px}
 .hero h1{font-size:clamp(2.1rem,3.4vw,3.7rem);line-height:1.06;font-weight:900}
 .hero p{font-size:1.2rem;max-width:40ch;margin-top:22px;opacity:.95}
 .hero .tags{margin-top:26px;color:var(--lime);font-weight:700;letter-spacing:.05em;font-size:.85rem;text-transform:uppercase}
 .btn{display:inline-block;margin-top:34px;background:var(--lime);color:var(--vert);font-weight:900;padding:14px 26px;border-radius:6px;text-decoration:none}
 .btn:hover{filter:brightness(1.05)}
-.hero figure{position:relative;max-width:520px;justify-self:end;width:100%}
-.hero figure img{border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);aspect-ratio:4/5;object-fit:cover;object-position:center top;width:100%}
-.hero figcaption{position:absolute;left:18px;bottom:18px;background:rgba(22,48,40,.85);padding:10px 14px;border-radius:8px;font-size:.85rem}
+.hero figure{position:relative;max-width:680px;justify-self:end;width:100%}
+.hero figure img{aspect-ratio:4/3;height:auto;object-fit:cover;object-position:30% center;width:100%;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 14%,#000 86%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 12%,#000 88%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent 0,#000 14%,#000 86%,transparent 100%),linear-gradient(to bottom,transparent 0,#000 12%,#000 88%,transparent 100%);mask-composite:intersect}
+.hero figcaption{position:absolute;right:13%;bottom:13%;background:rgba(22,48,40,.85);padding:10px 14px;border-radius:8px;font-size:.85rem}
 .ambition{display:grid;grid-template-columns:repeat(3,auto);gap:22px;margin-top:36px;padding-top:26px;border-top:1px solid rgba(255,255,255,.25);width:max-content;max-width:100%}
 .ambition b{display:block;font-size:1.3rem;color:var(--lime)}
 .ambition span{font-size:.85rem;opacity:.85}
@@ -267,7 +267,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   .hero figure{justify-self:start}
   .hero,.deux,.galerie,.terrain,form .ligne{grid-template-columns:1fr}
   .deux.inv>:first-child{order:0}
-  .hero figure{max-width:380px}
+  .hero figure{max-width:100%}
   .ambition{grid-template-columns:1fr 1fr 1fr;width:100%;gap:12px}
   .ambition b{font-size:1.1rem}
   .encart{padding:24px}
@@ -316,8 +316,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
         </div>
       </div>
       <figure>
-        <img src="img/terrain-tablette.jpg" alt="Arboriste Arbogestion saisissant le diagnostic d'un arbre sur tablette, au pied du tronc">
-        <figcaption>Le diagnostic se fait au pied de l'arbre</figcaption>
+        <img src="img/parc-releve.jpg" alt="Arboriste réalisant le relevé des arbres d'un parc sur tablette" width="1400" height="788">
+        <figcaption>Relevé arbre par arbre</figcaption>
       </figure>
     </div>
   </div>
