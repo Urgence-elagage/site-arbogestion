@@ -79,7 +79,9 @@ function estimer_terrain(array $calc, array $est): array {
     $T = tarifs();
     $n = (int)($calc['nb'] ?? $est['nb'] ?? 0);
     $hparjour = (float)($T['heuresParJour'] ?? 7);
-    $total = $n * $hparjour / max(1, (int)($T['arbresParJour'] ?? 50))
+    // Recensement initial avec prévisionnel fait sur place : moins d'arbres par journée qu'un diagnostic ponctuel
+    $parjour = !empty($calc['abonnement']) ? (int)($T['arbresParJourDemarrage'] ?? $T['arbresParJour'] ?? 40) : (int)($T['arbresParJour'] ?? 50);
+    $total = $n * $hparjour / max(1, $parjour)
         + (int)($est['rb'] ?? 0) * 0.25
         + (int)($est['rh'] ?? 0) * (float)($T['resistographe']['houppierHeuresParTest'] ?? 2);
     $total = max((float)($T['ponctuel']['forfaitHeures'] ?? 2), $total);

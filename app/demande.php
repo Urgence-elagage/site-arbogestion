@@ -292,12 +292,16 @@ function lignes_devis(array $dem, array $calc): array {
     if ($ab && empty($ab['sur_devis'])) {
         $formule = PROFILS[$dem['profil']]['formule'];
         $sections[] = ['title' => 'Suivi annuel – ' . $formule, 'description' => 'Abonnement avec le logiciel Grality, 1/6 du parc rediagnostiqué chaque année (contrat joint en annexe)', 'rank' => ++$rang];
+        $an1 = $ab['prix_an1'] ?? null;
+        $ensuite = $an1 ? ' – puis ' . eur($ab['prix']) . ' HT par an' . ($dem['paiement'] === 'mensuel' ? ' (' . eur(round($ab['prix'] / 12, 2)) . ' HT par mois)' : '') . ' à partir de la date anniversaire du recensement initial' : '';
+        $libelle = $an1 ? "Abonnement $formule – jusqu'à {$ab['max']} arbres – 1re année (installation)" : "Abonnement $formule – jusqu'à {$ab['max']} arbres";
+        $prix = $an1 ?: $ab['prix'];
         if ($dem['paiement'] === 'mensuel') {
-            $lignes[] = ['label' => "Abonnement $formule – jusqu'à {$ab['max']} arbres", 'description' => 'Mensualité, prélèvement SEPA le 10 de chaque mois – première année',
-                'quantity' => 12, 'unit' => 'mois', 'raw_currency_unit_price' => prix6($ab['prix'] / 12), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
+            $lignes[] = ['label' => $libelle, 'description' => ($an1 ? 'Accès à Grality, hébergement et assistance, à compter de la réalisation du recensement ; prélèvement SEPA le 10 de chaque mois' : 'Mensualité, prélèvement SEPA le 10 de chaque mois – première année') . $ensuite,
+                'quantity' => 12, 'unit' => 'mois', 'raw_currency_unit_price' => prix6($prix / 12), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
         } else {
-            $lignes[] = ['label' => "Abonnement $formule – jusqu'à {$ab['max']} arbres", 'description' => 'Forfait annuel – première année, reconductible selon le contrat joint',
-                'quantity' => 1, 'unit' => 'an', 'raw_currency_unit_price' => prix6($ab['prix']), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
+            $lignes[] = ['label' => $libelle, 'description' => ($an1 ? 'Accès à Grality, hébergement et assistance, à compter de la réalisation du recensement' : 'Forfait annuel – première année, reconductible selon le contrat joint') . $ensuite,
+                'quantity' => 1, 'unit' => 'an', 'raw_currency_unit_price' => prix6($prix), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
         }
     }
     return [$sections, $lignes];
@@ -310,7 +314,8 @@ function texte_estimation(array $dem, array $calc, bool $client = false): string
     if ($calc['demarrage_ht'] > 0) { $t[] = '  Total ' . ($calc['abonnement'] ? 'démarrage' : 'prestation') . ' : ' . eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)'; }
     if (!empty($calc['acompte_ht'])) { $t[] = '  Acompte à la signature (' . $T['acompte']['pourcentage'] . ' %) : ' . eur(round($calc['acompte_ht'] * (1 + $T['tva']), 2)) . ' TTC'; }
     $ab = $calc['abonnement'];
-    if ($ab) { $t[] = empty($ab['sur_devis']) ? '- Abonnement ' . PROFILS[$dem['profil']]['formule'] . " jusqu'à {$ab['max']} arbres : " . eur($ab['prix']) . ' HT / an (' . $dem['paiement'] . ')' : '- Abonnement : au-delà du dernier palier, sur devis'; }
+    if ($ab && empty($ab['sur_devis']) && !empty($ab['prix_an1'])) { $t[] = '- Abonnement 1re année (installation) : ' . eur($ab['prix_an1']) . ' HT'; }
+    if ($ab) { $t[] = empty($ab['sur_devis']) ? '- Abonnement ' . PROFILS[$dem['profil']]['formule'] . " jusqu'à {$ab['max']} arbres" . (!empty($ab['prix_an1']) ? ', à partir de la date anniversaire du recensement' : '') . ' : ' . eur($ab['prix']) . ' HT / an (' . $dem['paiement'] . ')' : '- Abonnement : au-delà du dernier palier, sur devis'; }
     return implode("\n", $t);
 }
 
@@ -341,7 +346,7 @@ function creer_devis(array $dem, array $calc, array $opt = []): array {
         $mention = $ponctuel
             ? 'La signature du présent devis vaut acceptation des conditions particulières et des ' . $cgv_txt . ', jointes en annexe. Prestation sans abonnement, facturée après sa réalisation. Les interventions de terrain ne sont pas comprises.'
             : 'La signature du présent devis vaut acceptation du contrat d’abonnement Arbogestion joint en annexe (grille tarifaire 2026 et conditions particulières) ainsi que des ' . $cgv_txt . ', jointes à la suite. '
-              . 'Les prestations de démarrage sont facturées après leur réalisation ; l’abonnement est facturé selon l’échéancier du contrat. Les interventions de terrain ne sont pas comprises.';
+              . (!empty($calc['abonnement']['prix_an1']) ? 'Les prestations de démarrage sont facturées après leur réalisation ; l’abonnement prend effet à la réalisation du recensement initial, au tiers du forfait la première année (installation), puis au forfait plein à la date anniversaire, selon le contrat joint.' : 'L’abonnement est facturé selon l’échéancier du contrat joint.') . ' Les interventions de terrain ne sont pas comprises.';
         if ($calc['acompte_ht'] > 0) { $mention .= ' Un acompte de ' . tarifs()['acompte']['pourcentage'] . ' % des prestations ' . ($ponctuel ? '' : 'de démarrage ') . '(' . eur(round($calc['acompte_ht'] * (1 + tarifs()['tva']), 2)) . ' TTC) est demandé à la signature, le solde étant facturé après réalisation.'; }
         if ($dem['profil'] === 'particulier') { $mention .= ' Vous disposez d’un droit de rétractation de 14 jours (article ' . ($ponctuel ? cgv_article('particulier', 'Rétractation') . ' des conditions générales de vente' : '6 du contrat') . ').'; }
         if ($dem['profil'] === 'collectivite') { $mention .= ' L’acceptation est complétée par la transmission du bon de commande ou de la décision d’engagement.'; }

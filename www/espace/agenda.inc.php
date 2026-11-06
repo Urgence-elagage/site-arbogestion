@@ -46,7 +46,19 @@ if ($post) {
         if ($a === 'definitif') { rdv_maj($id, ['statut' => 'planifie']); message('Planification définitive. Tu peux maintenant proposer la date au client.'); retour_agenda($r); }
         if ($a === 'proposer') { proposer_au_client($id); message('Proposition envoyée à ' . $r['email'] . '. Tu seras prévenu de sa réponse par e-mail.'); retour_agenda($r); }
         if ($a === 'confirmer') { rdv_maj($id, ['statut' => 'confirme', 'reponse_le' => date('Y-m-d H:i:s'), 'reponse_msg' => 'Confirmé par téléphone ou de vive voix.']); message('Rendez-vous marqué confirmé.'); retour_agenda($r); }
-        if ($a === 'realise') { rdv_maj($id, ['statut' => 'realise']); message('Intervention marquée réalisée. Pense à facturer le solde dans Pennylane.'); retour_agenda($r); }
+        if ($a === 'realise') {
+            rdv_maj($id, ['statut' => 'realise']);
+            $txt = 'Intervention marquée réalisée. Pense à facturer le solde dans Pennylane.';
+            if ($r['demande_id']) { // dernière journée du recensement : l'abonnement démarre à cette date
+                $q = db()->prepare("SELECT COUNT(*) FROM interventions WHERE demande_id = ? AND statut NOT IN ('realise','annule')"); $q->execute([(int)$r['demande_id']]);
+                if ((int)$q->fetchColumn() === 0) {
+                    require_once ARBO_APP . '/signatures.php';
+                    try { $res = demarrer_abonnement((int)$r['demande_id'], substr((string)$r['debut'], 0, 10)); if ($res !== 'pas d’abonnement à créer' && $res !== 'abonnement déjà créé') { $txt .= ' Abonnement créé dans Pennylane : ' . $res . '.'; } }
+                    catch (Throwable $e) { $txt = '!' . $txt . ' L’abonnement n’a pas pu être créé : ' . $e->getMessage(); }
+                }
+            }
+            message($txt); retour_agenda($r);
+        }
         if ($a === 'retirer') { rdv_maj($id, ['statut' => 'a_planifier', 'debut' => null, 'propose_le' => null]); message('Remis dans « À planifier ».'); retour_agenda([], (string)($_POST['s'] ?? '')); }
         if ($a === 'annuler') { rdv_maj($id, ['statut' => 'annule']); message('Intervention annulée.'); retour_agenda([], (string)($_POST['s'] ?? '')); }
         if ($a === 'notes') { rdv_maj($id, ['notes' => nettoyer((string)($_POST['notes'] ?? ''), 1000)]); message('Notes enregistrées.'); retour_agenda($r); }

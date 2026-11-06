@@ -129,7 +129,7 @@ function calculer(array $d): array {
         // Prestation ponctuelle : forfait sur place jusqu'à N arbres, puis prix par arbre supplémentaire ; préconisations comprises
         $P = $T['ponctuel'];
         $forfait = round((float)$P['forfaitHeures'] * (float)$T['tauxHoraire'], 2);
-        $parJour = (int)$T['arbresParJour']; $inclus = (int)$P['arbresInclus'];
+        $parJour = $ponctuel ? (int)$T['arbresParJour'] : (int)($T['arbresParJourDemarrage'] ?? $T['arbresParJour']); $inclus = (int)$P['arbresInclus'];
         $nbJours = (int)ceil($n / $parJour);
         // Chaque journée sur place : forfait de N h (jusqu'à X arbres), puis prix par arbre supplémentaire
         $sup = 0;
@@ -138,7 +138,7 @@ function calculer(array $d): array {
         if ($sup > 0) {
             $res['lignes_demarrage'][] = ['label' => 'Arbres supplémentaires', 'desc' => 'Arbres diagnostiqués en plus', 'qte' => $sup, 'unite' => 'arbre', 'pu' => (float)$P['prixArbreSupplementaire']];
         }
-        $res['jours'] = (int)ceil($n / $T['arbresParJour']);
+        $res['jours'] = $nbJours;
         $d['diag'] = false;
         if ($ponctuel) { $d['prev'] = false; }
     }
@@ -153,7 +153,7 @@ function calculer(array $d): array {
         $R = $T['resistographe'];
         $rb = max(0, min(500, (int)($d['rb'] ?? 0)));
         $rh = max(0, min(100, (int)($d['rh'] ?? 0)));
-        if ($rb) { $res['lignes_demarrage'][] = ['label' => 'Test au résistographe au pied du tronc', 'desc' => 'Mesure de la résistance du bois à la base de l’arbre, remise des résultats', 'qte' => $rb, 'unite' => 'test', 'pu' => (float)$R['base']]; }
+        if ($rb) { $res['lignes_demarrage'][] = ['label' => 'Test au résistographe au pied de l’arbre', 'desc' => 'Mesure de la résistance du bois à la base de l’arbre, remise des résultats', 'qte' => $rb, 'unite' => 'test', 'pu' => (float)$R['base']]; }
         if ($rh) {
             $puh = round((float)$R['houppierTauxHoraire'] * (float)$R['houppierHeuresParTest'], 2);
             $res['lignes_demarrage'][] = ['label' => 'Diagnostic dans la couronne de l\'arbre', 'desc' => 'Prestation réalisée avec un arboriste grimpeur', 'qte' => $rh, 'unite' => 'arbre', 'pu' => $puh];
@@ -185,6 +185,10 @@ function calculer(array $d): array {
     if (!empty($d['abonnement'])) {
         $p = palier($d['profil'], $n);
         $res['abonnement'] = $p ? $p + ['sur_devis' => false] : ['sur_devis' => true];
+        // Avec un recensement initial : 1re année (installation) à une fraction du forfait, plein tarif à la date anniversaire
+        if ($p && !empty($d['demarrage']) && $res['demarrage_ht'] > 0 && !empty($T['premiereAnnee']['diviseur'])) {
+            $res['abonnement']['prix_an1'] = round($p['prix'] / (float)$T['premiereAnnee']['diviseur'], 2);
+        }
     }
     return $res;
 }

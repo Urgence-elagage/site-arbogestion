@@ -13,32 +13,71 @@ require_once __DIR__ . '/agenda.php';
 function url_site(string $chemin): string { return rtrim((string)cfg('url_site', 'https://arbogestion.fr'), '/') . '/' . ltrim($chemin, '/'); }
 
 /** Ligne d'abonnement pour la facturation récurrente. */
-function abonnement_pennylane(array $row, array $dem, array $calc, string $debut): array {
+function abonnement_pennylane(array $row, array $dem, array $calc, string $debut, bool $an1 = false): array {
     $ab = $calc['abonnement'];
+    $prix = $an1 ? (float)$ab['prix_an1'] : (float)$ab['prix'];
     $formule = PROFILS[$dem['profil']]['formule'];
     $mensuel = $dem['paiement'] === 'mensuel' && $dem['profil'] !== 'collectivite';
     $col = $dem['profil'] === 'collectivite';
     return [
         'start' => $debut,
-        'label' => "Abonnement $formule – " . $row['nom_client'],
+        'label' => "Abonnement $formule – " . $row['nom_client'] . ($an1 ? ' – 1re année (installation)' : ''),
         'mode' => ['type' => (string)cfg('abonnement_mode', 'awaiting_validation')],
         'payment_conditions' => $col ? '30_days' : ($mensuel ? 'upon_receipt' : '30_days'),
         'payment_method' => 'offline',
-        'recurring_rule' => $mensuel ? ['type' => 'monthly', 'interval' => 1, 'day_of_month' => 10] : ['type' => 'yearly', 'interval' => 1],
+        'recurring_rule' => ($mensuel ? ['type' => 'monthly', 'interval' => 1, 'day_of_month' => 10] : ['type' => 'yearly', 'interval' => 1]) + ($an1 ? ['count' => $mensuel ? 12 : 1] : []),
         'customer_id' => (int)$row['pl_client_id'],
         'customer_invoice_data' => [
             'language' => 'fr_FR',
             'pdf_invoice_subject' => "Abonnement Arbogestion – $formule",
             'special_mention' => 'Contrat d’abonnement accepté par la signature du devis n° ' . $row['pl_devis_numero'] . '.' . ($col ? ' Facture à déposer sur Chorus Pro.' : ' Paiement par prélèvement SEPA (Stripe), à réception de la facture.'),
             'invoice_lines' => [[
-                'label' => "Abonnement $formule – jusqu'à {$ab['max']} arbres",
-                'description' => $mensuel ? 'Mensualité' : 'Forfait annuel',
+                'label' => "Abonnement $formule – jusqu'à {$ab['max']} arbres" . ($an1 ? ' – année d’installation' : ''),
+                'description' => ($mensuel ? 'Mensualité' : 'Forfait annuel') . ($an1 ? ' – accès à Grality, hébergement et assistance (tiers du forfait)' : ''),
                 'quantity' => 1, 'unit' => $mensuel ? 'mois' : 'an',
-                'raw_currency_unit_price' => prix6($mensuel ? $ab['prix'] / 12 : $ab['prix']),
+                'raw_currency_unit_price' => prix6($mensuel ? $prix / 12 : $prix),
                 'vat_rate' => 'FR_200',
             ]],
         ],
     ];
+}
+
+/**
+ * Abonnement avec recensement initial : créé quand le recensement est réalisé (agenda ou fiche du devis).
+ * 1re année au tiers du forfait (12 mensualités ou 1 annuité), puis forfait plein à la date anniversaire.
+ */
+function demarrer_abonnement(int $id, string $date): string {
+    $s = db()->prepare('SELECT * FROM demandes WHERE id = ?'); $s->execute([$id]); $row = $s->fetch();
+    if (!$row) { throw new RuntimeException('Devis introuvable.'); }
+    if (!empty($row['pl_abonnement_id'])) { return 'abonnement déjà créé'; }
+    $dem = json_decode($row['donnees'], true); $calc = json_decode($row['calcul'], true);
+    $ab = $calc['abonnement'] ?? null;
+    if (!$ab || !empty($ab['sur_devis'])) { return 'pas d’abonnement à créer'; }
+    if ($dem['profil'] === 'collectivite' && $row['statut'] !== 'bdc_recu') { throw new RuntimeException('Bon de commande de la collectivité pas encore reçu.'); }
+    $ids = []; $faits = [];
+    if (!empty($ab['prix_an1'])) {
+        $a1 = pennylane('POST', '/billing_subscriptions', abonnement_pennylane($row, $dem, $calc, $date, true));
+        $ids[] = (string)($a1['id'] ?? '');
+        $anniv = date('Y-m-d', strtotime($date . ' +1 year'));
+        $a2 = pennylane('POST', '/billing_subscriptions', abonnement_pennylane($row, $dem, $calc, $anniv));
+        $ids[] = (string)($a2['id'] ?? '');
+        $faits[] = '1re année au tiers du forfait à partir du ' . date_fr($date) . ', puis forfait plein à partir du ' . date_fr($anniv);
+    } else {
+        $a = pennylane('POST', '/billing_subscriptions', abonnement_pennylane($row, $dem, $calc, $date));
+        $ids[] = (string)($a['id'] ?? ''); $faits[] = 'abonnement à partir du ' . date_fr($date);
+    }
+    maj_demande($id, ['pl_abonnement_id' => implode(',', array_filter($ids)), 'notes' => ajouter_note($row, 'Abonnement créé dans Pennylane : ' . implode(' ; ', $faits) . '.')]);
+    envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Abonnement démarré – {$row['nom_client']}", "Recensement réalisé le " . date_fr($date) . ".
+Abonnement créé dans Pennylane (mode " . cfg('abonnement_mode', 'awaiting_validation') . ") : " . implode(' ; ', $faits) . ".
+
+À faire : ouvrir les accès Grality du client, et facturer le solde du démarrage.");
+    if (filter_var((string)$row['email'], FILTER_VALIDATE_EMAIL)) {
+        envoyer_mail((string)$row['email'], 'Arbogestion – Votre suivi annuel démarre',
+            "Bonjour,\n\nLe recensement de votre patrimoine arboré est terminé : merci pour votre accueil.\n\nVotre abonnement de suivi prend effet le " . date_fr($date) . '.'
+            . (!empty($ab['prix_an1']) ? " La première année (installation) est facturée au tiers du forfait : vous accédez à vos données sur la plateforme Grality, avec notre assistance. Le forfait annuel complet, qui comprend le re-diagnostic d'environ 1/6 de votre parc chaque année, s'applique à partir du " . date_fr(date('Y-m-d', strtotime($date . ' +1 year'))) . '.' : '')
+            . "\n\nVos identifiants d'accès à Grality vous sont adressés séparément.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
+    }
+    return implode(' ; ', $faits);
 }
 
 /** Facture d'acompte BROUILLON dans Pennylane (compte 4191) : Kevin la finalise et choisit le mode de paiement. */
@@ -156,10 +195,12 @@ function suite_signature(array $row): string {
         $faits[] = 'Stripe non configuré : moyen de paiement à mettre en place à la main';
     }
     $abo_id = null;
-    if ($avec_abonnement) {
+    if ($avec_abonnement && empty($ab['prix_an1'])) { // abonnement seul (parc déjà recensé) : démarre tout de suite
         $abo = pennylane('POST', '/billing_subscriptions', abonnement_pennylane($row, $dem, $calc, $debut));
         $abo_id = (string)($abo['id'] ?? '');
         $faits[] = 'abonnement créé (début ' . date_fr($debut) . ', mode ' . cfg('abonnement_mode', 'awaiting_validation') . ')';
+    } elseif ($avec_abonnement) {
+        $faits[] = 'abonnement créé automatiquement quand le recensement sera marqué « Réalisé » dans l’agenda (1re année au tiers, puis plein tarif à la date anniversaire)';
     }
     maj_demande($id, ['statut' => 'signe_paiement_demande', 'pl_abonnement_id' => $abo_id, 'notes' => ajouter_note($row, 'Devis signé : ' . implode(', ', $faits) . '.')]);
     envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']}",
@@ -183,7 +224,9 @@ function recevoir_bon_commande(int $id, string $tmp, string $nom_origine): void 
     try { pennylane('POST', '/quotes/' . $row['pl_devis_id'] . '/appendices', null, $dest); $faits[] = 'joint au devis dans Pennylane'; } catch (Throwable $e) { $faits[] = 'non joint au devis (' . $e->getMessage() . ')'; }
     $abo_id = $row['pl_abonnement_id'];
     $ab = $calc['abonnement'] ?? null;
-    if (!$abo_id && $ab && empty($ab['sur_devis'])) {
+    if (!$abo_id && $ab && empty($ab['sur_devis']) && !empty($ab['prix_an1'])) {
+        $faits[] = 'abonnement créé quand le recensement sera marqué « Réalisé » dans l’agenda';
+    } elseif (!$abo_id && $ab && empty($ab['sur_devis'])) {
         try {
             $abo = pennylane('POST', '/billing_subscriptions', abonnement_pennylane($row, $dem, $calc, max($dem['date_debut'], date('Y-m-d'))));
             $abo_id = (string)($abo['id'] ?? ''); $faits[] = 'abonnement annuel créé dans Pennylane';

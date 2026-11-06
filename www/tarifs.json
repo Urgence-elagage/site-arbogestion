@@ -6,6 +6,8 @@
   "diagnosticParArbre": 9.1,
   "previsionnelParArbre": 8.13,
   "arbresParJour": 50,
+  "arbresParJourDemarrage": 40,
+  "premiereAnnee": {"diviseur": 3, "libelle": "Année d’installation : accès à la plateforme Grality, hébergement des données et assistance (pas de re-diagnostic, le parc venant d’être diagnostiqué)"},
   "heuresParJour": 7,
   "deplacementKm": 1.2,
   "deplacementAllerRetour": true,

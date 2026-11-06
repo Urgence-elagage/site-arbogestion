@@ -40,9 +40,19 @@ function contrat_html(array $dem, array $calc, string $numero_devis, string $dat
         elseif ($pro) { $prix_txt = $mensuel ? eur(round($ht / 12, 2)) . ' HT par mois (' . eur($ht) . ' HT par an), prélèvement SEPA mensuel' : eur($ht) . ' HT par an, paiement annuel'; }
         else { $prix_txt = eur($ttc) . ' TTC par an (' . eur($ht) . ' HT), paiement annuel par mandat administratif'; }
         $palier_txt = $calc['nb'] . ' arbres – palier « jusqu\'à ' . $ab['max'] . ' arbres »';
+        if (!empty($ab['prix_an1'])) {
+            $h1 = (float)$ab['prix_an1']; $t1 = round($h1 * (1 + $T['tva']), 2);
+            $an1_txt = $part ? ($mensuel ? eur(round($t1 / 12, 2)) . ' TTC par mois (' . eur($t1) . ' TTC)' : eur($t1) . ' TTC')
+                : ($col ? eur($t1) . ' TTC (' . eur($h1) . ' HT)' : ($mensuel ? eur(round($h1 / 12, 2)) . ' HT par mois (' . eur($h1) . ' HT)' : eur($h1) . ' HT'));
+            $prix_txt = '1re année (installation) : ' . $an1_txt . ' ; puis, à partir de la date anniversaire du recensement initial : ' . $prix_txt;
+        }
     } else {
         $prix_txt = 'Sur devis'; $palier_txt = $calc['nb'] . ' arbres – sur devis';
     }
+    $installation = !empty($ab['prix_an1']);
+    $clause_installation = $installation
+        ? '<p><b>Prise d’effet et année d’installation</b> : lorsque le présent contrat accompagne un recensement initial, il prend effet à la date de réalisation de ce recensement (dernière journée sur place), qui vaut date de début. La première année (« année d’installation ») est facturée au <b>tiers du forfait annuel</b> de l’Annexe 1 : elle comprend l’accès à la plateforme Grality, l’hébergement des données et l’assistance, sans re-diagnostic, l’ensemble du parc venant d’être recensé, diagnostiqué et doté d’un prévisionnel d’intervention. À compter de la première date anniversaire, le forfait annuel plein s’applique et comprend le re-diagnostic d’environ 1/6 du parc chaque année, avec la mise à jour du prévisionnel. La durée d’engagement et la reconduction se comptent à partir de la date de début.</p>'
+        : '';
     $demarrage_txt = $calc['demarrage_ht'] > 0
         ? 'Comprises au devis n° ' . h($numero_devis) . ' – montant ' . ($part ? eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC' : eur($calc['demarrage_ht']) . ' HT')
         : 'Déjà réalisées ou hors présent devis';
@@ -133,6 +143,7 @@ ul{margin:2px 0 6px 16px;padding:0}li{margin-bottom:2px}
 <p>Lorsque le contrat est conclu à distance (internet, téléphone, signature électronique) ou hors établissement, le Client dispose d’un délai de <b>14 jours</b> à compter de son acceptation pour se rétracter, sans avoir à se justifier ni à payer de pénalité, au moyen du formulaire de l’Annexe 3 ou de toute déclaration dénuée d’ambiguïté adressée à contact@arbogestion.fr ou par courrier. Arbogestion rembourse les sommes versées dans les 14 jours suivant la rétractation. Si le Client demande expressément que les prestations commencent avant la fin de ce délai, il paie le montant correspondant au service fourni jusqu’à sa rétractation, proportionnellement au prix total.</p>
 <h2>7. Durée, renouvellement et résiliation</h2>
 <p><b>Durée</b> : 1 an à compter de la date de début indiquée en Annexe 2, puis reconduction tacite par périodes d’1 an. <b>Information avant échéance</b> : Arbogestion informe le Client par écrit, entre 3 mois et 1 mois avant l’échéance, de la possibilité de ne pas reconduire le contrat ; le Client peut alors y mettre fin sans frais à l’échéance. <b>Défaut d’information</b> : le Client peut résilier gratuitement à tout moment après la date de reconduction ; les sommes payées pour la période postérieure lui sont remboursées. <b>Après reconduction</b> : résiliation à tout moment avec un préavis d’1 mois. <b>Résiliation en ligne</b> : depuis la page « Résilier mon abonnement » du site arbogestion.fr ou par courriel à contact@arbogestion.fr ; Arbogestion confirme la résiliation et sa date d’effet par courriel. <b>Première année</b> : une résiliation pendant la première année, sans manquement d’Arbogestion, laisse dues les mensualités restant à courir jusqu’à la fin de cette première année, sauf motif légitime justifié (déménagement, vente du bien, décès…).</p>
+<?= $clause_installation ?>
 <h2>8. Prix et paiement</h2>
 <p>Forfait selon le nombre d’arbres, conformément à l’Annexe 1, prix TTC. Au-delà de 500 arbres : sur devis. Le palier applicable est indiqué en Annexe 2 ; un changement de palier donne lieu à avenant. <b>Paiement</b> : par prélèvement SEPA (mandat signé en ligne, paiement sécurisé par Stripe), mensuel le 10 de chaque mois, le premier après la fin du délai de rétractation, ou annuel à la date anniversaire. La facture vaut notification préalable de prélèvement. <b>Incident de paiement</b> : après mise en demeure restée sans effet 15 jours, les sommes dues portent intérêt au taux légal et l’accès au logiciel peut être suspendu jusqu’à régularisation, sans perte de données.</p>
 <h2>9. Évolution des prix</h2>
@@ -140,6 +151,7 @@ ul{margin:2px 0 6px 16px;padding:0}li{margin-bottom:2px}
 <?php else: ?>
 <h2>6. Durée et renouvellement</h2>
 <p>Le contrat est conclu pour <b>1 an</b> à compter de la date de début indiquée en Annexe 2<?= $col ? '. Il est reconduit tacitement par périodes de 1 an, dans la limite de <b>5 reconductions</b> (6 ans au total, durée recommandée pour couvrir le parc à raison de 1/6 par an), sauf dénonciation par l’une des parties, par LRAR ou courriel avec accusé de réception, <b>2 mois au moins</b> avant l’échéance. Arbogestion rappelle ce droit par courriel 3 mois avant l’échéance. Au-delà de 6 ans, la poursuite suppose un nouvel accord écrit.' : ', puis reconduit tacitement par périodes d’1 an, sauf dénonciation par l’une des parties, par LRAR ou courriel avec accusé de réception, <b>2 mois au moins</b> avant l’échéance. Arbogestion rappelle cette faculté par courriel 3 mois avant l’échéance. Durée de suivi recommandée : 6 ans (couverture complète du parc à raison de 1/6 par an).' ?></p>
+<?= $clause_installation ?>
 <h2>7. Prix</h2>
 <p>Forfait annuel selon le nombre d’arbres, conformément à l’Annexe 1<?= $col ? '' : ', prix exprimés en HT, TVA au taux en vigueur en sus' ?>. Au-delà de <?= $col ? '4 000' : '500' ?> arbres : sur devis. Le palier applicable figure en Annexe 2 ; un changement de palier en cours de contrat (ajout ou retrait d’arbres) donne lieu à avenant.</p>
 <h2>8. Facturation et paiement</h2>
@@ -202,7 +214,7 @@ ul{margin:2px 0 6px 16px;padding:0}li{margin-bottom:2px}
 <tr><td><?= $part ? 'Adresse(s) du patrimoine suivi' : 'Site(s) suivi(s)' ?></td><td><?= h(($dem['site_adresse'] ?? '') ?: trim(($c['adresse'] ?? '') . ', ' . ($c['cp'] ?? '') . ' ' . ($c['ville'] ?? ''), ', ')) ?></td></tr>
 <tr><td>Nombre d’arbres et palier retenu</td><td><?= h($palier_txt) ?></td></tr>
 <tr><td><?= $col ? 'Prix annuel' : 'Prix et mode de paiement' ?></td><td><?= h($prix_txt) ?></td></tr>
-<tr><td>Date de début</td><td><?= h(date_fr($debut)) ?></td></tr>
+<tr><td>Date de début</td><td><?= $installation ? 'Date de réalisation du recensement initial (confirmée par courriel au Client)' : h(date_fr($debut)) ?></td></tr>
 <tr><td>Prestations initiales (recensement, diagnostic, prévisionnel)</td><td><?= $demarrage_txt ?></td></tr>
 <?php if (!$part): ?><tr><td>Référent du Client</td><td><?= h($c['referent'] ?? '') ?> – <?= h($c['email'] ?? '') ?><?= empty($c['tel']) ? '' : ' – ' . h($c['tel']) ?></td></tr><?php endif; ?>
 <?php if ($pro): ?><tr><td>Contraintes d’exploitation (saison, horaires d’accès)</td><td><?= h(($dem['contraintes'] ?? '') ?: 'Néant') ?></td></tr><?php endif; ?>

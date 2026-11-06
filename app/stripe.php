@@ -212,9 +212,12 @@ function rapprocher_acompte(array $row): string {
 function prelever_abonnement(array $row): array {
     if (empty($row['stripe_pm']) || empty($row['pl_abonnement_id'])) { return []; }
     $cr = [];
-    $f = pl_filtre([['field' => 'billing_subscription_id', 'operator' => 'eq', 'value' => (string)$row['pl_abonnement_id']], ['field' => 'draft', 'operator' => 'eq', 'value' => 'false']]);
-    $liste = pennylane('GET', '/customer_invoices?limit=100&filter=' . $f);
-    foreach (($liste['items'] ?? []) as $fa) {
+    $factures = [];
+    foreach (array_filter(explode(',', (string)$row['pl_abonnement_id'])) as $abo) { // 1re année et plein tarif : deux abonnements Pennylane
+        $f = pl_filtre([['field' => 'billing_subscription_id', 'operator' => 'eq', 'value' => trim($abo)], ['field' => 'draft', 'operator' => 'eq', 'value' => 'false']]);
+        $factures = array_merge($factures, pennylane('GET', '/customer_invoices?limit=100&filter=' . $f)['items'] ?? []);
+    }
+    foreach ($factures as $fa) {
         if (!empty($fa['paid']) || !empty($fa['draft']) || in_array($fa['status'] ?? '', ['cancelled', 'archived', 'paid', 'credit_note'], true)) { continue; }
         $reste = (float)($fa['remaining_amount_with_tax'] ?? $fa['amount'] ?? 0);
         if ($reste <= 0) { continue; }

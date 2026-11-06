@@ -259,6 +259,17 @@ if ($p === 'envoyer' && $post) {
     aller('fiche', ['id' => $id]);
 }
 
+// ----- Démarrage manuel de l'abonnement (recensement réalisé hors agenda)
+if ($p === 'demarrer-abo' && $post) {
+    $id = (int)($_POST['id'] ?? 0); $d = (string)($_POST['date'] ?? '');
+    try {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) { throw new ErreurDemande('Date invalide.'); }
+        require_once ARBO_APP . '/signatures.php';
+        message('Abonnement : ' . demarrer_abonnement($id, $d) . '.');
+    } catch (Throwable $e) { message('!' . $e->getMessage()); }
+    aller('fiche', ['id' => $id]);
+}
+
 // ----- Fiche d'un devis
 if ($p === 'fiche') {
     $row = ligne_demande((int)($_GET['id'] ?? 0));
@@ -282,6 +293,8 @@ if ($p === 'fiche') {
         . ($envoyable ? '<form method="post" action="./?p=envoyer" data-confirmer="Confirmer l’envoi à ' . h($row['email']) . '">' . espace_csrf_champ() . '<input type="hidden" name="id" value="' . (int)$row['id'] . '"><button class="btn" type="submit">' . ($row['statut'] === 'devis_envoye' ? 'Renvoyer au client' : 'Envoyer au client pour signature') . '</button></form>' : '')
         . (is_file(ARBO_APP . '/storage/contrats/contrat-' . (int)$row['id'] . '.pdf') ? '<a class="btn sec" href="./?p=annexe&amp;id=' . (int)$row['id'] . '" target="_blank" rel="noopener">Voir l’annexe jointe (PDF)</a>' : '')
         . '<a class="btn sec" href="https://app.pennylane.com" target="_blank" rel="noopener">Ouvrir Pennylane</a></div>'
+        . (!empty($calc['abonnement']) && empty($calc['abonnement']['sur_devis']) && empty($row['pl_abonnement_id']) && (str_starts_with((string)$row['statut'], 'signe') || $row['statut'] === 'bdc_recu')
+            ? '<div class="carte" style="margin-top:16px"><h2>Démarrer l’abonnement</h2><p class="aide">Se fait tout seul quand la dernière journée du recensement est marquée « Réalisé » dans l’agenda. Sinon, indique ici la date de réalisation du recensement.</p><form method="post" action="./?p=demarrer-abo" class="actions">' . espace_csrf_champ() . '<input type="hidden" name="id" value="' . (int)$row['id'] . '"><input type="date" name="date" required value="' . date('Y-m-d') . '" style="max-width:200px"><button class="btn sec" type="submit">Créer l’abonnement dans Pennylane</button></form></div>' : '')
         . ($envoyable && $row['statut'] === 'devis_brouillon' ? '<p class="aide">L’envoi passe par Pennylane : le client reçoit le devis et ses annexes avec le lien de signature électronique. Tu peux aussi le relire dans Pennylane avant.</p>' : '')
         . (!empty($row['notes']) ? '<div class="carte" style="margin-top:16px"><h2>Historique</h2><p style="white-space:pre-line">' . h(trim($row['notes'])) . '</p></div>' : '');
     espace_rendu('Devis ' . ($row['pl_devis_numero'] ?: $row['id']), $html);
