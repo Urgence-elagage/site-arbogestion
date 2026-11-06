@@ -246,6 +246,7 @@ body.sans-profil #offre,body.sans-profil #calculateur,body.sans-profil #flottant
 .res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
 @media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets{grid-template-columns:1fr}}
 @media (max-width:760px){.choixb,.choixb.trois{grid-template-columns:1fr}}
+.ariane{font-size:.88rem;margin:0 0 18px}.ariane ol{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0}.ariane li{display:flex;align-items:center;gap:6px;opacity:.85}.ariane li+li::before{content:"›";opacity:.6}.ariane a{color:inherit;text-decoration:underline;text-underline-offset:3px}.ariane li[aria-current]{opacity:1;font-weight:700}
 </style>
 </head>
 <body class="sans-profil">
@@ -272,6 +273,8 @@ body.sans-profil #offre,body.sans-profil #calculateur,body.sans-profil #flottant
 
 <div class="pagehead" style="padding-bottom:0">
   <div class="wrap">
+    <nav class="ariane" aria-label="Fil d'Ariane"><ol><li><a href="index.html">Accueil</a></li><li aria-current="page">Formules et estimation</li></ol></nav>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://arbogestion.fr/"}, {"@type": "ListItem", "position": 2, "name": "Formules et estimation"}]}</script>
     <div class="kicker">Formules et estimation en ligne</div>
     <h1>Nos formules, et ce que<br>coûte le suivi de vos arbres.</h1>
     <p>Choisissez votre profil : vous découvrez la formule adaptée, ce qu'elle comprend, et vous obtenez une estimation immédiate que vous pouvez nous envoyer pour recevoir un devis.</p>

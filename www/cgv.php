@@ -63,9 +63,12 @@ p{margin:0 0 .8rem}
 .mention{font-weight:700;border-top:2px solid var(--lime);padding-top:10px;margin-top:18px}
 .versions{margin:30px 0 40px;font-size:.92rem;color:var(--gris)}
 .versions select{font:inherit;padding:4px 8px}
+.ariane{font-size:.88rem;margin:0 0 18px}.ariane ol{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0}.ariane li{display:flex;align-items:center;gap:6px;opacity:.85}.ariane li+li::before{content:"›";opacity:.6}.ariane a{color:inherit;text-decoration:underline;text-underline-offset:3px}.ariane li[aria-current]{opacity:1;font-weight:700}
 </style></head><body>
 <div class="haut"><div class="in"><a href="/">ARBOGESTION</a><span>Arboriste conseil</span></div></div>
 <main class="in">
+<nav class="ariane" aria-label="Fil d'Ariane"><ol><li><a href="index.html">Accueil</a></li><li aria-current="page">Conditions générales de vente</li></ol></nav>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://arbogestion.fr/"}, {"@type": "ListItem", "position": 2, "name": "Conditions générales de vente"}]}</script>
 <h1>Conditions générales de vente</h1>
 <p class="info">Version du <?= h(date_fr($v)) ?>. La signature d’un devis Arbogestion vaut acceptation des conditions générales de vente qui lui sont jointes.</p>
 <?php if (!$courante): ?><p class="archive">Ancienne version, conservée pour les devis signés lorsqu’elle était en vigueur. <a href="cgv.php">Voir la version en vigueur</a>.</p><?php endif; ?>

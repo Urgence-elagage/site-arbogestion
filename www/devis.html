@@ -240,6 +240,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .profil-bandeau a{color:var(--vert);font-weight:700}
 .f-titre{font-size:1.15rem;color:var(--vert);margin:22px 0 4px;padding-top:14px;border-top:1px solid #e6e6df}
 #fdevis .profil-bandeau + .f-titre{border-top:0;padding-top:0}
+.ariane{font-size:.88rem;margin:0 0 18px}.ariane ol{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0}.ariane li{display:flex;align-items:center;gap:6px;opacity:.85}.ariane li+li::before{content:"›";opacity:.6}.ariane a{color:inherit;text-decoration:underline;text-underline-offset:3px}.ariane li[aria-current]{opacity:1;font-weight:700}
 </style>
 </head>
 <body>
@@ -267,6 +268,8 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 
 <section id="demande" style="padding-top:clamp(28px,3vw,48px)">
   <div class="wrap">
+    <nav class="ariane" aria-label="Fil d'Ariane"><ol><li><a href="index.html">Accueil</a></li><li><a href="estimation.html">Formules et estimation</a></li><li aria-current="page">Demande de devis</li></ol></nav>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://arbogestion.fr/"}, {"@type": "ListItem", "position": 2, "name": "Formules et estimation", "item": "https://arbogestion.fr/estimation.html"}, {"@type": "ListItem", "position": 3, "name": "Demande de devis"}]}</script>
     <div class="kicker" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Demande de devis<span id="k-profil" class="badge-profil"></span></div>
     <h1 style="font-size:clamp(2rem,3.4vw,3rem)">Recevoir votre devis et votre contrat.</h1>
     <p class="lead">Complétez vos coordonnées : nous vérifions votre demande, puis vous recevez par courriel votre devis et le contrat correspondant, à signer en ligne. <span id="d-rappel"></span></p>
