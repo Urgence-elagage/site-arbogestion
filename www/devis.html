@@ -387,7 +387,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     $('l-representant').textContent=col?'Représentant (nom, fonction : maire, président…) *':'Représentant légal (nom, fonction) *';
     $('representant').placeholder=col?'Ex. : Marie Dupont, maire':'Ex. : Paul Martin, gérant';
     $('l-adr').textContent=part?'':(col?'(mairie ou siège)':'(siège)');
-    $('k-profil').textContent={particulier:'Particulier',pro:'Professionnel',collectivite:'Collectivité'}[profil]||'';
+    $('k-profil').textContent={particulier:'Je suis un particulier',pro:'Je suis une entreprise',collectivite:'Je suis une collectivité'}[profil]||'';
     $('p-nom').textContent={particulier:'un particulier',pro:'une entreprise ou un professionnel',collectivite:'une collectivité'}[profil]||'';
     $('p-changer').href='estimation.html';
     $('t-org').hidden=part;$('t-org').textContent=col?'Votre collectivité':'Votre entreprise';
