@@ -2,6 +2,7 @@
 // Conditions générales de vente Arbogestion : version en vigueur, archives et téléchargement PDF.
 // Les textes sont dans www/cgv/AAAA-MM-JJ/ (voir app/cgv.php).
 declare(strict_types=1);
+header("X-Robots-Tag: noindex, nofollow");
 require dirname(__DIR__) . '/app/cgv.php';
 
 $publics = ['collectivites' => 'collectivite', 'particuliers' => 'particulier', 'professionnels' => 'pro'];
@@ -31,7 +32,7 @@ $cgv = []; foreach ($publics as $k => $p) { $cgv[$k] = cgv_lire($p, $v); }
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Conditions générales de vente — Arbogestion</title>
 <meta name="description" content="Conditions générales de vente d’Arbogestion, arboriste conseil à Cambes (Lot) : collectivités, particuliers et professionnels.">
-<?php if (!$courante): ?><meta name="robots" content="noindex"><?php endif; ?>
+<meta name="robots" content="noindex, nofollow">
 <link rel="canonical" href="https://arbogestion.fr/cgv.php">
 <style>
 :root{--vert:#1e3d33;--vert2:#163028;--lime:#b7c93b;--creme:#f6f5f0;--texte:#2b2b2b;--gris:#5f655f;--ligne:#dcdfd6;--fond:#fff;--surli:#f2f6dc}

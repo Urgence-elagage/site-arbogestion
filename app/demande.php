@@ -72,6 +72,66 @@ function valider_demande(array $in): array {
     ];
 }
 
+
+/* ---------- Vérifications du signataire (paragraphe « À vérifier » du courriel à Kevin, rien n'est bloqué) ---------- */
+function http_json(string $url): ?array {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 6, CURLOPT_CONNECTTIMEOUT => 4, CURLOPT_HTTPHEADER => ['Accept: application/json'], CURLOPT_USERAGENT => 'arbogestion.fr']);
+    $r = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    return ($r !== false && $code < 400) ? (json_decode((string)$r, true) ?: null) : null;
+}
+function domaine_mail(string $m): string { return strtolower(trim(substr(strrchr($m, '@') ?: '', 1))); }
+function domaine_url(string $u): string { $h = strtolower((string)parse_url(preg_match('~^https?://~i', $u) ? $u : 'https://' . $u, PHP_URL_HOST)); return preg_replace('/^www\./', '', $h); }
+const DOMAINES_PERSO = ['gmail.com', 'googlemail.com', 'hotmail.com', 'hotmail.fr', 'outlook.com', 'outlook.fr', 'live.com', 'live.fr', 'msn.com', 'yahoo.com', 'yahoo.fr',
+    'orange.fr', 'wanadoo.fr', 'free.fr', 'sfr.fr', 'neuf.fr', 'laposte.net', 'bbox.fr', 'icloud.com', 'me.com', 'gmx.fr', 'gmx.com', 'aol.com', 'protonmail.com', 'proton.me', 'numericable.fr', 'club-internet.fr'];
+
+/** Mairie : e-mail, téléphone et site officiels (Annuaire de l'administration, service-public.fr). */
+function mairie_officielle(string $insee): ?array {
+    if (!preg_match('/^\d[\dAB]\d{3}$/', $insee)) { return null; }
+    $d = http_json('https://api-lannuaire.service-public.fr/api/explore/v2.1/catalog/datasets/api-lannuaire-administration/records?limit=50&where=' . rawurlencode('code_insee_commune="' . $insee . '"'));
+    foreach (($d['results'] ?? []) as $r) {
+        $piv = is_string($r['pivot'] ?? null) ? $r['pivot'] : json_encode($r['pivot'] ?? '');
+        if (stripos($piv, '"mairie"') === false && stripos((string)($r['nom'] ?? ''), 'mairie') !== 0) { continue; }
+        $val = function ($v) { if (is_string($v) && ($j = json_decode($v, true)) !== null) { $v = $j; } if (is_array($v)) { $v = $v[0]['valeur'] ?? ($v[0] ?? ''); } return is_string($v) ? trim($v) : ''; };
+        return ['nom' => (string)($r['nom'] ?? 'Mairie'), 'email' => $val($r['adresse_courriel'] ?? ''), 'tel' => $val($r['telephone'] ?? ''), 'site' => $val($r['site_internet'] ?? '')];
+    }
+    return null;
+}
+
+function verifications_signataire(array $dem): array {
+    if ($dem['profil'] === 'particulier') { return []; }
+    $c = $dem['client']; $col = $dem['profil'] === 'collectivite';
+    $dom = domaine_mail($c['email']); $v = [];
+    $e = null;
+    $r = http_json('https://recherche-entreprises.api.gouv.fr/search?per_page=1&q=' . $c['siren']);
+    if (!empty($r['results'][0]) && ($r['results'][0]['siren'] ?? '') === $c['siren']) { $e = $r['results'][0]; }
+    if ($r === null) { /* répertoire officiel injoignable : pas de vérification, pas de fausse alerte */ }
+    elseif (!$e) { $v[] = "SIREN {$c['siren']} introuvable dans le répertoire officiel : vérifier qu'il est exact."; }
+    else {
+        if (($e['etat_administratif'] ?? 'A') !== 'A') { $v[] = 'ATTENTION : ce SIREN correspond à une structure fermée (' . ($e['nom_complet'] ?? '') . ').'; }
+        $off = norm_nom((string)($e['nom_raison_sociale'] ?? $e['nom_complet'] ?? '')); $saisi = norm_nom($c['denomination']);
+        if ($off && $saisi && !str_contains($off, $saisi) && !str_contains($saisi, $off)) { $v[] = 'Nom saisi « ' . $c['denomination'] . ' » différent du nom officiel « ' . ($e['nom_complet'] ?? '') . ' ».'; }
+        if ($col && empty($e['complements']['collectivite_territoriale']) && !preg_match('/^7/', (string)($e['nature_juridique'] ?? ''))) { $v[] = "Ce SIREN ne correspond pas à une collectivité ou un organisme public."; }
+    }
+    if (in_array($dom, DOMAINES_PERSO, true)) {
+        $v[] = "Adresse e-mail personnelle ($dom) pour " . ($col ? 'une collectivité' : 'une entreprise') . " : s'assurer que le signataire est bien habilité.";
+    }
+    if ($col && $e) {
+        $m = mairie_officielle((string)($e['complements']['collectivite_territoriale']['code_insee'] ?? ''));
+        if ($m) {
+            $doms = array_filter([domaine_mail($m['email']), $m['site'] ? domaine_url($m['site']) : '']);
+            $ok = false; foreach ($doms as $d) { if ($d && ($dom === $d || str_ends_with($dom, '.' . $d) || str_ends_with($d, '.' . $dom))) { $ok = true; } }
+            if (!$ok) { $v[] = "L'adresse {$c['email']} ne correspond pas à l'e-mail officiel de la mairie" . ($m['email'] ? " ({$m['email']})" : '') . '.'; }
+            $v[] = 'Coordonnées officielles (service-public.fr) : ' . implode(' · ', array_filter([$m['nom'], $m['email'], $m['tel'] ? 'tél. ' . $m['tel'] : '', $m['site']])) . ($ok ? '' : ' : appeler le standard pour confirmer la demande.');
+        }
+    }
+    if (!$col && !in_array($dom, DOMAINES_PERSO, true) && $e) {
+        $label = norm_nom(explode('.', $dom)[0]); $off = norm_nom((string)($e['nom_complet'] ?? '') . ($e['sigle'] ?? ''));
+        if (strlen($label) >= 3 && !str_contains($off, $label) && !str_contains($label, substr($off, 0, 6))) { $v[] = "Le domaine de l'adresse e-mail ($dom) ne ressemble pas au nom de l'entreprise : à vérifier."; }
+    }
+    return $v;
+}
+
 function nom_client(array $dem): string {
     $c = $dem['client'];
     return $dem['profil'] === 'particulier' ? trim($c['prenom'] . ' ' . $c['nom']) : $c['denomination'];
@@ -332,6 +392,7 @@ function traiter_demande(array $in): array {
     $r = creer_devis($dem, $calc, ['origine' => 'site']);
     $id = $r['id']; $numero = $r['numero']; $erreur = $r['erreur'];
     $resume = texte_estimation($dem, $calc);
+    try { $verifs = verifications_signataire($dem); } catch (Throwable $e) { $verifs = []; journal('Vérifications signataire : ' . $e->getMessage()); }
 
     $c = $dem['client'];
     $infos = "Profil : " . PROFILS[$dem['profil']]['nom'] . "\nClient : " . nom_client($dem)
@@ -342,6 +403,7 @@ function traiter_demande(array $in): array {
         . ($dem['profil'] !== 'collectivite' ? "\nPaiement : " . (empty($calc['abonnement']) ? 'carte bancaire' : $dem['paiement']) : '')
         . ($dem['contraintes'] ? "\nContraintes : {$dem['contraintes']}" : '')
         . ($dem['execution_anticipee'] ? "\nDemande d'exécution avant la fin du délai de rétractation : oui" : '')
+        . ($verifs ? "\n\nÀ VÉRIFIER AVANT D'ENVOYER LE DEVIS :\n- " . implode("\n- ", $verifs) : '')
         . (!empty($GLOBALS['arbo_rapprochement']) ? "\n\nÀ VÉRIFIER : la demande a été rattachée à une fiche client Pennylane existante (" . $GLOBALS['arbo_rapprochement'] . "). Si ce n'est pas la même personne, crée une nouvelle fiche et change le client du devis." : '')
         . "\n\nEstimation recalculée :\n$resume" . ($dem['message'] ? "\n\nMessage du client :\n{$dem['message']}" : '');
     $sujet = $erreur ? "[Arbogestion] Demande n° $id à traiter à la main – " . nom_client($dem) : "[Arbogestion] Devis $numero à relire et envoyer – " . nom_client($dem);
