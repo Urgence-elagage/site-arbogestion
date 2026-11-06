@@ -276,7 +276,7 @@ if (!espace_connecte()) {
 const STATUTS = [
     'recue' => ['Enregistrée', ''], 'devis_brouillon' => ['Créé, à envoyer', 'p-a'], 'devis_envoye' => ['Envoyé, attente de signature', 'p-att'],
     'signe_ponctuel' => ['Signé', 'p-ok'], 'signe_mandat_demande' => ['Signé, mandat SEPA demandé', 'p-ok'], 'signe_paiement_demande' => ['Signé, paiement Stripe demandé', 'p-ok'], 'signe_attente_bdc' => ['Signé, bon de commande attendu', 'p-ok'],
-    'bdc_recu' => ['Bon de commande reçu', 'p-ok'], 'refuse' => ['Refusé', 'p-err'], 'expire' => ['Expiré', ''], 'erreur_pennylane' => ['Erreur Pennylane', 'p-err'],
+    'bdc_recu' => ['Bon de commande reçu', 'p-ok'], 'refuse' => ['Refusé', 'p-err'], 'expire' => ['Expiré', ''], 'erreur_pennylane' => ['Non créé dans Pennylane', 'p-err'], 'essai' => ['Essai (non créé)', ''], 'archive' => ['Archivé', ''],
 ];
 function pastille(string $s): string { $x = STATUTS[$s] ?? [$s, '']; return '<span class="pastille ' . $x[1] . '">' . h($x[0]) . '</span>'; }
 function ligne_demande(int $id): ?array { $s = db()->prepare('SELECT * FROM demandes WHERE id = ?'); $s->execute([$id]); return $s->fetch() ?: null; }
@@ -305,6 +305,28 @@ if ($p === 'envoyer' && $post) {
     aller('fiche', ['id' => $id]);
 }
 
+// ----- Devis en erreur : relancer la création dans Pennylane, ou archiver
+if ($p === 'reessayer' && $post) {
+    $id = (int)($_POST['id'] ?? 0); $row = ligne_demande($id);
+    if (!$row || !in_array($row['statut'], ['erreur_pennylane', 'essai', 'recue'], true)) { message('!Ce devis ne peut pas être relancé.'); aller('fiche', ['id' => $id]); }
+    $dem = json_decode($row['donnees'], true) ?: []; $calc = json_decode($row['calcul'], true) ?: [];
+    try {
+        $r = creer_devis($dem, $calc, ($dem['opt'] ?? []) + ['origine' => $dem['origine'] ?? 'site']);
+        if ($r['erreur']) { db()->prepare('DELETE FROM demandes WHERE id = ?')->execute([(int)$r['id']]); message('!Toujours en erreur : ' . $r['erreur']); aller('fiche', ['id' => $id]); }
+        db()->prepare("UPDATE demandes SET statut = 'archive', notes = ?, maj_le = ? WHERE id = ?")->execute([trim((string)$row['notes'] . "\nRecréé dans Pennylane : " . $r['numero'] . ' (fiche ' . $r['id'] . ').'), date('Y-m-d H:i:s'), $id]);
+        journal("Espace : demande $id recréée dans Pennylane ({$r['numero']})");
+        message('Devis ' . $r['numero'] . ' créé dans Pennylane. L’ancienne fiche en erreur est archivée.'); aller('fiche', ['id' => $r['id']]);
+    } catch (Throwable $e) { message('!' . $e->getMessage()); aller('fiche', ['id' => $id]); }
+}
+if ($p === 'archiver' && $post) {
+    $id = (int)($_POST['id'] ?? 0); $row = ligne_demande($id);
+    if ($row && in_array($row['statut'], ['erreur_pennylane', 'essai', 'recue', 'devis_brouillon', 'refuse', 'expire'], true)) {
+        db()->prepare("UPDATE demandes SET statut = 'archive', maj_le = ? WHERE id = ?")->execute([date('Y-m-d H:i:s'), $id]);
+        journal("Espace : demande $id archivée"); message('Fiche archivée : elle n’apparaît plus dans la liste.');
+    }
+    aller('');
+}
+
 // ----- Démarrage manuel de l'abonnement (recensement réalisé hors agenda)
 if ($p === 'demarrer-abo' && $post) {
     $id = (int)($_POST['id'] ?? 0); $d = (string)($_POST['date'] ?? '');
@@ -330,6 +352,10 @@ if ($p === 'fiche') {
     $envoyable = $row['pl_devis_id'] && in_array($row['statut'], ['devis_brouillon', 'devis_envoye'], true);
     $html = '<p><a href="./#devis">← Tous les devis</a></p><h1>' . h($row['pl_devis_numero'] ?: 'Demande n° ' . $row['id']) . ' – ' . h($row['nom_client']) . '</h1>'
         . '<p class="sous">' . h(PROFILS[$row['profil']]['nom'] ?? $row['profil']) . ' · ' . (($dem['origine'] ?? 'site') === 'espace' ? 'saisi dans l’espace' : 'demande du site') . ' · ' . h(date('d/m/Y H:i', strtotime($row['cree_le']))) . ' · ' . pastille($row['statut']) . '</p>'
+        . ($row['statut'] === 'erreur_pennylane' || $row['statut'] === 'essai' ? '<div class="msg err"><b>Ce devis n’existe pas dans Pennylane</b> : ' . ($row['statut'] === 'essai' ? 'il a été saisi pendant le mode essai.' : 'sa création a échoué, il est seulement enregistré ici.')
+            . (trim((string)$row['notes']) !== '' ? '<br>Message reçu : ' . h(mb_substr(trim((string)$row['notes']), -400)) : '')
+            . '<div class="actions" style="margin-top:10px"><form method="post" action="./?p=reessayer" style="margin:0">' . espace_csrf_champ() . '<input type="hidden" name="id" value="' . (int)$row['id'] . '"><button class="btn petit" type="submit">Relancer la création dans Pennylane</button></form>'
+            . '<form method="post" action="./?p=archiver" style="margin:0" data-confirmer="Confirmer l’archivage">' . espace_csrf_champ() . '<input type="hidden" name="id" value="' . (int)$row['id'] . '"><button class="btn sec petit" type="submit">Archiver (ne plus afficher)</button></form></div></div>' : '')
         . '<div class="carte"><h2>Prestations (HT)</h2><div class="tab"><table><thead><tr><th>Prestation</th><th class="n">Quantité</th><th class="n">PU HT</th><th class="n">Total HT</th></tr></thead><tbody>' . $lignes
         . '<tr class="total"><td colspan="3">Total prestations</td><td class="n">' . eur((float)($calc['demarrage_ht'] ?? 0)) . '</td></tr></tbody></table></div>'
         . (!empty($calc['acompte_ht']) ? '<p class="aide">Acompte à la signature : ' . eur(round($calc['acompte_ht'] * (1 + $T['tva']), 2)) . ' TTC.</p>' : '') . '</div>'
@@ -498,7 +524,7 @@ if ($p === 'devis') {
 // ----- Tableau de bord, puis liste des devis
 $tableau = '';
 try { require __DIR__ . '/tableau.inc.php'; } catch (Throwable $e) { journal('Tableau de bord : ' . $e->getMessage()); }
-$rows = db()->query('SELECT * FROM demandes ORDER BY id DESC LIMIT 60')->fetchAll();
+$rows = db()->query("SELECT * FROM demandes WHERE statut <> 'archive' ORDER BY id DESC LIMIT 60")->fetchAll();
 $tr = '';
 foreach ($rows as $r) {
     $calc = json_decode($r['calcul'], true) ?: []; $dem = json_decode($r['donnees'], true) ?: [];

@@ -337,6 +337,7 @@ function texte_estimation(array $dem, array $calc, bool $client = false): string
 function creer_devis(array $dem, array $calc, array $opt = []): array {
     $origine = (string)($opt['origine'] ?? 'site');
     $dem['origine'] = $origine;
+    $dem['opt'] = array_intersect_key($opt, array_flip(['origine', 'objet', 'mention', 'validite_mois', 'description'])); // pour pouvoir relancer la création
     $dem['cgv_version'] = $dem['cgv_version'] ?? cgv_version_courante(); // version des CGV jointe au devis (preuve)
     $pdo = db();
     $now = date('Y-m-d H:i:s');
