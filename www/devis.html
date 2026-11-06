@@ -306,7 +306,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
       </div>
       <div class="ligne">
         <div><label for="email">E-mail *</label><input id="email" type="email" autocomplete="email"></div>
-        <div><label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel"></div>
+        <div><label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
       </div>
       <label for="site_adresse">Adresse du site suivi, si différente</label><input id="site_adresse" list="sites" autocomplete="off" placeholder="Commencez à taper l'adresse">
       <div class="ligne">
@@ -375,6 +375,12 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   /* ----- Saisie d'adresse assistée (Base Adresse Nationale) ----- */
   autoAdresseBAN($('adr'),function(p){$('adr').value=p.type==='municipality'?'':(p.name||'');$('cp').value=p.postcode||'';$('ville').value=p.city||'';if(!$('adr').value)$('adr').focus()});
   autoAdresseBAN($('site_adresse'),function(p){$('site_adresse').value=p.label});
+
+  /* ----- Téléphone : contrôle et mise en forme ----- */
+  function telChiffres(t){var d=t.replace(/[^\d+]/g,'');if(/^\+33/.test(d))d='0'+d.slice(3);else if(/^0033/.test(d))d='0'+d.slice(4);return d}
+  function telOk(t){var d=telChiffres(t);return /^0[1-9]\d{8}$/.test(d)||/^\+(?!33)\d{8,15}$/.test(d)}
+  $('tel').addEventListener('blur',function(){var d=telChiffres(this.value);if(/^0[1-9]\d{8}$/.test(d))this.value=d.replace(/(\d{2})(?=\d)/g,'$1 ');
+    $('tel').setCustomValidity('');this.style.borderColor=this.value&&!telOk(this.value)?'#8a2b2b':''});
 
   /* ----- Formulaire de demande de devis ----- */
   function adapterPaiement(){
@@ -460,6 +466,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     else{if(v('siren').replace(/\D/g,'').length!==9)manque.push('SIREN');if(!v('denomination'))manque.push('raison sociale');if(!v('representant'))manque.push('représentant')}
     if(!v('adr')||!v('cp')||!v('ville'))manque.push('adresse');
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email')))manque.push('e-mail');
+    if(v('tel')&&!telOk(v('tel'))){err.textContent='Numéro de téléphone incorrect : 10 chiffres commençant par 0 (ex. 06 12 34 56 78), ou au format international (+33 6 12 34 56 78).';$('tel').focus();return}
     if(!$('consent').checked)manque.push('consentement');
     if(manque.length){err.textContent='À compléter : '+manque.join(', ')+'.';return}
     var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),

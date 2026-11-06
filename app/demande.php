@@ -29,6 +29,12 @@ function valider_demande(array $in): array {
     if (strlen($cl['siret']) !== 14 || substr($cl['siret'], 0, 9) !== $cl['siren']) { $cl['siret'] = ''; }
     $cl['cp'] = preg_replace('/[^0-9A-Za-z ]/', '', $cl['cp']);
     if (!filter_var($cl['email'], FILTER_VALIDATE_EMAIL)) { throw new ErreurDemande('Adresse e-mail invalide.'); }
+    if ($cl['tel'] !== '') {
+        $t = preg_replace('/[^\d+]/', '', $cl['tel']);
+        if (str_starts_with($t, '+33')) { $t = '0' . substr($t, 3); } elseif (str_starts_with($t, '0033')) { $t = '0' . substr($t, 4); }
+        if (preg_match('/^0[1-9]\d{8}$/', $t)) { $cl['tel'] = trim(chunk_split($t, 2, ' ')); }
+        elseif (!preg_match('/^\+\d{8,15}$/', $t)) { throw new ErreurDemande('Numéro de téléphone incorrect : 10 chiffres commençant par 0, ou au format international (+33…).'); }
+    }
     if ($cl['adresse'] === '' || $cl['cp'] === '' || $cl['ville'] === '') { throw new ErreurDemande('Adresse incomplète.'); }
     if ($profil === 'particulier') {
         if ($cl['prenom'] === '' || $cl['nom'] === '') { throw new ErreurDemande('Nom et prénom obligatoires.'); }
