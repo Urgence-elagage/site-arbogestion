@@ -348,7 +348,7 @@ function traiter_demande(array $in): array {
         . $infos;
     envoyer_mail((string)cfg('mail_kevin'), $sujet, $texte);
     envoyer_mail($c['email'], 'Arbogestion – Votre demande de devis est bien reçue',
-        "Bonjour,\n\nNous avons bien reçu votre demande d'estimation (référence $id). Nous vérifions les informations et vous adressons votre devis et votre contrat par courriel, à signer en ligne, sous 48 heures ouvrées.\n\nRécapitulatif de votre estimation :\n" . texte_estimation($dem, $calc, true) . "\n\nCette estimation est indicative ; le devis fait foi.\n\nBien cordialement,\nArbogestion – arboriste conseil\n133 rue Madeleine Brès, 46100 Cambes\nhttps://arbogestion.fr",
+        "Bonjour,\n\nNous avons bien reçu votre demande d'estimation (référence $id). Nous vérifions les informations et vous adressons votre devis et votre contrat par courriel, à signer en ligne, sous 48 heures ouvrées.\n\nRécapitulatif de votre estimation :\n\n" . texte_estimation($dem, $calc, true) . "\n\nCette estimation est indicative ; le devis fait foi.\n\nBien cordialement,\nArbogestion – arboriste conseil",
         (string)cfg('mail_kevin'));
     return ['id' => $id, 'pennylane' => $erreur === null];
 }

@@ -240,7 +240,7 @@ function prelever_abonnement(array $row): array {
 
 function alerte_echec(array $row, string $facture, float $montant, string $motif): void {
     envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] ÉCHEC de prélèvement – {$row['nom_client']} (facture $facture)",
-        "Le prélèvement de la facture $facture (" . eur($montant) . " TTC) a échoué sur Stripe.\nMotif : $motif\n\nÀ faire : contacter le client. Il peut enregistrer un nouveau moyen de paiement avec son lien personnel :\n" . lien_paiement((int)$row['id'])
+        "Le prélèvement de la facture $facture (" . eur($montant) . " TTC) a échoué sur Stripe.\nMotif : $motif\n\nÀ faire : contacter le client. Il peut enregistrer un nouveau moyen de paiement avec son lien personnel (à lui transférer) :\n" . lien_paiement((int)$row['id'])
         . "\nDès qu'un nouveau moyen de paiement est enregistré, la facture est représentée automatiquement. Si le client paie autrement, marque la facture payée dans Pennylane : elle ne sera plus prélevée.");
 }
 

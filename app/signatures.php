@@ -109,7 +109,7 @@ function suite_signature(array $row): string {
         $lien = url_site('bon-de-commande.php?t=' . jeton_signe($id));
         maj_demande($id, ['statut' => 'signe_attente_bdc', 'notes' => ajouter_note($row, 'Devis signé ; lien de dépôt du bon de commande envoyé.')]);
         envoyer_mail($c['email'], 'Arbogestion – Devis ' . $row['pl_devis_numero'] . ' signé : transmission du bon de commande',
-            "Bonjour,\n\nNous vous remercions pour la signature du devis n° {$row['pl_devis_numero']}.\n\nPour finaliser l'engagement, merci de nous transmettre le bon de commande ou la décision d'engagement de la collectivité (PDF), à l'adresse sécurisée suivante :\n$lien\n\nLa facture sera ensuite déposée sur Chorus Pro.\n\nBien cordialement,\nArbogestion – arboriste conseil",
+            "Bonjour,\n\nNous vous remercions pour la signature du devis n° {$row['pl_devis_numero']}.\n\nPour finaliser l'engagement, merci de nous transmettre le bon de commande ou la décision d'engagement de la collectivité (PDF), sur notre page sécurisée.\n\n" . bouton_mail('Déposer le bon de commande', $lien) . "\n\nLa facture sera ensuite déposée sur Chorus Pro.\n\nBien cordialement,\nArbogestion – arboriste conseil",
             (string)cfg('mail_kevin'));
         envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']} (collectivité)",
             "Le devis {$row['pl_devis_numero']} a été signé.\nLe lien de dépôt du bon de commande a été envoyé au référent ({$c['email']}).\n" . ($avec_abonnement ? "L'abonnement sera créé dans Pennylane dès réception du bon." : 'Prestation ponctuelle : pas d\'abonnement.') . "\n\nÀ faire de ton côté : planifier le démarrage (recensement, diagnostic) et facturer le démarrage après réalisation.");
@@ -129,7 +129,7 @@ function suite_signature(array $row): string {
         $payer = !empty($calc['acompte_ht']) && stripe_actif() && !cfg('mode_essai');
         envoyer_mail($c['email'], 'Arbogestion – Votre devis ' . $row['pl_devis_numero'] . ' est validé',
             "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}."
-            . ($payer ? "\n\nPour confirmer votre commande, merci de régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC par carte bancaire (ou Wero), sur notre page de paiement sécurisée (Stripe) :\n" . lien_paiement($id) . "\n\nLa facture d'acompte vous sera adressée par courriel." : '')
+            . ($payer ? "\n\nPour confirmer votre commande, il vous reste à régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC, par carte bancaire ou Wero.\n\n" . bouton_mail('Payer mon acompte', lien_paiement($id)) . "\n\nLe paiement est sécurisé par Stripe. La facture d'acompte vous sera adressée par courriel." : '')
             . "\n\nNous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
         if ($payer) { maj_demande($id, ['paiement_statut' => 'attente']); }
         return 'prestation ponctuelle : rendez-vous à fixer' . ($acompte ? " ; facture d'acompte brouillon créée" : (!empty($calc['acompte_ht']) ? " ; ACOMPTE NON CRÉÉ (voir courriel)" : ''));
@@ -144,10 +144,10 @@ function suite_signature(array $row): string {
     $faits = [];
     if (stripe_actif() && !cfg('mode_essai')) {
         maj_demande($id, ['paiement_statut' => 'attente']);
-        $acompte_cl = !empty($calc['acompte_ht']) ? "régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC et " : '';
+        $acompte_cl = !empty($calc['acompte_ht']) ? "régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC et à " : '';
         envoyer_mail($c['email'], 'Arbogestion – Mise en place du paiement de votre abonnement',
-            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}.\n\nPour finaliser, merci de {$acompte_cl}d'enregistrer le moyen de paiement de votre abonnement (prélèvement SEPA ou carte bancaire), sur notre page de paiement sécurisée (Stripe) :\n" . lien_paiement($id)
-            . "\n\nChaque facture vous est adressée par courriel avant d'être prélevée.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
+            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}.\n\nPour finaliser, il vous reste à {$acompte_cl}enregistrer le moyen de paiement de votre abonnement (prélèvement SEPA ou carte bancaire).\n\n" . bouton_mail(!empty($calc['acompte_ht']) ? 'Payer mon acompte et enregistrer mon moyen de paiement' : 'Enregistrer mon moyen de paiement', lien_paiement($id))
+            . "\n\nLe paiement est sécurisé par Stripe. Chaque facture vous est adressée par courriel avant d'être prélevée.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
         $faits[] = 'lien de paiement Stripe envoyé au client';
     } else {
         $faits[] = 'Stripe non configuré : moyen de paiement à mettre en place à la main';

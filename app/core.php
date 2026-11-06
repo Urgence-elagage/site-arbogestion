@@ -218,23 +218,72 @@ function verifier_jeton(string $t): ?int {
 }
 
 /* ---------- Courriel ---------- */
+/*
+ * Bouton dans un courriel : écrire sur une ligne seule  [[BOUTON:Payer mon acompte|https://…]]
+ * Version texte : « Payer mon acompte : https://… » ; version HTML : gros bouton vert.
+ */
+function bouton_mail(string $libelle, string $url): string { return '[[BOUTON:' . $libelle . '|' . $url . ']]'; }
+
+function mail_texte(string $t): string {
+    return preg_replace_callback('/\[\[BOUTON:([^|\]]+)\|([^\]]+)\]\]/', fn($m) => $m[1] . ' : ' . $m[2], $t);
+}
+
+function mail_html(string $t): string {
+    $site = rtrim((string)cfg('url_site', 'https://arbogestion.fr'), '/');
+    $blocs = preg_split("/\n{2,}/", trim(str_replace("\r", '', $t)));
+    $html = '';
+    foreach ($blocs as $bl) {
+        if (preg_match('/^\[\[BOUTON:([^|\]]+)\|([^\]]+)\]\]$/', trim($bl), $m)) {
+            $u = htmlspecialchars($m[2], ENT_QUOTES);
+            $html .= '<table role="presentation" cellspacing="0" cellpadding="0" style="margin:26px 0"><tr><td style="border-radius:8px;background:#b7c93b">'
+                . '<a href="' . $u . '" style="display:inline-block;padding:16px 30px;font:bold 17px Arial,sans-serif;color:#1e3d33;text-decoration:none;border-radius:8px">' . htmlspecialchars($m[1]) . '</a></td></tr></table>'
+                . '<p style="margin:0 0 18px;font-size:12px;color:#7a7f78">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br><a href="' . $u . '" style="color:#5f655f;word-break:break-all">' . $u . '</a></p>';
+            continue;
+        }
+        $lignes = explode("\n", $bl);
+        if (str_starts_with(trim($lignes[0]), '- ') && count(array_filter($lignes, fn($l) => str_starts_with($l, '- ') || str_starts_with($l, '  '))) === count($lignes)) {
+            $html .= '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:4px 0 18px;border-top:1px solid #e6e6df">';
+            foreach ($lignes as $l) {
+                $total = str_starts_with($l, '  '); $l = $total ? trim($l) : substr(trim($l), 2); $parts = preg_split('/ : (?=[^:]*$)/', $l, 2);
+                $html .= '<tr><td style="padding:9px 0;border-bottom:1px solid #e6e6df;font-size:15px' . ($total ? ';font-weight:bold;color:#1e3d33' : '') . '">' . htmlspecialchars($parts[0]) . '</td><td align="right" style="padding:9px 0 9px 12px;border-bottom:1px solid #e6e6df;font-size:15px;white-space:nowrap"><b>' . htmlspecialchars($parts[1] ?? '') . '</b></td></tr>';
+            }
+            $html .= '</table>';
+            continue;
+        }
+        $x = htmlspecialchars($bl);
+        $x = preg_replace('~(https?://[^\s<]+)~', '<a href="$1" style="color:#1e3d33">$1</a>', $x);
+        $html .= '<p style="margin:0 0 16px;font-size:15px;line-height:1.55">' . nl2br($x) . '</p>';
+    }
+    return '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+        . '<body style="margin:0;padding:0;background:#f3f2ec"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f2ec"><tr><td align="center" style="padding:24px 12px">'
+        . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden">'
+        . '<tr><td style="background:#1e3d33;padding:18px 28px"><img src="' . $site . '/img/logo.png" alt="Arbogestion" height="56" style="display:block;height:56px;border-radius:6px;background:#fff;padding:3px"></td></tr>'
+        . '<tr><td style="padding:30px 28px 14px;font-family:Arial,Helvetica,sans-serif;color:#2b2b2b">' . $html . '</td></tr>'
+        . '<tr><td style="padding:16px 28px 22px;border-top:1px solid #ecebe4;font:12px/1.5 Arial,sans-serif;color:#7a7f78">Arbogestion – arboriste conseil · 133 rue Madeleine Brès, 46100 Cambes · <a href="' . $site . '" style="color:#7a7f78">arbogestion.fr</a></td></tr>'
+        . '</table></td></tr></table></body></html>';
+}
+
 function envoyer_mail(string $a, string $sujet, string $texte, ?string $repondre_a = null, ?string $piece_jointe = null): bool {
     if (cfg('mail_capture')) { // tests
-        file_put_contents(cfg('mail_capture'), "À: $a\nSujet: $sujet\n" . ($piece_jointe ? 'PJ: ' . basename($piece_jointe) . "\n" : '') . "\n$texte\n-----\n", FILE_APPEND);
+        file_put_contents(cfg('mail_capture'), "À: $a\nSujet: $sujet\n" . ($piece_jointe ? 'PJ: ' . basename($piece_jointe) . "\n" : '') . "\n" . mail_texte($texte) . "\n-----\n", FILE_APPEND);
+        if (cfg('mail_capture_html')) { file_put_contents(cfg('mail_capture_html'), mail_html($texte)); }
         return true;
     }
     $from = (string)cfg('mail_from', 'noreply@arbogestion.fr');
     $repondre_a = $repondre_a ?: (string)cfg('mail_kevin', 'contact@arbogestion.fr');
     $entetes = "From: Arbogestion <$from>\r\n" . ($repondre_a ? "Reply-To: $repondre_a\r\n" : '') . "MIME-Version: 1.0\r\n";
+    $alt = 'alt' . bin2hex(random_bytes(8));
+    $alternative = "--$alt\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode(mail_texte($texte)))
+        . "--$alt\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode(mail_html($texte))) . "--$alt--\r\n";
     if ($piece_jointe && is_file($piece_jointe)) {
         $b = 'arbo' . bin2hex(random_bytes(8));
         $entetes .= "Content-Type: multipart/mixed; boundary=\"$b\"\r\n";
-        $corps = "--$b\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n$texte\r\n"
+        $corps = "--$b\r\nContent-Type: multipart/alternative; boundary=\"$alt\"\r\n\r\n$alternative\r\n"
             . "--$b\r\nContent-Type: application/pdf; name=\"" . basename($piece_jointe) . "\"\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"" . basename($piece_jointe) . "\"\r\n\r\n"
             . chunk_split(base64_encode((string)file_get_contents($piece_jointe))) . "--$b--";
     } else {
-        $entetes .= "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n";
-        $corps = $texte;
+        $entetes .= "Content-Type: multipart/alternative; boundary=\"$alt\"\r\n";
+        $corps = $alternative;
     }
     return @mail($a, '=?UTF-8?B?' . base64_encode($sujet) . '?=', $corps, $entetes, '-f' . $from);
 }
