@@ -61,7 +61,7 @@ $titre = ['invalide' => 'Lien invalide', 'merci' => 'Merci, c’est enregistré'
 <?php if ($etat === 'invalide'): ?>
 <p>Ce lien n’est pas valide. Contactez-nous à contact@arbogestion.fr.</p>
 <?php elseif ($etat === 'merci'): ?>
-<p>Votre paiement est bien pris en compte. Vous recevrez votre facture par courriel. <?php if (!empty($b['abonnement'])): ?>Les prochaines factures de votre abonnement seront réglées automatiquement avec le moyen de paiement enregistré.<?php endif; ?></p>
+<p>Votre paiement est bien pris en compte. Vous recevrez votre facture par courriel. <?php if (!empty($b['abonnement'])): ?>Les prochaines factures de votre abonnement seront prélevées automatiquement sur votre compte.<?php endif; ?></p>
 <p class="note">Un prélèvement SEPA peut prendre quelques jours avant d’apparaître sur votre compte.</p><a class="btn" href="/">Retour au site</a>
 <?php elseif ($etat === 'rien'): ?>
 <p>Aucun paiement en ligne n’est nécessaire pour votre devis n° <?= h($row['pl_devis_numero']) ?>.</p><a class="btn" href="/">Retour au site</a>
@@ -71,11 +71,11 @@ $titre = ['invalide' => 'Lien invalide', 'merci' => 'Merci, c’est enregistré'
 <p><?= h($row['nom_client']) ?> – devis n° <?= h($row['pl_devis_numero']) ?></p>
 <ul class="lignes">
 <?php $avec_acompte = $b['acompte_ttc'] > 0 && !($a_refaire && !empty($row['stripe_acompte_pi']) && $row['paiement_statut'] !== 'acompte_echec'); if ($avec_acompte): ?><li><span>Acompte à la signature (<?= (int)tarifs()['acompte']['pourcentage'] ?> %)</span><b><?= h(eur($b['acompte_ttc'])) ?> TTC</b></li><?php endif; ?>
-<?php if ($b['abonnement']): ?><li><span>Moyen de paiement de l’abonnement</span><b>Prélèvement SEPA ou carte</b></li><?php endif; ?>
+<?php if ($b['abonnement']): ?><li><span>Moyen de paiement de l’abonnement</span><b>Mandat de prélèvement SEPA</b></li><?php endif; ?>
 </ul>
-<?php if ($b['abonnement']): ?><p class="note">Le moyen de paiement enregistré servira uniquement à régler les factures de votre abonnement, que vous recevez par courriel avant chaque prélèvement.</p><?php endif; ?>
+<?php if ($b['abonnement']): ?><p class="note">Le mandat de prélèvement SEPA servira uniquement à régler les factures de votre abonnement (et l’acompte, le cas échéant), que vous recevez par courriel avant chaque prélèvement.</p><?php endif; ?>
 <?php if ($msg): ?><p class="err"><?= h($msg) ?></p><?php endif; ?>
-<form method="post"><input type="hidden" name="t" value="<?= h($t) ?>"><button class="btn" type="submit"><?= $avec_acompte ? 'Payer en ligne' : 'Enregistrer mon moyen de paiement' ?></button></form>
+<form method="post"><input type="hidden" name="t" value="<?= h($t) ?>"><button class="btn" type="submit"><?= $avec_acompte ? ($b['abonnement'] ? 'Payer l’acompte et signer le mandat SEPA' : 'Payer en ligne') : 'Signer mon mandat SEPA' ?></button></form>
 <p class="secu"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>Paiement sécurisé par Stripe. Arbogestion n’a jamais accès à vos coordonnées bancaires.</p>
 <?php endif; ?>
 </div></body></html>

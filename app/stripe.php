@@ -2,7 +2,7 @@
 /*
  * Paiements Stripe (particuliers et professionnels) — Pennylane reste le seul outil qui émet les factures.
  *  - Après signature du devis : page de paiement Stripe (acompte par carte ; enregistrement du moyen de paiement
- *    — mandat SEPA ou carte — pour les abonnements).
+ *    — mandat SEPA uniquement — pour les abonnements ; les collectivités ne passent jamais par Stripe : Chorus Pro).
  *  - Chaque facture d'abonnement finalisée dans Pennylane est prélevée sur Stripe (montant exact, une seule fois),
  *    puis marquée payée dans Pennylane. Rejet ou échec : alerte à Kevin.
  *  - On n'utilise pas Stripe Billing (frais supplémentaires) ni les factures Stripe.
@@ -131,8 +131,9 @@ function creer_session_paiement(array $row): string {
      */
     $hors_sujet = ['amazon_pay', 'kakao_pay', 'naver_pay', 'payco', 'samsung_pay', 'satispay', 'mb_way', 'bancontact', 'blik', 'eps', 'klarna', 'pix',
         'paypal', 'revolut_pay', 'alma', 'billie', 'scalapay', 'ideal', 'p24', 'multibanco', 'wechat_pay', 'alipay', 'link', 'bizum', 'twint', 'mobilepay', 'swish'];
-    $exclus = $b['abonnement'] ? ['wero'] : ['sepa_debit'];
-    $essais = [array_values(array_unique(array_merge($exclus, $hors_sujet))), $exclus, []];
+    // Abonnement : prélèvement SEPA uniquement (acompte compris) ; ponctuel : pas de SEPA (trop lent pour un acompte)
+    $exclus = $b['abonnement'] ? ['card', 'wero'] : ['sepa_debit'];
+    $essais = [array_values(array_unique(array_merge($exclus, $hors_sujet))), $exclus];
     $s = null; $derniere = null;
     foreach ($essais as $ex) {
         $q = $p; if ($ex) { $q['excluded_payment_method_types'] = $ex; }

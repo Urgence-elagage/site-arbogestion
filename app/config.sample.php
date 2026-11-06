@@ -17,7 +17,7 @@ return [
     'pennylane_token' => 'À_REMPLIR',
 
     // Stripe : Développeurs > Clés API > Clé secrète (sk_test_… pour les essais, sk_live_… en production)
-    // Sert au paiement de l'acompte et au prélèvement des factures d'abonnement (SEPA ou carte).
+    // Sert au paiement de l'acompte et au prélèvement des factures d'abonnement (prélèvement SEPA).
     'stripe_secret' => '',
 
     // Courriels

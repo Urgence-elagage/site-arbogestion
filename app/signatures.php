@@ -1,7 +1,7 @@
 <?php
 /*
  * Après la signature d'un devis dans Pennylane (vérifié par la tâche planifiée) :
- *  - particuliers et pros : lien de paiement Stripe (acompte par carte, moyen de paiement de l'abonnement : mandat SEPA ou carte)
+ *  - particuliers et pros : lien de paiement Stripe (acompte par carte pour une prestation ponctuelle ; mandat de prélèvement SEPA pour un abonnement)
  *    + abonnement Pennylane (factures prélevées sur Stripe par la tâche planifiée, voir stripe.php) ;
  *  - collectivités : lien de dépôt du bon de commande ; l'abonnement est créé à réception du bon.
  */
@@ -28,7 +28,7 @@ function abonnement_pennylane(array $row, array $dem, array $calc, string $debut
         'customer_invoice_data' => [
             'language' => 'fr_FR',
             'pdf_invoice_subject' => "Abonnement Arbogestion – $formule",
-            'special_mention' => 'Contrat d’abonnement accepté par la signature du devis n° ' . $row['pl_devis_numero'] . '.' . ($col ? ' Facture à déposer sur Chorus Pro.' : ' Paiement par prélèvement SEPA ou carte bancaire (Stripe), à réception de la facture.'),
+            'special_mention' => 'Contrat d’abonnement accepté par la signature du devis n° ' . $row['pl_devis_numero'] . '.' . ($col ? ' Facture à déposer sur Chorus Pro.' : ' Paiement par prélèvement SEPA (Stripe), à réception de la facture.'),
             'invoice_lines' => [[
                 'label' => "Abonnement $formule – jusqu'à {$ab['max']} arbres",
                 'description' => $mensuel ? 'Mensualité' : 'Forfait annuel',
@@ -146,7 +146,7 @@ function suite_signature(array $row): string {
         maj_demande($id, ['paiement_statut' => 'attente']);
         $acompte_cl = !empty($calc['acompte_ht']) ? "régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC et à " : '';
         envoyer_mail($c['email'], 'Arbogestion – Mise en place du paiement de votre abonnement',
-            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}.\n\nPour finaliser, il vous reste à {$acompte_cl}enregistrer le moyen de paiement de votre abonnement (prélèvement SEPA ou carte bancaire).\n\n" . bouton_mail(!empty($calc['acompte_ht']) ? 'Payer mon acompte et enregistrer mon moyen de paiement' : 'Enregistrer mon moyen de paiement', lien_paiement($id))
+            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}.\n\nPour finaliser, il vous reste à {$acompte_cl}signer en ligne le mandat de prélèvement SEPA de votre abonnement (il suffit de votre IBAN).\n\n" . bouton_mail(!empty($calc['acompte_ht']) ? 'Payer mon acompte et signer mon mandat SEPA' : 'Signer mon mandat de prélèvement SEPA', lien_paiement($id))
             . "\n\nLe paiement est sécurisé par Stripe. Chaque facture vous est adressée par courriel avant d'être prélevée.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
         $faits[] = 'lien de paiement Stripe envoyé au client';
     } else {
