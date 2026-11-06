@@ -118,24 +118,28 @@ function creer_session_paiement(array $row): string {
             'price_data' => ['currency' => 'eur', 'unit_amount' => (int)round($b['acompte_ttc'] * 100),
                 'product_data' => ['name' => 'Acompte – devis n° ' . $row['pl_devis_numero'], 'description' => 'Arbogestion – acompte de ' . tarifs()['acompte']['pourcentage'] . ' % à la signature']],
         ]];
-        // Prestation ponctuelle : carte ou Wero (paiement instantané depuis l'appli bancaire) ; abonnement : carte ou SEPA, enregistrés pour la suite
-        $p['payment_method_types'] = $b['abonnement'] ? ['card', 'sepa_debit'] : (cfg('stripe_wero', true) ? ['card', 'wero'] : ['card']);
         $p['payment_intent_data'] = ['description' => 'Acompte devis ' . $row['pl_devis_numero'], 'metadata' => ['demande' => (string)$row['id']]]
             + ($b['abonnement'] ? ['setup_future_usage' => 'off_session'] : []);
     } else {
         $p['mode'] = 'setup';
         $p['currency'] = 'eur';
-        $p['payment_method_types'] = ['sepa_debit', 'card'];
         $p['setup_intent_data'] = ['description' => 'Abonnement Arbogestion – devis ' . $row['pl_devis_numero'], 'metadata' => ['demande' => (string)$row['id']]];
     }
-    try {
-        $s = stripe('POST', '/checkout/sessions', $p);
-    } catch (ErreurStripe $e) {
-        if (!in_array('wero', $p['payment_method_types'] ?? [], true)) { throw $e; }
-        journal('Wero indisponible, session par carte seule : ' . $e->getMessage()); // Wero non activé dans Stripe : on n'empêche pas le paiement
-        $p['payment_method_types'] = ['card'];
-        $s = stripe('POST', '/checkout/sessions', $p);
+    /*
+     * Les moyens de paiement proposés sont ceux activés dans le tableau de bord Stripe (Stripe n'accepte plus de les lister ici).
+     * On écarte ceux qui ne conviennent pas : ponctuel = carte, Apple Pay / Google Pay, Wero ; abonnement = carte ou prélèvement SEPA.
+     */
+    $hors_sujet = ['amazon_pay', 'kakao_pay', 'naver_pay', 'payco', 'samsung_pay', 'satispay', 'mb_way', 'bancontact', 'blik', 'eps', 'klarna', 'pix',
+        'paypal', 'revolut_pay', 'alma', 'billie', 'scalapay', 'ideal', 'p24', 'multibanco', 'wechat_pay', 'alipay', 'link', 'bizum', 'twint', 'mobilepay', 'swish'];
+    $exclus = $b['abonnement'] ? ['wero'] : ['sepa_debit'];
+    $essais = [array_values(array_unique(array_merge($exclus, $hors_sujet))), $exclus, []];
+    $s = null; $derniere = null;
+    foreach ($essais as $ex) {
+        $q = $p; if ($ex) { $q['excluded_payment_method_types'] = $ex; }
+        try { $s = stripe('POST', '/checkout/sessions', $q); break; }
+        catch (ErreurStripe $e) { $derniere = $e; journal('Session Stripe refusée avec ' . count($ex) . ' exclusion(s), nouvel essai : ' . $e->getMessage()); }
     }
+    if (!$s) { throw $derniere; }
     maj_demande_s((int)$row['id'], ['stripe_session' => $s['id'], 'paiement_statut' => $row['paiement_statut'] ?: 'attente']);
     return (string)$s['url'];
 }
@@ -222,7 +226,7 @@ function prelever_abonnement(array $row): array {
         try {
             $pi = stripe('POST', '/payment_intents', [
                 'amount' => $cts, 'currency' => 'eur', 'customer' => $row['stripe_client'], 'payment_method' => $row['stripe_pm'],
-                'payment_method_types' => [$row['stripe_pm_type'] ?: 'sepa_debit'], 'off_session' => 'true', 'confirm' => 'true',
+                'automatic_payment_methods' => ['enabled' => 'true', 'allow_redirects' => 'never'], 'off_session' => 'true', 'confirm' => 'true',
                 'description' => 'Facture ' . ($fa['invoice_number'] ?? $fa['id']) . ' – abonnement Arbogestion',
                 'metadata' => ['demande' => (string)$row['id'], 'pennylane_facture' => (string)$fa['id'], 'facture' => (string)($fa['invoice_number'] ?? '')],
             ], 'pl-facture-' . $fa['id'] . '-' . $row['stripe_pm']);
