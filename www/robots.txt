@@ -5,6 +5,7 @@ Disallow: /estimation.html
 Disallow: /devis.html
 Disallow: /api/
 Disallow: /bon-de-commande.php
+Disallow: /paiement.php
 Disallow: /cron.php
 Disallow: /espace/
 

@@ -365,7 +365,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
   function adapterPaiement(){
     var col=profil==='collectivite',ponct=ponctuel;
     $('f-paiement').hidden=col||ponct;$('f-carte').hidden=col||!ponct;
-    $('d-rappel').textContent=col?'Après signature, vous pourrez déposer votre bon de commande en ligne.':(ponct?'Après signature, vous recevrez le lien pour régler l\'acompte par carte bancaire.':'Après signature, vous recevrez le lien pour mettre en place le prélèvement SEPA.');
+    $('d-rappel').textContent=col?'Après signature, vous pourrez déposer votre bon de commande en ligne.':(ponct?'Après signature, vous recevrez le lien pour régler l\'acompte par carte bancaire.':'Après signature, vous recevrez le lien pour enregistrer votre moyen de paiement (prélèvement SEPA ou carte bancaire).');
   }
   function adapterFormulaire(){
     var part=profil==='particulier',col=profil==='collectivite';

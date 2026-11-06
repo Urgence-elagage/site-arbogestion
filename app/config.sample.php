@@ -13,8 +13,12 @@ return [
     'db_pass' => 'À_REMPLIR',
 
     // Pennylane : Paramètres > Connectivité > Développeurs > Générer un jeton API (v2)
-    // Droits nécessaires : customers:all, quotes:all, billing_subscriptions:all, customer_mandates:all
+    // Droits nécessaires : customers:all, quotes:all, customer_invoices:all, billing_subscriptions:all, ledger_accounts:readonly
     'pennylane_token' => 'À_REMPLIR',
+
+    // Stripe : Développeurs > Clés API > Clé secrète (sk_test_… pour les essais, sk_live_… en production)
+    // Sert au paiement de l'acompte et au prélèvement des factures d'abonnement (SEPA ou carte).
+    'stripe_secret' => '',
 
     // Courriels
     'mail_from'   => 'noreply@arbogestion.fr',   // expéditeur technique

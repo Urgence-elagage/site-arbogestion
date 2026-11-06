@@ -229,7 +229,7 @@ if (!espace_connecte()) {
  * ================================================================= */
 const STATUTS = [
     'recue' => ['Enregistrée', ''], 'devis_brouillon' => ['Créé, à envoyer', 'p-a'], 'devis_envoye' => ['Envoyé, attente de signature', 'p-att'],
-    'signe_ponctuel' => ['Signé', 'p-ok'], 'signe_mandat_demande' => ['Signé, mandat SEPA demandé', 'p-ok'], 'signe_attente_bdc' => ['Signé, bon de commande attendu', 'p-ok'],
+    'signe_ponctuel' => ['Signé', 'p-ok'], 'signe_mandat_demande' => ['Signé, mandat SEPA demandé', 'p-ok'], 'signe_paiement_demande' => ['Signé, paiement Stripe demandé', 'p-ok'], 'signe_attente_bdc' => ['Signé, bon de commande attendu', 'p-ok'],
     'bdc_recu' => ['Bon de commande reçu', 'p-ok'], 'refuse' => ['Refusé', 'p-err'], 'expire' => ['Expiré', ''], 'erreur_pennylane' => ['Erreur Pennylane', 'p-err'],
 ];
 function pastille(string $s): string { $x = STATUTS[$s] ?? [$s, '']; return '<span class="pastille ' . $x[1] . '">' . h($x[0]) . '</span>'; }

@@ -1,11 +1,13 @@
 <?php
 /*
  * Après la signature d'un devis dans Pennylane (vérifié par la tâche planifiée) :
- *  - particuliers et pros : demande de mandat SEPA GoCardless envoyée par Pennylane + abonnement Pennylane prélevé par GoCardless ;
+ *  - particuliers et pros : lien de paiement Stripe (acompte par carte, moyen de paiement de l'abonnement : mandat SEPA ou carte)
+ *    + abonnement Pennylane (factures prélevées sur Stripe par la tâche planifiée, voir stripe.php) ;
  *  - collectivités : lien de dépôt du bon de commande ; l'abonnement est créé à réception du bon.
  */
 declare(strict_types=1);
 require_once __DIR__ . '/demande.php';
+require_once __DIR__ . '/stripe.php';
 
 function url_site(string $chemin): string { return rtrim((string)cfg('url_site', 'https://arbogestion.fr'), '/') . '/' . ltrim($chemin, '/'); }
 
@@ -20,13 +22,13 @@ function abonnement_pennylane(array $row, array $dem, array $calc, string $debut
         'label' => "Abonnement $formule – " . $row['nom_client'],
         'mode' => ['type' => (string)cfg('abonnement_mode', 'awaiting_validation')],
         'payment_conditions' => $col ? '30_days' : ($mensuel ? 'upon_receipt' : '30_days'),
-        'payment_method' => $col ? 'offline' : 'gocardless_direct_debit',
+        'payment_method' => 'offline',
         'recurring_rule' => $mensuel ? ['type' => 'monthly', 'interval' => 1, 'day_of_month' => 10] : ['type' => 'yearly', 'interval' => 1],
         'customer_id' => (int)$row['pl_client_id'],
         'customer_invoice_data' => [
             'language' => 'fr_FR',
             'pdf_invoice_subject' => "Abonnement Arbogestion – $formule",
-            'special_mention' => 'Contrat d’abonnement accepté par la signature du devis n° ' . $row['pl_devis_numero'] . '.' . ($col ? ' Facture à déposer sur Chorus Pro.' : ' Prélèvement SEPA via GoCardless.'),
+            'special_mention' => 'Contrat d’abonnement accepté par la signature du devis n° ' . $row['pl_devis_numero'] . '.' . ($col ? ' Facture à déposer sur Chorus Pro.' : ' Paiement par prélèvement SEPA ou carte bancaire (Stripe), à réception de la facture.'),
             'invoice_lines' => [[
                 'label' => "Abonnement $formule – jusqu'à {$ab['max']} arbres",
                 'description' => $mensuel ? 'Mensualité' : 'Forfait annuel',
@@ -116,15 +118,20 @@ function suite_signature(array $row): string {
 
     $acompte = null; $acompte_txt = '';
     if (!empty($calc['acompte_ht'])) {
-        try { $acompte = creer_acompte($row, $calc); $acompte_txt = "\nFacture d'acompte de " . eur(round($calc['acompte_ht'] * 1.2, 2)) . " TTC créée en BROUILLON dans Pennylane : à finaliser et envoyer au client avec le mode de paiement choisi."; }
+        try { $acompte = creer_acompte($row, $calc); installer_stripe(); maj_demande($id, ['pl_acompte_id' => $acompte]);
+              $acompte_txt = "\nFacture d'acompte de " . eur(round($calc['acompte_ht'] * 1.2, 2)) . " TTC créée en BROUILLON dans Pennylane : à finaliser (elle sera marquée payée automatiquement dès que le client aura réglé l'acompte sur Stripe)."; }
         catch (Throwable $e) { $acompte_txt = "\nATTENTION : la facture d'acompte n'a pas pu être créée (" . $e->getMessage() . ") : à faire à la main."; }
     }
     if (!$avec_abonnement) { // prestation ponctuelle (ou abonnement sur devis) : rien de récurrent
         maj_demande($id, ['statut' => 'signe_ponctuel', 'notes' => ajouter_note($row, 'Devis signé (prestation ponctuelle).' . ($acompte ? " Acompte brouillon $acompte." : ''))]);
         envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']} (prestation ponctuelle)",
             "Le devis {$row['pl_devis_numero']} (prestation ponctuelle, sans abonnement) a été signé." . $acompte_txt . (!empty($dem['execution_anticipee']) ? "\nLe client a demandé une exécution avant la fin du délai de rétractation." : ($dem['profil'] === 'particulier' ? "\nAttention : particulier sans demande d'exécution anticipée, intervenir après le délai de rétractation de 14 jours." : '')) . "\n\nÀ faire : convenir de la date d'intervention avec le client ({$c['email']}" . (empty($c['tel']) ? '' : ", {$c['tel']}") . "), puis facturer le solde après réalisation (Pennylane > Devis > Transformer en facture, en déduisant l'acompte).");
+        $payer = !empty($calc['acompte_ht']) && stripe_actif() && !cfg('mode_essai');
         envoyer_mail($c['email'], 'Arbogestion – Votre devis ' . $row['pl_devis_numero'] . ' est validé',
-            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}. Nous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
+            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}."
+            . ($payer ? "\n\nPour confirmer votre commande, merci de régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC par carte bancaire, sur notre page de paiement sécurisée (Stripe) :\n" . lien_paiement($id) . "\n\nLa facture d'acompte vous sera adressée par courriel." : '')
+            . "\n\nNous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
+        if ($payer) { maj_demande($id, ['paiement_statut' => 'attente']); }
         return 'prestation ponctuelle : rendez-vous à fixer' . ($acompte ? " ; facture d'acompte brouillon créée" : (!empty($calc['acompte_ht']) ? " ; ACOMPTE NON CRÉÉ (voir courriel)" : ''));
     }
 
@@ -135,22 +142,23 @@ function suite_signature(array $row): string {
         if ($debut < $min) { $debut = $min; }
     }
     $faits = [];
-    pennylane('POST', '/gocardless_mandates/mail_requests', [
-        'customer_id' => (int)$row['pl_client_id'],
-        'email' => [
-            'recipients' => [$c['email']],
-            'subject' => 'Arbogestion – Mise en place de votre prélèvement SEPA',
-            'body' => "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}. Pour la mise en place du prélèvement de votre abonnement, merci de compléter votre mandat SEPA en ligne (sécurisé par GoCardless), en suivant le lien ci-dessous.\n\nBien cordialement,\nArbogestion",
-        ],
-    ]);
-    $faits[] = 'demande de mandat SEPA envoyée';
+    if (stripe_actif() && !cfg('mode_essai')) {
+        maj_demande($id, ['paiement_statut' => 'attente']);
+        $acompte_cl = !empty($calc['acompte_ht']) ? "régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC et " : '';
+        envoyer_mail($c['email'], 'Arbogestion – Mise en place du paiement de votre abonnement',
+            "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}.\n\nPour finaliser, merci de {$acompte_cl}d'enregistrer le moyen de paiement de votre abonnement (prélèvement SEPA ou carte bancaire), sur notre page de paiement sécurisée (Stripe) :\n" . lien_paiement($id)
+            . "\n\nChaque facture vous est adressée par courriel avant d'être prélevée.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
+        $faits[] = 'lien de paiement Stripe envoyé au client';
+    } else {
+        $faits[] = 'Stripe non configuré : moyen de paiement à mettre en place à la main';
+    }
     $abo_id = null;
     if ($avec_abonnement) {
         $abo = pennylane('POST', '/billing_subscriptions', abonnement_pennylane($row, $dem, $calc, $debut));
         $abo_id = (string)($abo['id'] ?? '');
         $faits[] = 'abonnement créé (début ' . date_fr($debut) . ', mode ' . cfg('abonnement_mode', 'awaiting_validation') . ')';
     }
-    maj_demande($id, ['statut' => 'signe_mandat_demande', 'pl_abonnement_id' => $abo_id, 'notes' => ajouter_note($row, 'Devis signé : ' . implode(', ', $faits) . '.')]);
+    maj_demande($id, ['statut' => 'signe_paiement_demande', 'pl_abonnement_id' => $abo_id, 'notes' => ajouter_note($row, 'Devis signé : ' . implode(', ', $faits) . '.')]);
     envoyer_mail((string)cfg('mail_kevin'), "[Arbogestion] Devis {$row['pl_devis_numero']} signé – {$row['nom_client']}",
         "Le devis {$row['pl_devis_numero']} a été signé.\nFait automatiquement : " . implode(' ; ', $faits) . "." . $acompte_txt . "\n\nÀ faire de ton côté : planifier le démarrage, puis facturer le démarrage après réalisation (Pennylane > Devis > Transformer en facture, en retirant la ligne d'abonnement, facturée par l'abonnement, et en déduisant l'acompte).");
     return implode(', ', $faits);
