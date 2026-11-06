@@ -20,10 +20,13 @@ function valider_demande(array $in): array {
     if (!isset(PROFILS[$profil])) { throw new ErreurDemande('Profil inconnu.'); }
     $c = is_array($in['client'] ?? null) ? $in['client'] : [];
     $cl = [];
-    foreach (['prenom', 'nom', 'denomination', 'forme', 'siren', 'adresse', 'cp', 'ville', 'representant', 'referent', 'habilitation', 'email', 'tel'] as $k) {
+    foreach (['prenom', 'nom', 'denomination', 'forme', 'siren', 'siret', 'adresse', 'cp', 'ville', 'representant', 'referent', 'habilitation', 'email', 'tel'] as $k) {
         $cl[$k] = nettoyer($c[$k] ?? '', $k === 'adresse' ? 300 : 160);
     }
     $cl['siren'] = preg_replace('/\D/', '', $cl['siren']);
+    $cl['siret'] = preg_replace('/\D/', '', $cl['siret']);
+    if (strlen($cl['siren']) === 14) { $cl['siret'] = $cl['siret'] ?: $cl['siren']; $cl['siren'] = substr($cl['siren'], 0, 9); }
+    if (strlen($cl['siret']) !== 14 || substr($cl['siret'], 0, 9) !== $cl['siren']) { $cl['siret'] = ''; }
     $cl['cp'] = preg_replace('/[^0-9A-Za-z ]/', '', $cl['cp']);
     if (!filter_var($cl['email'], FILTER_VALIDATE_EMAIL)) { throw new ErreurDemande('Adresse e-mail invalide.'); }
     if ($cl['adresse'] === '' || $cl['cp'] === '' || $cl['ville'] === '') { throw new ErreurDemande('Adresse incomplète.'); }
@@ -332,7 +335,7 @@ function traiter_demande(array $in): array {
 
     $c = $dem['client'];
     $infos = "Profil : " . PROFILS[$dem['profil']]['nom'] . "\nClient : " . nom_client($dem)
-        . ($dem['profil'] === 'particulier' ? '' : "\nSIREN : {$c['siren']}\nReprésentant : {$c['representant']}\nRéférent : {$c['referent']}")
+        . ($dem['profil'] === 'particulier' ? '' : "\nSIREN : {$c['siren']}" . (!empty($c['siret']) ? "\nSIRET : {$c['siret']}" : '') . "\nReprésentant : {$c['representant']}\nRéférent : {$c['referent']}")
         . "\nAdresse : {$c['adresse']}, {$c['cp']} {$c['ville']}\nE-mail : {$c['email']}\nTéléphone : " . ($c['tel'] ?: '—')
         . ($dem['site_adresse'] ? "\nSite suivi : {$dem['site_adresse']}" : '') . ($dem['lieu_label'] ? "\nLieu d'intervention : {$dem['lieu_label']}" : '')
         . "\nBesoin : " . (empty($calc['abonnement']) ? 'prestation ponctuelle (sans abonnement)' : ($calc['demarrage_ht'] > 0 ? 'recensement et diagnostic initial + abonnement de suivi annuel' : 'abonnement de suivi annuel seul')) . "\nNombre d'arbres : {$calc['nb']}\nDate de début souhaitée : " . date_fr($dem['date_debut'])

@@ -25,11 +25,11 @@ function contrat_html(array $dem, array $calc, string $numero_devis, string $dat
         $client = h(trim(($c['prenom'] ?? '') . ' ' . ($c['nom'] ?? ''))) . ', demeurant ' . $adr . ', ' . h($c['tel'] ?? '') . ', ' . h($c['email'] ?? '')
             . '. Adresse du ou des terrains concernés : ' . h(($dem['site_adresse'] ?? '') ?: 'identique') . '.';
     } elseif ($pro) {
-        $client = h($c['denomination'] ?? '') . (empty($c['forme']) ? '' : ', ' . h($c['forme'])) . ', SIREN ' . h($c['siren'] ?? '')
+        $client = h($c['denomination'] ?? '') . (empty($c['forme']) ? '' : ', ' . h($c['forme'])) . ', SIREN ' . h($c['siren'] ?? '') . (empty($c['siret']) ? '' : ' (SIRET ' . h($c['siret']) . ')')
             . (empty($c['tva']) ? '' : ', TVA ' . h($c['tva'])) . ', siège ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '') . ', dûment habilité(e). '
             . 'Site(s) concerné(s) : ' . h(($dem['site_adresse'] ?? '') ?: 'à l\'adresse du siège') . '. Interlocuteur référent : ' . h($c['referent'] ?? '') . ', ' . h($c['email'] ?? '') . '.';
     } else {
-        $client = h($c['denomination'] ?? '') . ', SIREN ' . h($c['siren'] ?? '') . ', ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '')
+        $client = h($c['denomination'] ?? '') . ', SIREN ' . h($c['siren'] ?? '') . (empty($c['siret']) ? '' : ' (SIRET ' . h($c['siret']) . ')') . ', ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '')
             . ', habilité(e) ' . (empty($c['habilitation']) ? 'à cet effet' : 'par ' . h($c['habilitation'])) . '. Interlocuteur référent : ' . h($c['referent'] ?? '') . ', ' . h($c['email'] ?? '') . '.';
     }
 
@@ -234,7 +234,7 @@ function conditions_ponctuelles_html(array $dem, array $calc, string $numero_dev
     $retract = $part ? cgv_article('particulier', 'Rétractation') : null;
     $adr = h(trim(($c['adresse'] ?? '') . ', ' . ($c['cp'] ?? '') . ' ' . ($c['ville'] ?? ''), ', '));
     $client = $part ? h(trim(($c['prenom'] ?? '') . ' ' . ($c['nom'] ?? ''))) . ', demeurant ' . $adr . ', ' . h($c['email'] ?? '')
-        : h($c['denomination'] ?? '') . ', SIREN ' . h($c['siren'] ?? '') . ', ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '') . ($col && !empty($c['habilitation']) ? ', habilité(e) par ' . h($c['habilitation']) : '') . '. Référent : ' . h($c['referent'] ?? '') . ', ' . h($c['email'] ?? '');
+        : h($c['denomination'] ?? '') . ', SIREN ' . h($c['siren'] ?? '') . (empty($c['siret']) ? '' : ' (SIRET ' . h($c['siret']) . ')') . ', ' . $adr . ', représenté(e) par ' . h($c['representant'] ?? '') . ($col && !empty($c['habilitation']) ? ', habilité(e) par ' . h($c['habilitation']) : '') . '. Référent : ' . h($c['referent'] ?? '') . ', ' . h($c['email'] ?? '');
     $presta = array_map(fn($l) => h($l['label']), $calc['lignes_demarrage']);
     $montant = $part ? eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC (' . eur($calc['demarrage_ht']) . ' HT)' : eur($calc['demarrage_ht']) . ' HT (' . eur(round($calc['demarrage_ht'] * (1 + $T['tva']), 2)) . ' TTC)';
     $acompte = $col ? 'Aucun – facture après réalisation, déposée sur Chorus Pro' : (int)$T['acompte']['pourcentage'] . ' % du devis à la signature, solde après réalisation, par carte bancaire';

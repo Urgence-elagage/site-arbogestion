@@ -235,6 +235,11 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 .res-bloc .grand{font-size:clamp(1.7rem,2.6vw,2.2rem)}
 @media (max-width:900px){.offre,.etapes3{grid-template-columns:1fr}.onglets button{flex:1;padding:12px 10px;font-size:.95rem}}
 @media (max-width:760px){.choixb,.choixb.trois{grid-template-columns:1fr}}
+.badge-profil{display:inline-block;background:var(--vert);color:#fff;font-size:.95rem;letter-spacing:.04em;padding:6px 14px;border-radius:999px}.badge-profil:empty{display:none}
+.profil-bandeau{background:#f1f5e0;border:1px solid #dfe6bf;border-radius:10px;padding:10px 14px;margin:0 0 6px;color:var(--vert)}
+.profil-bandeau a{color:var(--vert);font-weight:700}
+.f-titre{font-size:1.15rem;color:var(--vert);margin:22px 0 4px;padding-top:14px;border-top:1px solid #e6e6df}
+#fdevis .profil-bandeau + .f-titre{border-top:0;padding-top:0}
 </style>
 </head>
 <body>
@@ -262,24 +267,31 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
 
 <section id="demande" style="padding-top:clamp(28px,3vw,48px)">
   <div class="wrap">
-    <div class="kicker">Demande de devis</div>
+    <div class="kicker" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Demande de devis<span id="k-profil" class="badge-profil"></span></div>
     <h1 style="font-size:clamp(2rem,3.4vw,3rem)">Recevoir votre devis et votre contrat.</h1>
     <p class="lead">Complétez vos coordonnées : nous vérifions votre demande, puis vous recevez par courriel votre devis et le contrat correspondant, à signer en ligne. <span id="d-rappel"></span></p>
     <div id="sans-estim" class="bloc" hidden style="margin-top:24px"><h3>Commencez par votre estimation</h3><p>Pour demander un devis, faites d'abord votre estimation en ligne : elle nous permet de préparer un devis précis.</p><p style="margin-top:14px"><a class="btn" href="estimation.html#calculateur">Calculer mon estimation</a></p></div>
     <div class="calc" id="avec-estim" style="margin-top:24px">
       <div id="col-form">
     <form id="fdevis" class="bloc" novalidate>
+      <p class="profil-bandeau">Demande au titre de : <b id="p-nom"></b> · <a id="p-changer" href="estimation.html">changer</a></p>
+      <h3 class="f-titre" id="t-org">Votre entreprise</h3>
       <div id="f-entreprise">
+        <label for="org-recherche" id="l-recherche">Rechercher votre entreprise</label>
+        <input id="org-recherche" autocomplete="off" placeholder="Nom, SIREN ou SIRET">
+        <small id="org-info" style="display:block;color:var(--gris);margin-top:4px">Choisissez dans la liste : raison sociale, SIREN, SIRET et adresse se remplissent automatiquement (données officielles de l'INSEE).</small>
         <div class="ligne">
-          <div><label for="siren">Numéro SIREN *</label><input id="siren" inputmode="numeric" maxlength="11" placeholder="9 chiffres"><small id="siren-info" style="color:var(--gris)">Le nom et l'adresse se remplissent automatiquement.</small></div>
-          <div><label for="denomination" id="l-denomination">Raison sociale *</label><input id="denomination" autocomplete="organization"></div>
+          <div><label for="siren">Numéro SIREN *</label><input id="siren" inputmode="numeric" maxlength="17" placeholder="9 chiffres"><small id="siren-info" style="color:var(--gris)"></small></div>
+          <div><label for="siret">Numéro SIRET <span id="l-siret">(établissement concerné)</span></label><input id="siret" inputmode="numeric" maxlength="17" placeholder="14 chiffres"></div>
         </div>
+        <label for="denomination" id="l-denomination">Raison sociale *</label><input id="denomination" autocomplete="organization">
         <div class="ligne">
           <div><label for="representant" id="l-representant">Représentant légal (nom, fonction) *</label><input id="representant" placeholder="Ex. : Paul Martin, gérant"></div>
           <div><label for="referent">Interlocuteur référent (nom, fonction)</label><input id="referent" placeholder="Si différent du représentant"></div>
         </div>
         <div id="f-habilitation"><label for="habilitation">Délibération ou décision d'engagement (si déjà prise)</label><input id="habilitation" placeholder="Ex. : délibération n° 2026-45 du 12 octobre 2026"></div>
       </div>
+      <h3 class="f-titre" id="t-coord">Vos coordonnées</h3>
       <div id="f-particulier" class="ligne">
         <div><label for="prenom">Prénom *</label><input id="prenom" autocomplete="given-name"></div>
         <div><label for="nomp">Nom *</label><input id="nomp" autocomplete="family-name"></div>
@@ -375,20 +387,67 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     $('l-representant').textContent=col?'Représentant (nom, fonction : maire, président…) *':'Représentant légal (nom, fonction) *';
     $('representant').placeholder=col?'Ex. : Marie Dupont, maire':'Ex. : Paul Martin, gérant';
     $('l-adr').textContent=part?'':(col?'(mairie ou siège)':'(siège)');
+    $('k-profil').textContent={particulier:'Particulier',pro:'Professionnel',collectivite:'Collectivité'}[profil]||'';
+    $('p-nom').textContent={particulier:'un particulier',pro:'une entreprise ou un professionnel',collectivite:'une collectivité'}[profil]||'';
+    $('p-changer').href='estimation.html';
+    $('t-org').hidden=part;$('t-org').textContent=col?'Votre collectivité':'Votre entreprise';
+    $('t-coord').textContent=part?'Vos coordonnées':(col?'Coordonnées de la mairie ou du siège':'Coordonnées du siège');
+    $('l-recherche').textContent=col?'Rechercher votre collectivité':'Rechercher votre entreprise';
+    $('org-recherche').placeholder=col?'Nom de la commune ou de l\'intercommunalité, SIREN ou SIRET':'Nom, SIREN ou SIRET';
+    $('l-siret').textContent=col?'(service ou établissement, facultatif)':'(établissement concerné, facultatif)';
     adapterPaiement();
   }
   var dd=new Date();dd.setMonth(dd.getMonth()+1,1);$('date_debut').value=dd.toISOString().slice(0,10);$('date_debut').min=new Date().toISOString().slice(0,10);
+  /* ----- Entreprises et collectivités : données officielles (recherche-entreprises.api.gouv.fr) ----- */
+  function adresseEtab(si){return [si.numero_voie,si.indice_repetition,si.type_voie,si.libelle_voie].filter(Boolean).join(' ')||(si.adresse||'').replace(/\s*\d{5}.*$/,'')}
+  function remplirOrg(e,siret){
+    var col=profil==='collectivite',si=e.siege||{};
+    if(siret&&e.matching_etablissements){e.matching_etablissements.forEach(function(m){if(m.siret===siret)si=m})}
+    $('siren').value=e.siren||'';$('siret').value=si.siret||siret||'';
+    $('denomination').value=e.nom_raison_sociale||e.nom_complet||'';
+    $('adr').value=adresseEtab(si);$('cp').value=si.code_postal||'';$('ville').value=si.libelle_commune||'';
+    if(!$('representant').value){
+      var g=null;
+      if(col&&e.complements&&e.complements.collectivite_territoriale&&e.complements.collectivite_territoriale.elus){e.complements.collectivite_territoriale.elus.forEach(function(x){if(!g&&/^(maire|pr[ée]sident)/i.test(x.fonction||''))g={prenoms:x.prenoms,nom:x.nom,qualite:x.fonction}})}
+      else if(e.dirigeants){e.dirigeants.forEach(function(x){if(!g&&x.nom)g=x})}
+      if(g)$('representant').value=[g.prenoms,g.nom].filter(Boolean).join(' ')+(g.qualite?', '+g.qualite.toLowerCase():'');
+    }
+    $('org-info').textContent='Trouvé : '+(e.nom_complet||'')+(si.libelle_commune?' ('+si.libelle_commune+')':'')+'. Vérifiez et complétez les informations.';
+  }
+  function chercherOrg(q,cb){
+    var u='https://recherche-entreprises.api.gouv.fr/search?per_page=6&q='+encodeURIComponent(q)+(profil==='collectivite'?'&est_collectivite_territoriale=true':'');
+    fetch(u).then(function(r){return r.json()}).then(function(d){cb(d.results||[])}).catch(function(){cb(null)});
+  }
+  (function(){
+    var el=$('org-recherche'),box=document.createElement('div');box.className='ban-box';el.parentNode.insertBefore(box,el);box.appendChild(el);
+    var ul=document.createElement('ul');ul.className='ban-liste';ul.hidden=true;box.appendChild(ul);
+    var res=[],t=null,n=0,idx=-1,siretCherche='';
+    function prendre(i){var e=res[i];if(!e)return;ul.hidden=true;el.value=e.nom_complet||'';remplirOrg(e,siretCherche)}
+    el.addEventListener('input',function(){clearTimeout(t);var v=el.value.trim(),c=v.replace(/[\s.]/g,'');siretCherche=/^\d{14}$/.test(c)?c:'';
+      if(v.length<3){ul.hidden=true;return}
+      t=setTimeout(function(){var k=++n;chercherOrg(/^\d{9}$|^\d{14}$/.test(c)?c:v,function(r){if(k!==n)return;
+        if(r===null){$('org-info').textContent='Recherche indisponible : complétez à la main.';return}
+        res=r;ul.innerHTML='';r.forEach(function(e,i){var si=e.siege||{},li=document.createElement('li');li.innerHTML='<b></b><small></small>';
+          li.firstChild.textContent=e.nom_complet||e.nom_raison_sociale;li.lastChild.textContent='SIREN '+e.siren+' · '+[si.code_postal,si.libelle_commune].filter(Boolean).join(' ');
+          li.addEventListener('mousedown',function(ev){ev.preventDefault();prendre(i)});ul.appendChild(li)});
+        ul.hidden=!r.length;idx=-1;if(!r.length)$('org-info').textContent='Aucun résultat : vérifiez l\'orthographe, ou complétez à la main.';
+        if(r.length===1&&/^\d{9}$|^\d{14}$/.test(c))prendre(0);
+      })},250)});
+    el.addEventListener('keydown',function(e){if(ul.hidden)return;var li=ul.children;
+      if(e.key==='ArrowDown'){e.preventDefault();idx=Math.min(idx+1,li.length-1)}else if(e.key==='ArrowUp'){e.preventDefault();idx=Math.max(idx-1,0)}
+      else if(e.key==='Enter'){e.preventDefault();prendre(idx<0?0:idx);return}else if(e.key==='Escape'){ul.hidden=true;return}else return;
+      for(var i=0;i<li.length;i++)li[i].classList.toggle('actif',i===idx)});
+    el.addEventListener('blur',function(){setTimeout(function(){ul.hidden=true},150)});
+  })();
   $('siren').addEventListener('input',function(){
-    var s=this.value.replace(/\D/g,'');if(s.length!==9){$('siren-info').textContent='Le nom et l\'adresse se remplissent automatiquement.';return}
+    var c=this.value.replace(/\D/g,'');if(c.length===14){$('siret').value=c;c=c.slice(0,9);this.value=c}
+    if(c.length!==9){$('siren-info').textContent='';return}
     $('siren-info').textContent='Recherche…';
-    fetch('https://recherche-entreprises.api.gouv.fr/search?q='+s+'&per_page=1').then(function(r){return r.json()}).then(function(d){
-      var e=d.results&&d.results[0];if(!e||e.siren!==s){$('siren-info').textContent='SIREN non trouvé : complétez à la main.';return}
-      var si=e.siege||{};$('denomination').value=e.nom_raison_sociale||e.nom_complet||'';
-      $('adr').value=[si.numero_voie,si.indice_repetition,si.type_voie,si.libelle_voie].filter(Boolean).join(' ')||si.adresse||'';
-      $('cp').value=si.code_postal||'';$('ville').value=si.libelle_commune||'';
-      if(!$('representant').value&&e.dirigeants&&e.dirigeants[0]&&e.dirigeants[0].nom){var g=e.dirigeants[0];$('representant').value=[g.prenoms,g.nom].filter(Boolean).join(' ')+(g.qualite?', '+g.qualite:'')}
-      $('siren-info').textContent='Trouvé : '+(e.nom_complet||'')+'. Vérifiez les informations.';
-    }).catch(function(){$('siren-info').textContent='Recherche indisponible : complétez à la main.'});
+    chercherOrg($('siret').value.replace(/\D/g,'').length===14?$('siret').value.replace(/\D/g,''):c,function(r){
+      var e=r&&r.filter(function(x){return x.siren===c})[0];
+      if(!e){$('siren-info').textContent=r===null?'Recherche indisponible : complétez à la main.':'SIREN non trouvé : complétez à la main.';return}
+      $('siren-info').textContent='';remplirOrg(e,$('siret').value.replace(/\D/g,''));
+    });
   });
   $('fdevis').addEventListener('submit',function(ev){
     ev.preventDefault();var err=$('f-erreur');err.textContent='';
@@ -402,7 +461,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
     if(manque.length){err.textContent='À compléter : '+manque.join(', ')+'.';return}
     var corps={profil:profil,site_web:v('site_web'),consentement:true,paiement:$('paiement').value,date_debut:v('date_debut'),
       site_adresse:v('site_adresse'),contraintes:v('contraintes'),message:v('message'),execution_anticipee:$('anticipe').checked,lieu_label:lieu.label,
-      client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
+      client:{prenom:v('prenom'),nom:v('nomp'),denomination:v('denomination'),siren:v('siren'),siret:v('siret').replace(/\D/g,''),representant:v('representant'),referent:v('referent'),habilitation:v('habilitation'),adresse:v('adr'),cp:v('cp'),ville:v('ville'),email:v('email'),tel:v('tel')},
       estimation:E.estimation};
     
     var bt=$('f-bouton');bt.disabled=true;bt.textContent='Envoi en cours…';
