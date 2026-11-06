@@ -73,6 +73,10 @@ $jours = []; for ($i = 0; $i < 6; $i++) { $jours[] = date('Y-m-d', strtotime($lu
 $s = db()->prepare("SELECT * FROM interventions WHERE debut >= ? AND debut < ? AND statut <> 'annule' ORDER BY debut");
 $s->execute([$lundi, date('Y-m-d', strtotime($lundi . ' +7 days'))]);
 $par_jour = []; foreach ($s->fetchAll() as $r) { $par_jour[substr($r['debut'], 0, 10)][] = $r; }
+// Trajets enchaînés : le chantier suivant part du lieu du précédent ; retour à Cambes après le dernier
+$ENCH = [];
+foreach (array_keys($par_jour) as $d) { foreach (journee($d) as $x) { $ENCH[(int)$x['r']['id']] = $x; } }
+function ench(array $r): array { global $ENCH; return $ENCH[(int)$r['id']] ?? ['avant' => (float)$r['trajet_h'], 'retour' => (float)$r['trajet_h'], 'depuis' => 'Cambes']; }
 
 $H0 = 7; $H1 = 19; $PX = 44; // grille 7 h – 19 h, 44 px par heure
 $mois = ['', 'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
@@ -96,7 +100,8 @@ function detail_rdv(array $r): string {
     if (in_array($r['statut'], ['confirme', 'planifie', 'propose'], true) && $r['debut'] <= date('Y-m-d H:i')) { $act .= bouton_action('realise', $r, 'Marquer réalisé', 'btn petit'); }
     if ($r['statut'] !== 'realise') { $act .= bouton_action('retirer', $r, 'Déplacer / déplanifier') . bouton_action('annuler', $r, 'Annuler', 'btn sec petit', 'Annuler cette intervention'); }
     return '<div class="carte rdv-detail" id="rdv-' . (int)$r['id'] . '"><div class="actions" style="justify-content:space-between;margin:0 0 6px"><h2 style="margin:0">' . h($r['client']) . '</h2>' . rdv_pastille($r['statut']) . '</div>'
-        . '<p style="margin:0">' . h($r['titre']) . $multi . '<br>' . ($r['debut'] ? '<b>' . h(ucfirst(jour_fr($r['debut']))) . '</b>, sur place ' . h(heure_fr($r['debut'])) . ' – ' . h(heure_fr((string)$fin)) . ' · départ de Cambes vers ' . h(heure_fr(date('Y-m-d H:i', (int)(strtotime($r['debut']) - (float)$r['trajet_h'] * 3600)))) . ', retour vers ' . h(heure_fr(date('Y-m-d H:i', (int)(strtotime((string)$fin) + (float)$r['trajet_h'] * 3600)))) : '')
+        . '<p style="margin:0">' . h($r['titre']) . $multi . '<br>' . ($r['debut'] ? '<b>' . h(ucfirst(jour_fr($r['debut']))) . '</b>, sur place ' . h(heure_fr($r['debut'])) . ' – ' . h(heure_fr((string)$fin)) . '<br>Départ ' . (ench($r)['depuis'] === 'Cambes' ? 'de Cambes' : 'du chantier ' . h(ench($r)['depuis'])) . ' vers ' . h(heure_fr(date('Y-m-d H:i', (int)(strtotime($r['debut']) - ench($r)['avant'] * 3600)))) . ' (' . h(duree_fr(ench($r)['avant'])) . ' de route)'
+            . (ench($r)['retour'] > 0 ? ' · retour à Cambes vers ' . h(heure_fr(date('Y-m-d H:i', (int)(strtotime((string)$fin) + ench($r)['retour'] * 3600)))) : ' · puis chantier suivant') : '')
         . '<br><span class="aide">' . h($r['adresse']) . ($r['km'] ? ' · ' . h(str_replace('.', ',', (string)(float)$r['km'])) . ' km' : '') . ($r['tel'] ? ' · ' . h($r['tel']) : '') . ($r['email'] ? ' · ' . h($r['email']) : '') . '</span></p>'
         . ($r['statut'] === 'propose' ? '<p class="aide">Proposé le ' . h(date('d/m/Y à H:i', strtotime((string)$r['propose_le']))) . ', en attente de la réponse du client.</p>' : '')
         . ($r['reponse_msg'] ? '<p class="msg' . ($r['statut'] === 'refuse' ? ' err' : '') . '" style="margin:8px 0">Réponse du client : ' . h($r['reponse_msg']) . '</p>' : '')
@@ -114,10 +119,10 @@ foreach ($attente as $r) {
     $sug = creneau_suggere($r, $apres);
     if ($r['demande_id'] && $sug) { $dernier[$r['demande_id']] = substr($sug, 0, 10); }
     $multi = (int)$r['jours_total'] > 1 ? ' · jour ' . (int)$r['jour_num'] . '/' . (int)$r['jours_total'] : '';
-    $lst .= '<div class="carte a-planifier"><div class="actions" style="justify-content:space-between;margin:0"><div><b>' . h($r['client']) . '</b> ' . rdv_pastille($r['statut']) . '<br><span class="aide">' . h($r['titre']) . $multi . ' · sur place ' . h(duree_fr((float)$r['duree_h'])) . ' · trajet ' . h(duree_fr((float)$r['trajet_h'])) . ' aller · ' . h($r['adresse']) . '</span>'
+    $lst .= '<div class="carte a-planifier"><div><b>' . h($r['client']) . '</b> ' . rdv_pastille($r['statut']) . '<br><span class="aide">' . h($r['titre']) . $multi . '<br>Sur place ' . h(duree_fr((float)$r['duree_h'])) . ' · trajet ' . h(duree_fr((float)$r['trajet_h'])) . ' aller<br>' . h($r['adresse']) . '</span>'
         . ($r['date_min'] > date('Y-m-d', strtotime('+1 day')) ? '<br><span class="aide">Au plus tôt le ' . h(date_fr((string)$r['date_min'])) . '</span>' : '')
         . ($r['reponse_msg'] ? '<br><span class="aide" style="color:var(--rouge)">Client : ' . h($r['reponse_msg']) . '</span>' : '') . ($r['notes'] ? '<br><span class="aide">' . h($r['notes']) . '</span>' : '') . '</div>'
-        . ($sug ? '<div style="text-align:right"><span class="aide">Créneau libre suggéré</span><br><b>' . h(ucfirst(jour_fr($sug))) . ', ' . h(heure_fr($sug)) . '</b><br>' . bouton_action('suggere', $r, 'Pré-planifier ce créneau', 'btn petit', '', ['creneau' => $sug, 'statut' => 'pre']) . '</div>' : '') . '</div>'
+        . ($sug ? '<div class="sugg"><span class="aide">Créneau libre suggéré</span><b>' . h(ucfirst(jour_fr($sug))) . ', ' . h(heure_fr($sug)) . '</b>' . bouton_action('suggere', $r, 'Pré-planifier ce créneau', 'btn petit', '', ['creneau' => $sug, 'statut' => 'pre', 's' => substr($sug, 0, 10)]) . '</div>' : '')
         . '<details style="margin-top:8px"><summary class="aide">Choisir une autre date</summary><form method="post" action="./?p=agenda" class="grille">' . espace_csrf_champ()
         . '<input type="hidden" name="a" value="placer"><input type="hidden" name="id" value="' . (int)$r['id'] . '">'
         . '<div><label>Date</label><input type="date" name="date" required min="' . date('Y-m-d') . '" value="' . h($sug ? substr($sug, 0, 10) : '') . '"></div>'
@@ -134,9 +139,9 @@ foreach ($jours as $i => $d) {
     $blocs = '';
     foreach ($par_jour[$d] ?? [] as $r) {
         $h = (float)date('G', strtotime($r['debut'])) + (int)date('i', strtotime($r['debut'])) / 60;
-        $t = (float)$r['trajet_h']; $du = (float)$r['duree_h'];
-        $top = max(0, ($h - $t - $H0) * $PX); $haut = ($du + 2 * $t) * $PX;
-        $blocs .= '<a class="ev ev-' . h($r['statut']) . '" href="#rdv-' . (int)$r['id'] . '" style="top:' . round($top) . 'px;height:' . max(28, round($haut)) . 'px;--tr:' . round($t * $PX) . 'px">'
+        $e = ench($r); $t = $e['avant']; $rt = $e['retour']; $du = (float)$r['duree_h'];
+        $top = max(0, ($h - $t - $H0) * $PX); $haut = ($du + $t + $rt) * $PX;
+        $blocs .= '<a class="ev ev-' . h($r['statut']) . '" href="#rdv-' . (int)$r['id'] . '" title="Trajet ' . h(duree_fr($t)) . ' depuis ' . h($e['depuis']) . ($rt > 0 ? ', retour ' . h(duree_fr($rt)) : '') . '" style="top:' . round($top) . 'px;height:' . max(28, round($haut)) . 'px;--tr:' . round($t * $PX) . 'px;--rt:' . round($rt * $PX) . 'px">'
             . '<span class="ev-h">' . h(heure_fr($r['debut'])) . ' – ' . h(heure_fr((string)rdv_fin($r))) . '</span><b>' . h($r['client']) . '</b><span>' . (int)$r['nb_arbres'] . ' arbres · ' . h(RDV_STATUTS[$r['statut']][0] ?? '') . '</span></a>';
     }
     $auj = $d === date('Y-m-d') ? ' auj' : '';
@@ -152,30 +157,45 @@ $ics = rtrim((string)cfg('url_site', 'https://arbogestion.fr'), '/') . '/agenda.
 $webcal = preg_replace('~^https?://~', 'webcal://', $ics);
 
 $html = '<style>
+main.in{max-width:100rem}
+.ag-tete{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 14px}
+.vues{display:inline-flex;border:1px solid var(--vert);border-radius:8px;overflow:hidden}.vues button{font:inherit;font-size:.88rem;font-weight:700;background:#fff;color:var(--vert);border:0;padding:8px 12px;cursor:pointer}.vues button+button{border-left:1px solid var(--vert)}.vues button[aria-pressed=true]{background:var(--vert);color:#fff}
+.ag{display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:18px;align-items:start}
+.ag[data-vue=planning]{grid-template-columns:minmax(0,1fr)}.ag[data-vue=planning] .ag-g{display:none}
+.ag[data-vue=liste]{grid-template-columns:minmax(0,1fr)}.ag[data-vue=liste] .ag-d{display:none}.ag[data-vue=liste] .ag-g{columns:2 320px;column-gap:16px}.ag[data-vue=liste] .ag-g>*{break-inside:avoid}
+.ag-g{position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto;padding-right:4px}.ag[data-vue=liste] .ag-g{position:static;max-height:none}
+.ag-titre{margin:0 0 10px}.a-planifier{padding:12px 14px}.sugg{margin-top:10px;padding:8px 10px;background:#fafbf6;border:1px solid var(--ligne);border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.ag-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+@media (max-width:900px){.ag,.ag[data-vue]{grid-template-columns:1fr}.ag-g{position:static;max-height:none}}
 .sem{display:grid;grid-template-columns:44px repeat(6,minmax(0,1fr));gap:6px;background:#fff;border:1px solid var(--ligne);border-radius:10px;padding:10px;overflow-x:auto}
 .hcol{padding-top:30px;font-size:.75rem;color:var(--gris)}.hcol div{border-top:1px solid #eef0ea}
 .jt{height:30px;font-weight:700;font-size:.88rem;color:var(--vert);text-align:center}.auj .jt{background:var(--lime);border-radius:6px}
 .jc{position:relative;background:repeating-linear-gradient(#fff 0 43px,#eef0ea 43px 44px);border-radius:6px;border:1px solid #eef0ea}
 .vide{position:absolute;top:45%;left:0;right:0;text-align:center;color:#b9bdb4;font-size:.8rem}
 .ev{position:absolute;left:2px;right:2px;border-radius:6px;padding:calc(var(--tr) + 2px) 6px 4px;font-size:.78rem;line-height:1.25;text-decoration:none;color:var(--vert);overflow:hidden;
-  background:linear-gradient(rgba(0,0,0,.06) 0 var(--tr),transparent var(--tr) calc(100% - var(--tr)),rgba(0,0,0,.06) calc(100% - var(--tr)));border:1px solid var(--ligne)}
+  background:linear-gradient(rgba(0,0,0,.07) 0 var(--tr),transparent var(--tr) calc(100% - var(--rt)),rgba(0,0,0,.07) calc(100% - var(--rt)));border:1px solid var(--ligne)}
 .ev b{display:block}.ev span{display:block}.ev-h{font-weight:700}
 .ev-pre{background-color:var(--jaunef);border:1px dashed var(--jaune)}.ev-planifie,.ev-propose{background-color:var(--bleuf);border-color:#b7cbe0}
 .ev-confirme{background-color:var(--okf);border-color:#a9cda5}.ev-realise{background-color:#eef0ea;color:var(--gris)}
 .legende{display:flex;gap:10px;flex-wrap:wrap;font-size:.85rem;margin:8px 0 18px}.legende span{display:inline-flex;align-items:center;gap:6px}.legende i{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid var(--ligne)}
 @media (max-width:760px){.sem{grid-template-columns:1fr}.hcol{display:none}.jc{height:auto!important;background:#fff;min-height:40px;padding:4px}.ev{position:static;display:block;margin-bottom:4px;height:auto!important;padding:6px}.vide{position:static;display:block;padding:8px}}
 </style>'
-    . '<div class="actions" style="justify-content:space-between;margin:0 0 12px"><div><h1>Agenda des interventions</h1><p class="sous" style="margin:0">Semaine du ' . h(date_fr($lundi)) . ' · trajets depuis Cambes compris (zones grisées)</p></div>'
-    . '<div class="actions" style="margin:0"><a class="btn sec petit" href="./?p=agenda&amp;s=' . $prec . '">← Semaine précédente</a><a class="btn sec petit" href="./?p=agenda">Cette semaine</a><a class="btn sec petit" href="./?p=agenda&amp;s=' . $suiv . '">Semaine suivante →</a></div></div>'
-    . '<h2>À planifier (' . count($attente) . ')</h2>' . ($lst ?: '<div class="carte"><p class="aide" style="margin:0">Rien à planifier. Les interventions apparaissent ici dès qu’un devis comportant du terrain est signé.</p></div>')
+    . '<div class="ag-tete"><div><h1>Agenda des interventions</h1><p class="sous" style="margin:0">Semaine du ' . h(date_fr($lundi)) . ' · zones grisées = route (depuis Cambes ou le chantier précédent, retour à Cambes le soir)</p></div>'
+    . '<div class="vues" role="group" aria-label="Affichage"><button type="button" data-vue="double">Double affichage</button><button type="button" data-vue="planning">Planning seul</button><button type="button" data-vue="liste">À planifier seul</button></div></div>'
+    . '<div class="ag" id="ag" data-vue="double"><aside class="ag-g">'
+    . '<h2 class="ag-titre">À planifier (' . count($attente) . ')</h2>' . ($lst ?: '<div class="carte"><p class="aide" style="margin:0">Rien à planifier. Les interventions apparaissent ici dès qu’un devis comportant du terrain est signé.</p></div>')
     . '<details class="carte"><summary><b>Ajouter une intervention à la main</b></summary><form method="post" action="./?p=agenda">' . espace_csrf_champ() . '<input type="hidden" name="a" value="nouvelle"><div class="grille">'
     . '<div><label>Client</label><input type="text" name="client" required></div><div><label>Objet</label><input type="text" name="titre" placeholder="Ex. appui technique haubanage"></div>'
     . '<div><label>Adresse</label><input type="text" name="adresse"></div><div><label>E-mail du client</label><input type="email" name="email"></div><div><label>Téléphone</label><input type="tel" name="tel"></div>'
     . '<div><label>Nombre d’arbres</label><input type="number" name="nb" min="0" value="0"></div><div><label>Durée sur place (h)</label><input type="text" name="duree" value="2" inputmode="decimal"></div><div><label>Trajet aller (h)</label><input type="text" name="trajet" value="0,5" inputmode="decimal"></div></div>'
     . '<label>Notes</label><textarea name="notes"></textarea><div class="actions"><button class="btn" type="submit">Ajouter</button></div></form></details>'
-    . '<h2 style="margin-top:22px">Semaine</h2><div class="legende"><span><i style="background:var(--jaunef);border-style:dashed"></i>Pré-planifié</span><span><i style="background:var(--bleuf)"></i>Planifié / proposé au client</span><span><i style="background:var(--okf)"></i>Confirmé</span><span><i style="background:#eef0ea"></i>Réalisé</span></div>'
+    . '</aside><section class="ag-d"><div class="ag-nav"><a class="btn sec petit" href="./?p=agenda&amp;s=' . $prec . '">←</a><a class="btn sec petit" href="./?p=agenda">Cette semaine</a><a class="btn sec petit" href="./?p=agenda&amp;s=' . $suiv . '">→</a><span class="aide">Semaine du ' . h(date_fr($lundi)) . '</span></div>'
+    . '<div class="legende"><span><i style="background:var(--jaunef);border-style:dashed"></i>Pré-planifié</span><span><i style="background:var(--bleuf)"></i>Planifié / proposé au client</span><span><i style="background:var(--okf)"></i>Confirmé</span><span><i style="background:#eef0ea"></i>Réalisé</span></div>'
     . '<div class="sem"><div class="hcol">' . $heures . '</div>' . $cols . '</div>'
+    . '</section></div>'
     . ($details ? '<h2 style="margin-top:22px">Détail de la semaine</h2>' . $details : '')
     . '<div class="carte" style="margin-top:22px"><h2>Voir l’agenda sur ton téléphone</h2><p class="aide">Abonne ton calendrier (iPhone : Réglages → Calendrier → Comptes → Ajouter un compte → Autre → Ajouter un calendrier avec abonnement) à cette adresse personnelle, à ne pas partager :</p><p class="cle">' . h($webcal) . '</p><p class="aide">Les rendez-vous apparaissent avec le trajet compris ; la mise à jour se fait automatiquement (selon le téléphone, toutes les 15 minutes à quelques heures).</p></div>';
 
+$html .= '<script nonce="' . h($nonce) . '">(function(){var ag=document.getElementById(\'ag\'),bs=document.querySelectorAll(\'.vues button\');function vue(v){ag.dataset.vue=v;bs.forEach(function(b){b.setAttribute(\'aria-pressed\',b.dataset.vue===v)});try{localStorage.setItem(\'arbo_vue_agenda\',v)}catch(e){}}
+bs.forEach(function(b){b.addEventListener(\'click\',function(){vue(b.dataset.vue)})});var v=\'double\';try{v=localStorage.getItem(\'arbo_vue_agenda\')||v}catch(e){}vue(v);})();</script>';
 espace_rendu('Agenda', $html);

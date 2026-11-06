@@ -1,13 +1,17 @@
 <?php
 /*
  * Espace connecté Arbogestion (https://arbogestion.fr/espace/) — sécurité.
- *  - un seul compte (le dirigeant), créé par un lien d'installation envoyé à l'adresse « mail_kevin » de config.php ;
+ *  - premier compte (administrateur) créé par un lien d'installation envoyé à l'adresse « mail_kevin » de config.php ;
+ *  - comptes supplémentaires créés par un administrateur (Espace > Comptes) : la personne reçoit une invitation
+ *    par e-mail (valable 72 h) et choisit elle-même son mot de passe et sa double authentification ;
+ *  - rôles : « admin » (tout, dont la gestion des comptes) et « collaborateur » (devis et agenda) ;
  *  - connexion : e-mail + mot de passe, puis code à 6 chiffres d'une application d'authentification (TOTP, RFC 6238)
  *    ou un code de secours à usage unique ;
  *  - session limitée (30 min d'inactivité, 10 h au total), jeton anti-falsification sur chaque formulaire,
  *    limitation des tentatives (par adresse IP et pour le compte).
- * Perte du téléphone ET des codes de secours : supprimer la ligne de la table « espace_admin » (OVH > Bases de
- * données > phpMyAdmin), puis refaire l'installation depuis l'espace (nouveau lien envoyé par e-mail).
+ * Perte du téléphone ET des codes de secours : un autre administrateur « réinitialise l'accès » (Espace > Comptes).
+ * S'il n'y a qu'un administrateur : supprimer sa ligne de la table « espace_admin » (OVH > phpMyAdmin) ; s'il n'en
+ * reste aucune, l'installation se refait depuis l'espace (nouveau lien envoyé par e-mail).
  */
 declare(strict_types=1);
 require_once __DIR__ . '/signatures.php';
@@ -63,10 +67,69 @@ function espace_fermer_session(): void {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 
-/* ---------- Compte ---------- */
-function espace_admin(): ?array {
-    $r = db()->query('SELECT * FROM espace_admin ORDER BY id LIMIT 1')->fetch();
-    return $r ?: null;
+/* ---------- Comptes ---------- */
+const ESPACE_ROLES = ['admin' => 'Administrateur', 'collaborateur' => 'Collaborateur'];
+
+function installer_comptes(): void {
+    static $fait = false;
+    if ($fait) { return; }
+    $fait = true;
+    $pdo = db();
+    foreach (['nom' => "VARCHAR(120) NULL", 'role' => "VARCHAR(20) NOT NULL DEFAULT 'admin'", 'actif' => 'INT NOT NULL DEFAULT 1',
+              'invite_le' => 'VARCHAR(19) NULL', 'derniere_connexion' => 'VARCHAR(19) NULL'] as $col => $type) {
+        try { $pdo->query("SELECT $col FROM espace_admin LIMIT 1"); }
+        catch (Throwable $e) { $pdo->exec("ALTER TABLE espace_admin ADD COLUMN $col $type"); }
+    }
+}
+
+/** Au moins un compte existe (sinon : installation). */
+function espace_un_compte(): bool { installer_comptes(); return (bool)db()->query('SELECT COUNT(*) FROM espace_admin')->fetchColumn(); }
+
+function espace_compte(int $id): ?array {
+    installer_comptes();
+    $s = db()->prepare('SELECT * FROM espace_admin WHERE id = ?'); $s->execute([$id]);
+    return $s->fetch() ?: null;
+}
+
+/** Compte de la personne en cours de connexion (ou connectée). */
+function espace_admin(): ?array { return empty($_SESSION['admin_id']) ? null : espace_compte((int)$_SESSION['admin_id']); }
+
+function espace_compte_par_email(string $email): ?array {
+    installer_comptes();
+    $s = db()->prepare('SELECT * FROM espace_admin WHERE LOWER(email) = ?'); $s->execute([strtolower(trim($email))]);
+    return $s->fetch() ?: null;
+}
+
+function espace_comptes(): array { installer_comptes(); return db()->query('SELECT * FROM espace_admin ORDER BY actif DESC, id')->fetchAll(); }
+
+function espace_est_admin(?array $c = null): bool { $c = $c ?? espace_admin(); return $c !== null && ($c['role'] ?? 'admin') === 'admin'; }
+
+function espace_en_attente(array $c): bool { return (string)$c['mdp_hash'] === '' || (string)$c['totp_secret'] === ''; }
+
+/** Nombre d'administrateurs actifs et activés (on ne peut pas retirer le dernier). */
+function espace_nb_admins_actifs(): int {
+    return count(array_filter(espace_comptes(), fn($c) => (int)$c['actif'] === 1 && ($c['role'] ?? 'admin') === 'admin' && !espace_en_attente($c)));
+}
+
+function espace_nom(array $c): string { return trim((string)($c['nom'] ?? '')) ?: (string)$c['email']; }
+
+/* ---------- Invitations (72 h ; un nouvel envoi annule le précédent) ---------- */
+function invitation_jeton(array $c): string {
+    $exp = time() + 72 * 3600;
+    return (int)$c['id'] . '.' . $exp . '.' . hash_hmac('sha256', 'invitation|' . (int)$c['id'] . '|' . $exp . '|' . $c['invite_le'], (string)cfg('secret'));
+}
+function invitation_compte(string $t): ?array {
+    if (!preg_match('/^(\d+)\.(\d+)\.([a-f0-9]{64})$/', $t, $m) || (int)$m[2] < time()) { return null; }
+    $c = espace_compte((int)$m[1]);
+    if (!$c || (int)$c['actif'] !== 1 || !espace_en_attente($c) || empty($c['invite_le'])) { return null; }
+    return hash_equals(hash_hmac('sha256', 'invitation|' . (int)$c['id'] . '|' . $m[2] . '|' . $c['invite_le'], (string)cfg('secret')), $m[3]) ? $c : null;
+}
+function envoyer_invitation(int $id, string $par): void {
+    espace_maj_admin($id, ['invite_le' => date('Y-m-d H:i:s')]);
+    $c = espace_compte($id);
+    $lien = url_site('espace/?' . http_build_query(['p' => 'invitation', 't' => invitation_jeton($c)]));
+    envoyer_mail((string)$c['email'], 'Arbogestion – Votre accès à l’espace connecté',
+        "Bonjour " . espace_nom($c) . ",\n\n$par vous a créé un accès à l'espace connecté Arbogestion (rôle : " . (ESPACE_ROLES[$c['role']] ?? $c['role']) . ").\n\nPour l'activer, choisissez votre mot de passe puis reliez votre téléphone (double authentification) :\n[[BOUTON:Activer mon accès|$lien]]\n\nCe lien est valable 72 heures et ne sert qu'une fois. Si vous n'attendiez pas ce message, ignorez-le.");
 }
 
 function espace_maj_admin(int $id, array $champs): void {
@@ -183,5 +246,5 @@ function lien_installation_jeton(): string {
 }
 function lien_installation_valide(string $t): bool {
     if (!preg_match('/^(\d+)\.([a-f0-9]{64})$/', $t, $m) || (int)$m[1] < time()) { return false; }
-    return hash_equals(hash_hmac('sha256', 'installation|' . $m[1], (string)cfg('secret')), $m[2]) && espace_admin() === null;
+    return hash_equals(hash_hmac('sha256', 'installation|' . $m[1], (string)cfg('secret')), $m[2]) && !espace_un_compte();
 }

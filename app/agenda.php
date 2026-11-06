@@ -8,6 +8,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/core.php';
+require_once __DIR__ . '/demande.php'; // http_json()
 
 const RDV_STATUTS = [
     'a_planifier' => ['À planifier', ''],
@@ -55,7 +56,90 @@ function installer_agenda(): void {
         cree_le VARCHAR(19) NOT NULL,
         maj_le VARCHAR(19) NULL
     )" . ($mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : ''));
+    foreach (['lat' => 'DECIMAL(9,6) NULL', 'lon' => 'DECIMAL(9,6) NULL'] as $col => $type) {
+        try { $pdo->query("SELECT $col FROM interventions LIMIT 1"); }
+        catch (Throwable $e) { $pdo->exec("ALTER TABLE interventions ADD COLUMN $col $type"); }
+    }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS trajets (cle VARCHAR(80) NOT NULL PRIMARY KEY, duree_h DECIMAL(5,2) NOT NULL, km DECIMAL(7,1) NULL, estime INT NOT NULL DEFAULT 0, calcule_le VARCHAR(19) NOT NULL)"
+        . ($mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : ''));
 }
+
+/* ---------- Trajets enchaînés : d'un chantier au suivant, depuis Cambes le matin, retour à Cambes le soir ---------- */
+function depart_coord(): array { $d = tarifs()['depart'] ?? []; return ['lat' => (float)($d['lat'] ?? 44.6156), 'lon' => (float)($d['lon'] ?? 1.9419), 'nom' => (string)($d['nom'] ?? 'Cambes')]; }
+
+/** Coordonnées du chantier (Base Adresse Nationale), mémorisées à la première demande. */
+function rdv_coord(array $r): ?array {
+    static $memo = [];
+    if (array_key_exists((int)$r['id'], $memo)) { return $memo[(int)$r['id']]; }
+    return $memo[(int)$r['id']] = rdv_coord_lire($r);
+}
+function rdv_coord_lire(array $r): ?array {
+    if ($r['lat'] !== null && $r['lat'] !== '' && $r['lon'] !== null) { return (float)$r['lat'] == 0.0 && (float)$r['lon'] == 0.0 ? null : ['lat' => (float)$r['lat'], 'lon' => (float)$r['lon']]; }
+    static $essais = 0;
+    if (trim((string)$r['adresse']) === '' || ++$essais > 6) { return null; }
+    $d = http_json('https://api-adresse.data.gouv.fr/search/?limit=1&q=' . rawurlencode((string)$r['adresse']));
+    $f = $d['features'][0] ?? null;
+    $c = ($f && ($f['properties']['score'] ?? 0) >= 0.4) ? ['lat' => (float)$f['geometry']['coordinates'][1], 'lon' => (float)$f['geometry']['coordinates'][0]] : null;
+    if ($d !== null) { rdv_maj((int)$r['id'], ['lat' => $c['lat'] ?? 0, 'lon' => $c['lon'] ?? 0]); } // 0/0 = adresse introuvable, on ne recherche plus
+    return $c;
+}
+
+function distance_vol(array $a, array $b): float {
+    $t = M_PI / 180; $dla = ($b['lat'] - $a['lat']) * $t; $dlo = ($b['lon'] - $a['lon']) * $t;
+    $x = sin($dla / 2) ** 2 + cos($a['lat'] * $t) * cos($b['lat'] * $t) * sin($dlo / 2) ** 2;
+    return 2 * 6371 * asin(sqrt($x));
+}
+
+/** Durée de route (heures, au quart d'heure supérieur) entre deux points : itinéraire IGN, mis en cache. */
+function duree_route(?array $a, ?array $b, float $defaut): float {
+    if (!$a || !$b) { return $defaut; }
+    if (distance_vol($a, $b) < 0.3) { return 0.0; }
+    $cle = sprintf('%.4f,%.4f>%.4f,%.4f', $a['lat'], $a['lon'], $b['lat'], $b['lon']);
+    static $mem = [], $appels = 0;
+    if (isset($mem[$cle])) { return $mem[$cle]; }
+    $s = db()->prepare('SELECT duree_h, estime, calcule_le FROM trajets WHERE cle = ?'); $s->execute([$cle]); $c = $s->fetch();
+    if ($c && (!(int)$c['estime'] || strtotime((string)$c['calcule_le']) > time() - 86400)) { return $mem[$cle] = (float)$c['duree_h']; }
+    $h = null; $km = null;
+    if (++$appels <= 12) {
+        $d = http_json('https://data.geopf.fr/navigation/itineraire?resource=bdtopo-osrm&profile=car&optimization=fastest&getBbox=false&distanceUnit=kilometer&timeUnit=hour&start=' . $a['lon'] . ',' . $a['lat'] . '&end=' . $b['lon'] . ',' . $b['lat']);
+        if (isset($d['duration']) && is_numeric($d['duration'])) { $h = (float)$d['duration']; $km = isset($d['distance']) ? (float)$d['distance'] : null; }
+    }
+    $estime = $h === null;
+    if ($estime) { $km = distance_vol($a, $b) * 1.3; $h = $km / 65; }
+    $h = round(ceil(max($h, 0.08) * 4) / 4, 2);
+    $pdo = db();
+    $pdo->prepare('DELETE FROM trajets WHERE cle = ?')->execute([$cle]);
+    $pdo->prepare('INSERT INTO trajets (cle, duree_h, km, estime, calcule_le) VALUES (?,?,?,?,?)')->execute([$cle, $h, $km !== null ? round($km, 1) : null, $estime ? 1 : 0, date('Y-m-d H:i:s')]);
+    return $mem[$cle] = $h;
+}
+
+function heure_dec(string $dt): float { $t = strtotime($dt); return (int)date('G', $t) + (int)date('i', $t) / 60; }
+
+/**
+ * Déroulé d'une journée : chantiers placés dans l'ordre, avec le trajet qui précède chacun
+ * (depuis Cambes ou depuis le chantier précédent) et le retour à Cambes après le dernier.
+ * $cand / $cand_debut : intervention que l'on essaie de placer (test d'un créneau).
+ */
+function journee(string $date, ?array $cand = null, string $cand_debut = ''): array {
+    static $cache = [];
+    if (!isset($cache[$date])) {
+        $s = db()->prepare("SELECT * FROM interventions WHERE debut LIKE ? AND statut IN ('" . implode("','", RDV_ACTIFS) . "') ORDER BY debut");
+        $s->execute([$date . '%']); $cache[$date] = $s->fetchAll();
+    }
+    $l = array_values(array_filter($cache[$date], fn($r) => !$cand || (int)$r['id'] !== (int)$cand['id']));
+    if ($cand) { $cand['debut'] = $cand_debut; $cand['_cand'] = true; $l[] = $cand; usort($l, fn($u, $v) => strcmp($u['debut'], $v['debut'])); }
+    $base = depart_coord(); $prec = null; $out = []; $n = count($l);
+    foreach ($l as $i => $r) {
+        $co = rdv_coord($r);
+        $avant = $prec ? duree_route(rdv_coord($prec), $co, (float)$r['trajet_h']) : duree_route($base, $co, (float)$r['trajet_h']);
+        $h = heure_dec($r['debut']);
+        $out[] = ['r' => $r, 'h' => $h, 'fin' => $h + (float)$r['duree_h'], 'avant' => $avant, 'depuis' => $prec ? (string)$prec['client'] : $base['nom'],
+                  'retour' => $i === $n - 1 ? duree_route($co, $base, (float)$r['trajet_h']) : 0.0];
+        $prec = $r;
+    }
+    return $out;
+}
+
 
 function rdv(int $id): ?array { installer_agenda(); $s = db()->prepare('SELECT * FROM interventions WHERE id = ?'); $s->execute([$id]); return $s->fetch() ?: null; }
 function rdv_maj(int $id, array $c): void {
@@ -128,39 +212,46 @@ function agenda_synchroniser(): void {
     foreach ($rows as $r) { try { agenda_creer_depuis_demande($r); } catch (Throwable $e) { journal('Agenda, demande ' . $r['id'] . ' : ' . $e->getMessage()); } }
 }
 
-/** Plages occupées d'une journée (heures décimales, trajet compris). */
-function plages_occupees(string $date, int $sauf = 0): array {
-    $s = db()->prepare("SELECT * FROM interventions WHERE debut LIKE ? AND id <> ? AND statut IN ('" . implode("','", RDV_ACTIFS) . "')");
-    $s->execute([$date . '%', $sauf]);
-    $p = [];
-    foreach ($s->fetchAll() as $r) { $h = (float)date('G', strtotime($r['debut'])) + (int)date('i', strtotime($r['debut'])) / 60; $p[] = [$h - (float)$r['trajet_h'], $h + (float)$r['duree_h'] + (float)$r['trajet_h'], $r]; }
-    return $p;
-}
-
-/** Conflits d'une intervention placée au créneau $debut. */
+/** Interventions en conflit si $r commence à $debut (trajets enchaînés compris). */
 function conflits(array $r, string $debut): array {
-    $h = (float)date('G', strtotime($debut)) + (int)date('i', strtotime($debut)) / 60;
-    $a = $h - (float)$r['trajet_h']; $b = $h + (float)$r['duree_h'] + (float)$r['trajet_h'];
-    $c = [];
-    foreach (plages_occupees(substr($debut, 0, 10), (int)$r['id']) as [$x, $y, $o]) { if ($a < $y && $x < $b) { $c[] = $o; } }
+    $j = journee(substr($debut, 0, 10), $r, $debut); $c = [];
+    foreach ($j as $k => $x) {
+        if ($k === 0) { continue; }
+        $p = $j[$k - 1];
+        if ($p['fin'] + $x['avant'] > $x['h'] + 0.001 && (!empty($x['r']['_cand']) || !empty($p['r']['_cand']))) { $c[] = !empty($x['r']['_cand']) ? $p['r'] : $x['r']; }
+    }
     return $c;
 }
 
-/** Premier créneau libre (jours ouvrés), à partir de la date minimale, en tenant compte du trajet. */
+/** Le créneau tient-il dans la journée (départ ≥ 7 h 30, retour ≤ 18 h 30, sans chevauchement) ? */
+function creneau_possible(array $r, string $debut): bool {
+    $j = journee(substr($debut, 0, 10), $r, $debut);
+    foreach ($j as $k => $x) {
+        if (empty($x['r']['_cand'])) { continue; }
+        if ($k === 0 && $x['h'] - $x['avant'] < JOUR_DEBUT - 0.001) { return false; }
+        if ($k > 0 && $j[$k - 1]['fin'] + $x['avant'] > $x['h'] + 0.001) { return false; }
+        if (isset($j[$k + 1]) && $x['fin'] + $j[$k + 1]['avant'] > $j[$k + 1]['h'] + 0.001) { return false; }
+        $der = end($j);
+        if ($der['fin'] + $der['retour'] > JOUR_FIN + 0.001) { return false; }
+        return true;
+    }
+    return false;
+}
+
+/** Premier créneau libre (jours ouvrés) à partir de la date minimale, trajets enchaînés compris. */
 function creneau_suggere(array $r, ?string $apres = null): ?string {
     $d = max((string)$r['date_min'] ?: date('Y-m-d', strtotime('+1 day')), date('Y-m-d', strtotime('+1 day')), (string)$apres);
-    $besoin = (float)$r['duree_h'] + 2 * (float)$r['trajet_h'];
-    for ($i = 0; $i < 90; $i++, $d = date('Y-m-d', strtotime($d . ' +1 day'))) {
+    for ($i = 0; $i < 60; $i++, $d = date('Y-m-d', strtotime($d . ' +1 day'))) {
         if ((int)date('N', strtotime($d)) > 5) { continue; }
-        $occ = plages_occupees($d);
-        usort($occ, fn($u, $v) => $u[0] <=> $v[0]);
-        for ($dep = JOUR_DEBUT; $dep + $besoin <= JOUR_FIN + 0.001; $dep += 0.5) {
-            $libre = true;
-            foreach ($occ as [$x, $y]) { if ($dep < $y && $x < $dep + $besoin) { $libre = false; break; } }
-            if ($libre) {
-                $arr = $dep + (float)$r['trajet_h']; $arr = ceil($arr * 4) / 4;
-                return $d . ' ' . sprintf('%02d:%02d', (int)$arr, (int)round(($arr - (int)$arr) * 60));
-            }
+        $occ = journee($d);
+        // Heures d'arrivée à tester : au plus tôt le matin, puis juste après chaque chantier déjà placé
+        $essais = [ceil((JOUR_DEBUT + duree_route(depart_coord(), rdv_coord($r), (float)$r['trajet_h'])) * 4) / 4];
+        foreach ($occ as $x) { $essais[] = ceil(($x['fin'] + duree_route(rdv_coord($x['r']), rdv_coord($r), (float)$r['trajet_h'])) * 4) / 4; }
+        sort($essais);
+        foreach ($essais as $h) {
+            if ($h + (float)$r['duree_h'] > JOUR_FIN) { continue; }
+            $deb = $d . ' ' . sprintf('%02d:%02d', (int)$h, (int)round(($h - (int)$h) * 60));
+            if (creneau_possible($r, $deb)) { return $deb; }
         }
     }
     return null;
@@ -200,14 +291,17 @@ function agenda_ics(): string {
     $tz = new DateTimeZone('Europe/Paris'); $utc = new DateTimeZone('UTC');
     $f = fn($dt) => (new DateTime($dt, $tz))->setTimezone($utc)->format('Ymd\THis\Z');
     $o = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Arbogestion//Agenda//FR\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Arbogestion – interventions\r\nX-WR-TIMEZONE:Europe/Paris\r\n";
+    $enchaine = [];
+    foreach (array_unique(array_map(fn($r) => substr((string)$r['debut'], 0, 10), $rows)) as $d) { foreach (journee($d) as $x) { $enchaine[(int)$x['r']['id']] = $x; } }
     foreach ($rows as $r) {
-        $dep = date('Y-m-d H:i', (int)(strtotime($r['debut']) - (float)$r['trajet_h'] * 3600));
-        $ret = date('Y-m-d H:i', (int)(strtotime($r['debut']) + ((float)$r['duree_h'] + (float)$r['trajet_h']) * 3600));
+        $x = $enchaine[(int)$r['id']] ?? ['avant' => (float)$r['trajet_h'], 'retour' => (float)$r['trajet_h'], 'depuis' => 'Cambes'];
+        $dep = date('Y-m-d H:i', (int)(strtotime($r['debut']) - $x['avant'] * 3600));
+        $ret = date('Y-m-d H:i', (int)(strtotime($r['debut']) + ((float)$r['duree_h'] + $x['retour']) * 3600));
         $prefixe = ['pre' => '[Pré-planifié] ', 'planifie' => '[À proposer] ', 'propose' => '[Attente client] ', 'confirme' => '', 'realise' => '[Réalisé] '][$r['statut']] ?? '';
         $o .= "BEGIN:VEVENT\r\nUID:arbo-rdv-{$r['id']}@arbogestion.fr\r\nDTSTAMP:" . gmdate('Ymd\THis\Z') . "\r\nDTSTART:" . $f($dep) . "\r\nDTEND:" . $f($ret) . "\r\n"
             . 'SUMMARY:' . $esc($prefixe . $r['client'] . ' – ' . $r['nb_arbres'] . ' arbres') . "\r\n"
             . 'LOCATION:' . $esc($r['adresse']) . "\r\n"
-            . 'DESCRIPTION:' . $esc($r['titre'] . ((int)$r['jours_total'] > 1 ? " (jour {$r['jour_num']}/{$r['jours_total']})" : '') . "\nSur place : " . heure_fr($r['debut']) . ' – ' . heure_fr((string)rdv_fin($r)) . ' (trajet ' . duree_fr((float)$r['trajet_h']) . ' aller)' . ($r['tel'] ? "\nTél. " . $r['tel'] : '') . ($r['notes'] ? "\n" . $r['notes'] : '')) . "\r\n"
+            . 'DESCRIPTION:' . $esc($r['titre'] . ((int)$r['jours_total'] > 1 ? " (jour {$r['jour_num']}/{$r['jours_total']})" : '') . "\nSur place : " . heure_fr($r['debut']) . ' – ' . heure_fr((string)rdv_fin($r)) . ' (trajet ' . duree_fr($x['avant']) . ' depuis ' . $x['depuis'] . ($x['retour'] > 0 ? ', retour à Cambes ' . duree_fr($x['retour']) : '') . ')' . ($r['tel'] ? "\nTél. " . $r['tel'] : '') . ($r['notes'] ? "\n" . $r['notes'] : '')) . "\r\n"
             . 'STATUS:' . ($r['statut'] === 'confirme' || $r['statut'] === 'realise' ? 'CONFIRMED' : 'TENTATIVE') . "\r\nEND:VEVENT\r\n";
     }
     return $o . "END:VCALENDAR\r\n";

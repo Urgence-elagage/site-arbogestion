@@ -121,7 +121,7 @@ $html = '<p><a href="./">← Tous les devis</a></p><h1>Nouveau devis</h1><p clas
     . '<form method="post" action="./?p=devis#apercu" id="f-devis">' . espace_csrf_champ()
     . '<div class="carte"><h2>Client</h2>' . choix('profil', 'Type de client', ['collectivite' => 'Collectivité', 'particulier' => 'Particulier', 'pro' => 'Professionnel'], 'collectivite')
     . '<div class="grille" data-pour="particulier">' . champ('prenom', 'Prénom') . champ('nom', 'Nom') . '</div>'
-    . '<div class="grille" data-pour="pro collectivite">' . champ('denomination', 'Raison sociale ou nom de la collectivité') . champ('siren', 'SIREN', 'text', ['inputmode' => 'numeric', 'maxlength' => '11'])
+    . '<div class="grille" data-pour="pro collectivite">' . champ('denomination', v('profil') === 'collectivite' ? 'Nom de la collectivité' : 'Raison sociale') . champ('siren', 'SIREN', 'text', ['inputmode' => 'numeric', 'maxlength' => '11'])
     . '<div data-pour="pro">' . champ('forme', 'Forme juridique', 'text', ['placeholder' => 'SARL, SAS…']) . '</div>'
     . champ('representant', 'Représentant (nom et fonction)', 'text', ['placeholder' => 'Ex. Jean Martin, maire']) . champ('referent', 'Interlocuteur référent')
     . '<div data-pour="collectivite">' . champ('habilitation', 'Habilitation du signataire', 'text', ['placeholder' => 'Ex. délibération du 12/10/2026']) . '</div></div>'
@@ -153,7 +153,7 @@ function script_devis(): void { global $nonce; ?>
 <script nonce="<?= h($nonce) ?>">
 (function(){
   var prof=document.getElementById('profil'),form=document.getElementById('formule');if(!prof)return;
-  function maj(){var p=prof.value,f=form.value;
+  function maj(){var p=prof.value,f=form.value;var ld=document.querySelector('label[for=denomination]');if(ld)ld.textContent=p==='collectivite'?'Nom de la collectivité':'Raison sociale';
     document.querySelectorAll('[data-pour]').forEach(function(el){var ok=el.dataset.pour.split(' ').indexOf(p)>=0;
       if(el.dataset.formule){var fs=el.dataset.formule.split(' ');ok=ok&&(fs.indexOf(f)>=0||(fs.indexOf('grille')>=0&&f!=='libre'));}el.hidden=!ok;});
     document.querySelectorAll('[data-formule]:not([data-pour])').forEach(function(el){var fs=el.dataset.formule.split(' ');el.hidden=!(fs.indexOf(f)>=0||(fs.indexOf('grille')>=0&&f!=='libre'));});}
