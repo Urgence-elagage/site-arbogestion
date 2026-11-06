@@ -6,6 +6,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/contrat.php';
+require_once __DIR__ . '/produits.php';
 
 final class ErreurDemande extends RuntimeException {}
 
@@ -264,15 +265,18 @@ function lignes_client(array $calc): array {
     $out = []; $n = (int)$calc['nb']; $pl = fn(int $q, string $u) => $q . ' ' . $u . ($q > 1 ? 's' : '');
     foreach ($calc['lignes_demarrage'] as $l) {
         $m = round($l['qte'] * $l['pu'], 2);
+        if (!empty($l['libre'])) { $out[] = $l + ['base' => $l['label']]; continue; } // ligne libre : telle quelle
         if ($l['label'] === 'Arbres supplémentaires' && $out) { $out[count($out) - 1]['pu'] = round($out[count($out) - 1]['pu'] + $m, 2); continue; }
-        $label = $l['label']; $desc = $l['desc'];
+        $label = $l['label']; $desc = $l['desc']; $base = $l['label'];
         if (in_array($l['unite'], ['journée', 'forfait'], true) || str_contains($label, 'Prévisionnel') || $l['unite'] === 'arbre' && !str_contains($label, 'couronne')) { $label .= ' – ' . $pl($n, 'arbre'); }
         elseif ($l['unite'] === 'test') { $label .= ' – ' . $pl((int)$l['qte'], 'test'); }
         elseif (str_contains($label, 'couronne')) { $label .= ' – ' . $pl((int)$l['qte'], 'arbre'); }
         if ($l['unite'] === 'km' && str_starts_with($l['label'], 'Frais de déplacement')) { $label = 'Frais de déplacement'; $desc = 'Aller-retour depuis Cambes (2 × ' . str_replace('.', ',', (string)($calc['km'] ?? '')) . ' km par la route)' . (!empty($calc['loin']) ? '' : ($calc['jours'] > 1 ? ', ' . $calc['jours'] . ' déplacements' : '')); }
         elseif ($l['unite'] === 'jour') { $label = 'Hébergement et repas – ' . $pl((int)$l['qte'], 'jour'); $desc = 'Mission à plus de ' . (int)(tarifs()['eloignement']['heuresTrajetMax'] ?? 3) . ' h de route de Cambes'; }
         elseif ($l['unite'] === 'km') { $label = 'Frais de péage (estimation)'; $desc = 'Autoroute à péage, aller-retour'; }
-        $out[] = ['label' => $label, 'desc' => $desc, 'qte' => 1, 'unite' => 'forfait', 'pu' => $m];
+        if ($l['unite'] === 'km') { $base = str_starts_with($l['label'], 'Frais de déplacement') ? 'Frais de déplacement' : 'Frais de péage'; }
+        elseif ($l['unite'] === 'jour') { $base = 'Hébergement et repas'; }
+        $out[] = ['label' => $label, 'desc' => $desc, 'qte' => 1, 'unite' => 'forfait', 'pu' => $m, 'base' => $base, 'catalogue' => true];
     }
     return $out;
 }
@@ -284,8 +288,14 @@ function lignes_devis(array $dem, array $calc): array {
         $sections[] = $calc['abonnement'] ? ['title' => 'Démarrage', 'description' => 'Prestations ponctuelles, facturées après leur réalisation', 'rank' => ++$rang]
             : ['title' => 'Prestation ponctuelle', 'description' => 'Sans abonnement, facturée après sa réalisation', 'rank' => ++$rang];
         foreach (lignes_client($calc) as $l) {
-            $lignes[] = ['label' => $l['label'], 'description' => $l['desc'], 'quantity' => (float)$l['qte'], 'unit' => $l['unite'],
+            $ligne = ['label' => $l['label'], 'description' => $l['desc'], 'quantity' => (float)$l['qte'], 'unit' => $l['unite'],
                 'raw_currency_unit_price' => prix6($l['pu']), 'vat_rate' => 'FR_200', 'section_rank' => $rang];
+            // Article Pennylane : celui choisi, sinon le même libellé du catalogue, sinon créé (lignes de la grille ou case cochée)
+            $pid = (string)($l['produit_id'] ?? '');
+            if ($pid === '' && !empty($l['catalogue'])) { $pid = (string)pl_produit_assurer((string)$l['base'], !empty($l['libre']) ? (string)$l['unite'] : 'forfait', (float)$l['pu'], preg_match('/\d/', (string)$l['desc']) ? '' : (string)$l['desc']); }
+            elseif ($pid === '') { try { $pid = (string)(pl_produit_par_libelle((string)$l['base'])['id'] ?? ''); } catch (Throwable $e) { $pid = ''; } }
+            if ($pid !== '' && ctype_digit($pid)) { $ligne['product_id'] = (int)$pid; }
+            $lignes[] = $ligne;
         }
     }
     $ab = $calc['abonnement'];
@@ -363,7 +373,13 @@ function creer_devis(array $dem, array $calc, array $opt = []): array {
             'invoice_line_sections' => $sections, 'invoice_lines' => $lignes,
         ];
         if ($modele = pl_modele('devis')) { $corps['quote_template_id'] = $modele; }
-        $devis = pennylane('POST', '/quotes', $corps);
+        try { $devis = pennylane('POST', '/quotes', $corps); }
+        catch (RuntimeException $e) { // article refusé : on recrée le devis sans lien vers le catalogue
+            if (!preg_match('/HTTP 4\d\d/', $e->getMessage()) || !array_filter($lignes, fn($l) => isset($l['product_id']))) { throw $e; }
+            journal('Devis sans lien vers les articles Pennylane : ' . $e->getMessage());
+            $corps['invoice_lines'] = array_map(function ($l) { unset($l['product_id']); return $l; }, $lignes);
+            $devis = pennylane('POST', '/quotes', $corps);
+        }
         $devis_id = (string)($devis['id'] ?? '');
         $numero = (string)(($devis['quote_number'] ?? '') ?: ('DEM-' . $id));
         $pdf = contrat_pdf($dem, $calc, $numero, date('Y-m-d'), ARBO_APP . '/storage/contrats/contrat-' . $id . '.pdf');

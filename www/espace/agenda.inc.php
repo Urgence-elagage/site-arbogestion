@@ -120,7 +120,7 @@ foreach ($attente as $r) {
     if ($r['demande_id'] && $sug) { $dernier[$r['demande_id']] = substr($sug, 0, 10); }
     $multi = (int)$r['jours_total'] > 1 ? ' · jour ' . (int)$r['jour_num'] . '/' . (int)$r['jours_total'] : '';
     $lst .= '<div class="carte a-planifier"><div><b>' . h($r['client']) . '</b> ' . rdv_pastille($r['statut']) . '<br><span class="aide">' . h($r['titre']) . $multi . '<br>Sur place ' . h(duree_fr((float)$r['duree_h'])) . ' · trajet ' . h(duree_fr((float)$r['trajet_h'])) . ' aller<br>' . h($r['adresse']) . '</span>'
-        . ($r['date_min'] > date('Y-m-d', strtotime('+1 day')) ? '<br><span class="aide">Au plus tôt le ' . h(date_fr((string)$r['date_min'])) . '</span>' : '')
+        . '<br><span class="aide">' . ($r['date_min'] > date('Y-m-d', strtotime('+1 day')) ? 'Au plus tôt le ' . h(date_fr((string)$r['date_min'])) : 'Dès que possible') . '</span>'
         . ($r['reponse_msg'] ? '<br><span class="aide" style="color:var(--rouge)">Client : ' . h($r['reponse_msg']) . '</span>' : '') . ($r['notes'] ? '<br><span class="aide">' . h($r['notes']) . '</span>' : '') . '</div>'
         . ($sug ? '<div class="sugg"><span class="aide">Créneau libre suggéré</span><b>' . h(ucfirst(jour_fr($sug))) . ', ' . h(heure_fr($sug)) . '</b>' . bouton_action('suggere', $r, 'Pré-planifier ce créneau', 'btn petit', '', ['creneau' => $sug, 'statut' => 'pre', 's' => substr($sug, 0, 10)]) . '</div>' : '')
         . '<details style="margin-top:8px"><summary class="aide">Choisir une autre date</summary><form method="post" action="./?p=agenda" class="grille">' . espace_csrf_champ()
@@ -162,9 +162,9 @@ main.in{max-width:100rem}
 .vues{display:inline-flex;border:1px solid var(--vert);border-radius:8px;overflow:hidden}.vues button{font:inherit;font-size:.88rem;font-weight:700;background:#fff;color:var(--vert);border:0;padding:8px 12px;cursor:pointer}.vues button+button{border-left:1px solid var(--vert)}.vues button[aria-pressed=true]{background:var(--vert);color:#fff}
 .ag{display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:18px;align-items:start}
 .ag[data-vue=planning]{grid-template-columns:minmax(0,1fr)}.ag[data-vue=planning] .ag-g{display:none}
-.ag[data-vue=liste]{grid-template-columns:minmax(0,1fr)}.ag[data-vue=liste] .ag-d{display:none}.ag[data-vue=liste] .ag-g{columns:2 320px;column-gap:16px}.ag[data-vue=liste] .ag-g>*{break-inside:avoid}
+.ag[data-vue=liste]{grid-template-columns:minmax(0,1fr)}.ag[data-vue=liste] .ag-d{display:none}.ag[data-vue=liste] .ag-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;align-items:stretch}.ag[data-vue=liste] .ag-g>.carte{margin:0}.ag[data-vue=liste] .ag-g>h2,.ag[data-vue=liste] .ag-g>details{grid-column:1/-1}.ag[data-vue=liste] .ag-g>h2{order:-2}.ag[data-vue=liste] .ag-g>details{order:-1}
 .ag-g{position:sticky;top:70px;max-height:calc(100vh - 86px);overflow:auto;padding-right:4px}.ag[data-vue=liste] .ag-g{position:static;max-height:none}
-.ag-titre{margin:0 0 10px}.a-planifier{padding:12px 14px}.sugg{margin-top:10px;padding:8px 10px;background:#fafbf6;border:1px solid var(--ligne);border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.ag-titre{margin:0 0 10px}.a-planifier{padding:12px 14px;display:flex;flex-direction:column}.a-planifier>.sugg{margin-top:auto}.a-planifier>div:first-child{margin-bottom:10px}.sugg{margin-top:10px;padding:8px 10px;background:#fafbf6;border:1px solid var(--ligne);border-radius:8px;display:flex;flex-direction:column;gap:4px}
 .ag-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 @media (max-width:900px){.ag,.ag[data-vue]{grid-template-columns:1fr}.ag-g{position:static;max-height:none}}
 .sem{display:grid;grid-template-columns:44px repeat(6,minmax(0,1fr));gap:6px;background:#fff;border:1px solid var(--ligne);border-radius:10px;padding:10px;overflow-x:auto}

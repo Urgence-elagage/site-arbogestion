@@ -47,12 +47,12 @@ h2{color:var(--vert);font-size:1.1rem;margin:0 0 10px}
 .carte>h2:first-child::before{content:"";width:4px;height:1.05em;border-radius:2px;background:var(--lime)}
 .etroit{max-width:30rem;margin:40px auto}
 label{display:block;font-weight:700;font-size:.9rem;margin:10px 0 4px}
-input[type=text],input[type=email],input[type=tel],input[type=password],input[type=number],input[type=date],input:not([type]),select,textarea{width:100%;height:42px;font:inherit;padding:9px 11px;border:1px solid #c3c9bc;border-radius:8px;background:#fff;color:var(--texte);box-shadow:inset 0 1px 2px rgba(30,61,51,.08);transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=email],input[type=tel],input[type=password],input[type=number],input[type=date],input[type=time],input:not([type]),select,textarea{width:100%;height:42px;font:inherit;padding:9px 11px;border:1px solid #c3c9bc;border-radius:8px;background:#fff;color:var(--texte);box-shadow:inset 0 1px 2px rgba(30,61,51,.08);transition:border-color .15s,box-shadow .15s}
 textarea{height:auto}
 select{appearance:none;-webkit-appearance:none;padding-right:34px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e3d33' stroke-width='2.2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center/16px}
-input:hover,select:hover,textarea:hover{border-color:#9aa592}
+input:not([type=checkbox]):hover,select:hover,textarea:hover{border-color:#9aa592}
 input::placeholder,textarea::placeholder{color:#9aa096}
-input:focus,select:focus,textarea:focus{border-color:var(--vert);box-shadow:inset 0 1px 2px rgba(30,61,51,.08),0 0 0 3px rgba(183,201,59,.45);outline:0}
+input:not([type=checkbox]):focus,select:focus,textarea:focus{border-color:var(--vert);box-shadow:inset 0 1px 2px rgba(30,61,51,.08),0 0 0 3px rgba(183,201,59,.45);outline:0}
 textarea{min-height:70px}
 button:focus-visible,a:focus-visible{outline:3px solid var(--lime);outline-offset:1px}
 .grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2px 16px;align-items:start}
@@ -78,7 +78,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .pastille{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.8rem;font-weight:700;white-space:nowrap;background:#eef0ea;color:var(--gris)}
 .p-ok{background:var(--okf);color:var(--ok)}.p-att{background:var(--bleuf);color:var(--bleu)}.p-err{background:var(--rougef);color:var(--rouge)}.p-a{background:var(--jaunef);color:var(--jaune)}
 .lignes td{padding:4px}
-.lignes input,.lignes select{padding:6px 8px;height:38px}
+.lignes input:not([type=checkbox]),.lignes select{padding:6px 8px;height:38px}
 .total td{font-weight:900;background:#fafbf6}
 .aide{color:var(--gris);font-size:.88rem;margin:4px 0 0}
 .codes{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.1rem;columns:2;background:#fafbf6;border:1px dashed var(--gris);border-radius:8px;padding:12px 16px 12px 36px}
@@ -91,7 +91,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 </style></head><body>
 <div class="barre"><div class="in"><a class="marque" href="./"><img src="/img/logo.png" alt="" width="44" height="45"><span>ARBOGESTION<small>Espace connecté</small></span></a>
 <a class="vers-site" href="/" title="Retour au site arbogestion.fr"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Le site</span></a>
-<?php if ($nav && espace_connecte()): $moi = espace_admin(); global $p; $ici = fn(array $x) => in_array($p, $x, true) ? ' aria-current="page"' : ''; ?><nav><a href="./"<?= $ici(['', 'fiche']) ?>>Devis</a><a href="./?p=devis"<?= $ici(['devis']) ?>>Nouveau devis</a><a href="./?p=agenda"<?= $ici(['agenda']) ?>>Agenda</a>
+<?php if ($nav && espace_connecte()): $moi = espace_admin(); global $p; $ici = fn(array $x) => in_array($p, $x, true) ? ' aria-current="page"' : ''; ?><nav><a href="./"<?= $ici(['', 'fiche']) ?>>Tableau de bord</a><a href="./?p=devis"<?= $ici(['devis']) ?>>Nouveau devis</a><a href="./?p=agenda"<?= $ici(['agenda']) ?>>Agenda</a>
 <?php if (espace_est_admin($moi)): ?><a href="./?p=comptes"<?= $ici(['comptes']) ?>>Comptes</a><?php endif; ?><a href="./?p=compte"<?= $ici(['compte', 'securite']) ?> title="Mon compte"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><?= h(explode(' ', espace_nom($moi))[0]) ?></a>
 <form method="post" action="./?p=deconnexion" style="margin:0"><?= espace_csrf_champ() ?><button type="submit">Se déconnecter</button></form></nav><?php endif; ?></div></div>
 <main class="in">
@@ -328,7 +328,7 @@ if ($p === 'fiche') {
     $ab = $calc['abonnement'] ?? null;
     if ($ab) { $lignes .= '<tr><td>Abonnement ' . h(PROFILS[$row['profil']]['formule'] ?? '') . '</td><td class="n" colspan="2">' . (empty($ab['sur_devis']) ? 'jusqu’à ' . (int)$ab['max'] . ' arbres' : 'sur devis') . '</td><td class="n">' . (empty($ab['sur_devis']) ? eur((float)$ab['prix']) . ' / an' : '—') . '</td></tr>'; }
     $envoyable = $row['pl_devis_id'] && in_array($row['statut'], ['devis_brouillon', 'devis_envoye'], true);
-    $html = '<p><a href="./">← Tous les devis</a></p><h1>' . h($row['pl_devis_numero'] ?: 'Demande n° ' . $row['id']) . ' – ' . h($row['nom_client']) . '</h1>'
+    $html = '<p><a href="./#devis">← Tous les devis</a></p><h1>' . h($row['pl_devis_numero'] ?: 'Demande n° ' . $row['id']) . ' – ' . h($row['nom_client']) . '</h1>'
         . '<p class="sous">' . h(PROFILS[$row['profil']]['nom'] ?? $row['profil']) . ' · ' . (($dem['origine'] ?? 'site') === 'espace' ? 'saisi dans l’espace' : 'demande du site') . ' · ' . h(date('d/m/Y H:i', strtotime($row['cree_le']))) . ' · ' . pastille($row['statut']) . '</p>'
         . '<div class="carte"><h2>Prestations (HT)</h2><div class="tab"><table><thead><tr><th>Prestation</th><th class="n">Quantité</th><th class="n">PU HT</th><th class="n">Total HT</th></tr></thead><tbody>' . $lignes
         . '<tr class="total"><td colspan="3">Total prestations</td><td class="n">' . eur((float)($calc['demarrage_ht'] ?? 0)) . '</td></tr></tbody></table></div>'
@@ -495,7 +495,9 @@ if ($p === 'devis') {
     require __DIR__ . '/devis.inc.php';
 }
 
-// ----- Tableau de bord
+// ----- Tableau de bord, puis liste des devis
+$tableau = '';
+try { require __DIR__ . '/tableau.inc.php'; } catch (Throwable $e) { journal('Tableau de bord : ' . $e->getMessage()); }
 $rows = db()->query('SELECT * FROM demandes ORDER BY id DESC LIMIT 60')->fetchAll();
 $tr = '';
 foreach ($rows as $r) {
@@ -506,7 +508,7 @@ foreach ($rows as $r) {
 $a_envoyer = count(array_filter($rows, fn($r) => $r['statut'] === 'devis_brouillon'));
 $modeles = [];
 foreach (['devis', 'facture'] as $t) { $id = null; try { $id = pl_modele($t); } catch (Throwable $e) {} $modeles[] = ucfirst($t) . ' Arbogestion : ' . ($id ? 'trouvé (n° ' . $id . ')' : 'non trouvé, modèle par défaut de Pennylane'); }
-espace_rendu('Devis', '<div class="actions" style="justify-content:space-between;margin:0 0 16px"><div><h1>Devis</h1><p class="sous" style="margin:0">' . count($rows) . ' derniers devis · ' . $a_envoyer . ' à envoyer</p></div><a class="btn" href="./?p=devis">Nouveau devis</a></div>'
+espace_rendu('Tableau de bord', $tableau . '<div class="actions" id="devis" style="justify-content:space-between;margin:24px 0 12px"><div><h2 style="font-size:1.3rem;margin:0">Derniers devis</h2><p class="sous" style="margin:0">' . count($rows) . ' derniers devis · ' . $a_envoyer . ' à envoyer</p></div></div>'
     . ($rows ? '<div class="tab"><table><thead><tr><th>Devis</th><th>Date</th><th>Client</th><th class="n">Montant</th><th>Statut</th></tr></thead><tbody>' . $tr . '</tbody></table></div>'
         : '<div class="carte"><p>Aucun devis pour l’instant. Les demandes du site et les devis saisis ici apparaîtront dans cette liste.</p><a class="btn" href="./?p=devis">Saisir un premier devis</a></div>')
     . '<p class="aide" style="margin-top:16px">Modèles Pennylane – ' . h(implode(' · ', $modeles)) . ' · CGV en vigueur : version du ' . h(date_fr(cgv_version_courante())) . '. Les signatures sont vérifiées toutes les heures.</p>');
