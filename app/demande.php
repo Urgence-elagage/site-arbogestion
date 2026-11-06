@@ -109,8 +109,10 @@ function pl_client(array $dem): string {
 function pl_contact(string $client_id, array $dem): void {
     $c = $dem['client'];
     try {
-        $cl = pennylane('GET', '/customers/' . $client_id);
-        foreach (($cl['contacts'] ?? []) as $ct) { if (strcasecmp((string)($ct['email'] ?? ''), $c['email']) === 0) { return; } }
+        $l = pennylane('GET', '/customers/' . $client_id . '/contacts?limit=100');
+        foreach (($l['items'] ?? $l['contacts'] ?? (array_is_list($l) ? $l : [])) as $ct) {
+            if (is_array($ct) && strcasecmp(trim((string)($ct['email'] ?? '')), $c['email']) === 0) { return; } // contact déjà présent (même e-mail)
+        }
         if ($dem['profil'] === 'particulier') { $prenom = $c['prenom']; $nom = $c['nom']; $role = null; }
         else {
             $qui = trim(explode(',', (string)($c['referent'] ?: $c['representant']))[0]);
