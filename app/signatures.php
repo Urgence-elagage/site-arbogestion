@@ -129,7 +129,7 @@ function suite_signature(array $row): string {
         $payer = !empty($calc['acompte_ht']) && stripe_actif() && !cfg('mode_essai');
         envoyer_mail($c['email'], 'Arbogestion – Votre devis ' . $row['pl_devis_numero'] . ' est validé',
             "Bonjour,\n\nMerci pour la signature de votre devis n° {$row['pl_devis_numero']}."
-            . ($payer ? "\n\nPour confirmer votre commande, merci de régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC par carte bancaire, sur notre page de paiement sécurisée (Stripe) :\n" . lien_paiement($id) . "\n\nLa facture d'acompte vous sera adressée par courriel." : '')
+            . ($payer ? "\n\nPour confirmer votre commande, merci de régler l'acompte de " . eur(round($calc['acompte_ht'] * (1 + (float)tarifs()['tva']), 2)) . " TTC par carte bancaire (ou Wero), sur notre page de paiement sécurisée (Stripe) :\n" . lien_paiement($id) . "\n\nLa facture d'acompte vous sera adressée par courriel." : '')
             . "\n\nNous revenons vers vous très prochainement pour convenir de la date d'intervention.\n\nBien cordialement,\nArbogestion – arboriste conseil", (string)cfg('mail_kevin'));
         if ($payer) { maj_demande($id, ['paiement_statut' => 'attente']); }
         return 'prestation ponctuelle : rendez-vous à fixer' . ($acompte ? " ; facture d'acompte brouillon créée" : (!empty($calc['acompte_ht']) ? " ; ACOMPTE NON CRÉÉ (voir courriel)" : ''));

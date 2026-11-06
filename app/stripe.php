@@ -20,7 +20,7 @@ function stripe(string $methode, string $chemin, array $params = [], ?string $id
     $corps = http_build_query($params, '', '&');
     if ($methode === 'GET' && $corps !== '') { $url .= '?' . $corps; }
     $ch = curl_init($url);
-    $entetes = ['Authorization: Bearer ' . $cle, 'Stripe-Version: 2024-06-20'];
+    $entetes = ['Authorization: Bearer ' . $cle];
     if ($idempotence) { $entetes[] = 'Idempotency-Key: ' . $idempotence; }
     $opts = [CURLOPT_CUSTOMREQUEST => $methode, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 40, CURLOPT_HTTPHEADER => $entetes];
     if ($methode !== 'GET') { $opts[CURLOPT_POSTFIELDS] = $corps; }
@@ -118,7 +118,8 @@ function creer_session_paiement(array $row): string {
             'price_data' => ['currency' => 'eur', 'unit_amount' => (int)round($b['acompte_ttc'] * 100),
                 'product_data' => ['name' => 'Acompte – devis n° ' . $row['pl_devis_numero'], 'description' => 'Arbogestion – acompte de ' . tarifs()['acompte']['pourcentage'] . ' % à la signature']],
         ]];
-        $p['payment_method_types'] = $b['abonnement'] ? ['card', 'sepa_debit'] : ['card'];
+        // Prestation ponctuelle : carte ou Wero (paiement instantané depuis l'appli bancaire) ; abonnement : carte ou SEPA, enregistrés pour la suite
+        $p['payment_method_types'] = $b['abonnement'] ? ['card', 'sepa_debit'] : (cfg('stripe_wero', true) ? ['card', 'wero'] : ['card']);
         $p['payment_intent_data'] = ['description' => 'Acompte devis ' . $row['pl_devis_numero'], 'metadata' => ['demande' => (string)$row['id']]]
             + ($b['abonnement'] ? ['setup_future_usage' => 'off_session'] : []);
     } else {
@@ -127,7 +128,14 @@ function creer_session_paiement(array $row): string {
         $p['payment_method_types'] = ['sepa_debit', 'card'];
         $p['setup_intent_data'] = ['description' => 'Abonnement Arbogestion – devis ' . $row['pl_devis_numero'], 'metadata' => ['demande' => (string)$row['id']]];
     }
-    $s = stripe('POST', '/checkout/sessions', $p);
+    try {
+        $s = stripe('POST', '/checkout/sessions', $p);
+    } catch (ErreurStripe $e) {
+        if (!in_array('wero', $p['payment_method_types'] ?? [], true)) { throw $e; }
+        journal('Wero indisponible, session par carte seule : ' . $e->getMessage()); // Wero non activé dans Stripe : on n'empêche pas le paiement
+        $p['payment_method_types'] = ['card'];
+        $s = stripe('POST', '/checkout/sessions', $p);
+    }
     maj_demande_s((int)$row['id'], ['stripe_session' => $s['id'], 'paiement_statut' => $row['paiement_statut'] ?: 'attente']);
     return (string)$s['url'];
 }
