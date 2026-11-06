@@ -75,8 +75,65 @@ function nom_client(array $dem): string {
 }
 
 /** Retrouve ou crée le client dans Pennylane. */
-function pl_client(array $dem): string {
+function norm_nom(string $s): string { return preg_replace('/[^a-z]/', '', strtolower((string)iconv('UTF-8', 'ASCII//TRANSLIT', $s))); }
+function norm_tel(string $s): string { $d = preg_replace('/\D/', '', $s); if (str_starts_with($d, '33') && strlen($d) === 11) { $d = '0' . substr($d, 2); } return strlen($d) >= 9 ? substr($d, -9) : ''; }
+
+/**
+ * Recherche d'un client déjà connu, pour éviter les doublons dans Pennylane.
+ * Entreprises et collectivités : SIREN. Particuliers : même e-mail, ou même téléphone, ou même nom (sans tenir compte
+ * des accents, tirets, espaces, majuscules, ni de l'ordre prénom / nom) et même code postal.
+ * Renvoie ['id' => …, 'motif' => …] ; un motif autre que l'e-mail ou le SIREN est signalé à Kevin pour vérification.
+ */
+function rapprocher_client(array $dem): ?array {
     $c = $dem['client'];
+    $email = strtolower(trim($c['email'])); $tel = norm_tel((string)$c['tel']);
+    $part = $dem['profil'] === 'particulier';
+    $noms = $part ? [norm_nom($c['prenom'] . $c['nom']), norm_nom($c['nom'] . $c['prenom'])] : [norm_nom($c['denomination'])];
+    // 1. Même adresse e-mail dans Pennylane (y compris les fiches créées à la main)
+    try {
+        $l = pennylane('GET', '/customers?limit=20&filter=' . pl_filtre([['field' => 'emails', 'operator' => 'in', 'value' => [$email]]]));
+        if (!empty($l['items'][0]['id'])) { return ['id' => (string)$l['items'][0]['id'], 'motif' => 'même adresse e-mail']; }
+    } catch (Throwable $e) { journal('Recherche client par e-mail : ' . $e->getMessage()); }
+    if (!$part) { return null; }
+    // 2. Demandes déjà reçues par le site
+    try {
+        $rows = db()->query("SELECT pl_client_id, donnees FROM demandes WHERE pl_client_id IS NOT NULL AND pl_client_id <> '' AND profil = 'particulier' ORDER BY id DESC LIMIT 2000")->fetchAll();
+        foreach ($rows as $r) {
+            $d = json_decode($r['donnees'], true)['client'] ?? [];
+            if (!ctype_digit((string)$r['pl_client_id'])) { continue; }
+            if (strtolower(trim((string)($d['email'] ?? ''))) === $email) { return ['id' => $r['pl_client_id'], 'motif' => 'même adresse e-mail']; }
+            if ($tel !== '' && norm_tel((string)($d['tel'] ?? '')) === $tel) { return ['id' => $r['pl_client_id'], 'motif' => 'même numéro de téléphone (' . $c['tel'] . ')']; }
+            if (in_array(norm_nom(($d['prenom'] ?? '') . ($d['nom'] ?? '')), $noms, true) && preg_replace('/\s/', '', (string)($d['cp'] ?? '')) === preg_replace('/\s/', '', $c['cp'])) {
+                return ['id' => $r['pl_client_id'], 'motif' => 'même nom et même code postal (' . $c['cp'] . ')'];
+            }
+        }
+    } catch (Throwable $e) { journal('Recherche client (base) : ' . $e->getMessage()); }
+    // 3. Fiches Pennylane du même prénom : nom, téléphone ou code postal comparés
+    try {
+        foreach (array_unique([$c['prenom'], $c['nom']]) as $debut) {
+            if (mb_strlen($debut) < 2) { continue; }
+            $l = pennylane('GET', '/customers?limit=100&filter=' . pl_filtre([['field' => 'name', 'operator' => 'start_with', 'value' => $debut]]));
+            foreach (($l['items'] ?? []) as $it) {
+                if ($tel !== '' && norm_tel((string)($it['phone'] ?? '')) === $tel) { return ['id' => (string)$it['id'], 'motif' => 'même numéro de téléphone (' . $c['tel'] . ')']; }
+                $n = norm_nom((string)($it['name'] ?? (($it['first_name'] ?? '') . ($it['last_name'] ?? ''))));
+                $cp = preg_replace('/\s/', '', (string)($it['billing_address']['postal_code'] ?? ''));
+                if (in_array($n, $noms, true) && $cp === preg_replace('/\s/', '', $c['cp'])) { return ['id' => (string)$it['id'], 'motif' => 'même nom et même code postal (' . $c['cp'] . ')']; }
+            }
+        }
+    } catch (Throwable $e) { journal('Recherche client par nom : ' . $e->getMessage()); }
+    return null;
+}
+
+function pl_client(array $dem): string {
+    $GLOBALS['arbo_rapprochement'] = null;
+    $c = $dem['client'];
+    if ($dem['profil'] === 'particulier') {
+        $trouve = rapprocher_client($dem);
+        if ($trouve && $trouve['id'] !== '') {
+            if ($trouve['motif'] !== 'même adresse e-mail') { $GLOBALS['arbo_rapprochement'] = $trouve['motif']; }
+            return $trouve['id'];
+        }
+    }
     $adresse = ['address' => $c['adresse'], 'postal_code' => $c['cp'], 'city' => $c['ville'], 'country_alpha2' => 'FR'];
     if ($dem['profil'] === 'particulier') {
         $ref = 'arbo-' . substr(sha1(strtolower($c['email'])), 0, 20);
@@ -92,6 +149,8 @@ function pl_client(array $dem): string {
         $f = pl_filtre([['field' => 'reg_no', 'operator' => 'eq', 'value' => $c['siren']]]);
         $l = pennylane('GET', '/customers?filter=' . $f . '&filters=' . $f);
         if (!empty($l['items'][0]['id'])) { return (string)$l['items'][0]['id']; }
+        $trouve = rapprocher_client($dem); // fiche créée à la main sans SIREN, mais avec la même adresse e-mail
+        if ($trouve && $trouve['id'] !== '') { $GLOBALS['arbo_rapprochement'] = $trouve['motif'] . ' (fiche sans SIREN : à compléter)'; return $trouve['id']; }
         $corps = [
             'name' => $c['denomination'], 'reg_no' => $c['siren'], 'emails' => [$c['email']],
             'phone' => $c['tel'] ?: null, 'billing_address' => $adresse,
@@ -280,6 +339,7 @@ function traiter_demande(array $in): array {
         . ($dem['profil'] !== 'collectivite' ? "\nPaiement : " . (empty($calc['abonnement']) ? 'carte bancaire' : $dem['paiement']) : '')
         . ($dem['contraintes'] ? "\nContraintes : {$dem['contraintes']}" : '')
         . ($dem['execution_anticipee'] ? "\nDemande d'exécution avant la fin du délai de rétractation : oui" : '')
+        . (!empty($GLOBALS['arbo_rapprochement']) ? "\n\nÀ VÉRIFIER : la demande a été rattachée à une fiche client Pennylane existante (" . $GLOBALS['arbo_rapprochement'] . "). Si ce n'est pas la même personne, crée une nouvelle fiche et change le client du devis." : '')
         . "\n\nEstimation recalculée :\n$resume" . ($dem['message'] ? "\n\nMessage du client :\n{$dem['message']}" : '');
     $sujet = $erreur ? "[Arbogestion] Demande n° $id à traiter à la main – " . nom_client($dem) : "[Arbogestion] Devis $numero à relire et envoyer – " . nom_client($dem);
     $texte = ($erreur
