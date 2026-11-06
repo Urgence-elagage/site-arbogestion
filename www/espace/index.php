@@ -524,17 +524,53 @@ if ($p === 'devis') {
 // ----- Tableau de bord, puis liste des devis
 $tableau = '';
 try { require __DIR__ . '/tableau.inc.php'; } catch (Throwable $e) { journal('Tableau de bord : ' . $e->getMessage()); }
-$rows = db()->query("SELECT * FROM demandes WHERE statut <> 'archive' ORDER BY id DESC LIMIT 60")->fetchAll();
-$tr = '';
+$voir_archives = !empty($_GET['archives']);
+$rows = db()->query("SELECT * FROM demandes WHERE statut " . ($voir_archives ? "= 'archive'" : "<> 'archive'") . " ORDER BY id DESC LIMIT 200")->fetchAll();
+const GROUPES = ['envoyer' => 'À envoyer', 'signature' => 'Attente de signature', 'signe' => 'Signés', 'paiement' => 'Paiement à suivre', 'erreur' => 'Non créés (erreur)', 'essai' => 'Essais', 'clos' => 'Refusés / expirés'];
+function groupes_devis(array $r): array {
+    $st = (string)$r['statut']; $g = [];
+    if ($st === 'devis_brouillon') { $g[] = 'envoyer'; }
+    if ($st === 'devis_envoye') { $g[] = 'signature'; }
+    if (str_starts_with($st, 'signe') || $st === 'bdc_recu') { $g[] = 'signe'; }
+    if (in_array((string)($r['paiement_statut'] ?? ''), ['attente', 'acompte_echec'], true) || $st === 'signe_attente_bdc') { $g[] = 'paiement'; }
+    if ($st === 'erreur_pennylane') { $g[] = 'erreur'; }
+    if ($st === 'essai' || str_starts_with((string)$r['pl_devis_id'], 'essai')) { $g[] = 'essai'; }
+    if (in_array($st, ['refuse', 'expire'], true)) { $g[] = 'clos'; }
+    return $g;
+}
+function paiement_txt(array $r, array $calc): string {
+    $ps = (string)($r['paiement_statut'] ?? ''); $o = [];
+    if (!empty($calc['acompte_ht']) && (float)$calc['acompte_ht'] > 0) {
+        $o[] = ['attente' => '<span class="pastille p-a">Acompte demandé</span>', 'acompte_echec' => '<span class="pastille p-err">Acompte en échec</span>', 'acompte_paye' => '<span class="pastille p-ok">Acompte payé</span>', 'complet' => '<span class="pastille p-ok">Payé</span>'][$ps]
+            ?? (str_starts_with((string)$r['statut'], 'signe') ? '<span class="pastille">Acompte à demander</span>' : '<span class="aide">acompte à la signature</span>');
+    } elseif ($ps === 'complet') { $o[] = '<span class="pastille p-ok">Payé</span>'; }
+    if ($r['statut'] === 'signe_attente_bdc') { $o[] = '<span class="pastille p-a">Bon de commande attendu</span>'; }
+    if (!empty($r['pl_acompte_id'])) { $o[] = '<span class="aide">Facture d’acompte Pennylane n° ' . h((string)$r['pl_acompte_id']) . '</span>'; }
+    if (!empty($r['pl_abonnement_id'])) {
+        $o[] = '<span class="aide">Abonnement actif</span>';
+        try { $s = db()->prepare("SELECT statut, COUNT(*) n FROM prelevements WHERE demande_id = ? GROUP BY statut"); $s->execute([(int)$r['id']]);
+            foreach ($s->fetchAll() as $x) { $o[] = '<span class="aide">' . (int)$x['n'] . ' prélèvement(s) ' . h(['echec' => 'en échec', 'paye' => 'payé(s)', 'en_cours' => 'en cours', 'paye_stripe' => 'payé(s)'][$x['statut']] ?? $x['statut']) . '</span>'; }
+        } catch (Throwable $e) {}
+    }
+    return $o ? implode('<br>', $o) : '<span class="aide">—</span>';
+}
+$tr = ''; $compte = array_fill_keys(array_keys(GROUPES), 0);
 foreach ($rows as $r) {
     $calc = json_decode($r['calcul'], true) ?: []; $dem = json_decode($r['donnees'], true) ?: [];
-    $tr .= '<tr><td><a href="./?p=fiche&amp;id=' . (int)$r['id'] . '">' . h($r['pl_devis_numero'] ?: 'n° ' . $r['id']) . '</a></td><td>' . h(date('d/m/Y', strtotime($r['cree_le']))) . '</td><td>' . h($r['nom_client'])
-        . '<br><span class="aide">' . h(PROFILS[$r['profil']]['nom'] ?? $r['profil']) . ' · ' . (($dem['origine'] ?? 'site') === 'espace' ? 'espace' : 'site') . '</span></td><td class="n">' . h(montant_txt($calc)) . '</td><td>' . pastille($r['statut']) . '</td></tr>';
+    $g = groupes_devis($r); foreach ($g as $x) { $compte[$x]++; }
+    $tr .= '<tr data-g="' . h(implode(' ', $g)) . '"><td><a href="./?p=fiche&amp;id=' . (int)$r['id'] . '">' . h($r['pl_devis_numero'] ?: 'n° ' . $r['id']) . '</a></td><td>' . h(date('d/m/Y', strtotime($r['cree_le']))) . '</td><td>' . h($r['nom_client'])
+        . '<br><span class="aide">' . h(PROFILS[$r['profil']]['nom'] ?? $r['profil']) . ' · ' . (($dem['origine'] ?? 'site') === 'espace' ? 'espace' : 'site') . '</span></td><td class="n">' . h(montant_txt($calc)) . '</td><td>' . pastille($r['statut']) . '</td><td>' . paiement_txt($r, $calc) . '</td></tr>';
 }
+$filtres = '<div class="filtres" role="group" aria-label="Filtrer les devis"><button type="button" data-f="" aria-pressed="true">Tous <b>' . count($rows) . '</b></button>';
+foreach (GROUPES as $k => $lib) { if ($compte[$k]) { $filtres .= '<button type="button" data-f="' . $k . '" aria-pressed="false">' . h($lib) . ' <b>' . $compte[$k] . '</b></button>'; } }
+$filtres .= '<a class="archives" href="./' . ($voir_archives ? '' : '?archives=1') . '#devis">' . ($voir_archives ? 'Revenir aux devis' : 'Voir les archives') . '</a></div>';
+$filtres_js = '<style>.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.filtres button{font:inherit;font-size:.88rem;font-weight:700;background:#fff;color:var(--vert);border:1px solid #c3c9bc;border-radius:999px;padding:6px 14px;cursor:pointer}.filtres button b{margin-left:4px;font-variant-numeric:tabular-nums;color:var(--gris)}.filtres button[aria-pressed=true]{background:var(--vert);border-color:var(--vert);color:#fff}.filtres button[aria-pressed=true] b{color:var(--lime)}.filtres .archives{margin-left:auto;font-size:.88rem}</style>'
+    . '<script nonce="' . h($nonce) . '">(function(){var bs=document.querySelectorAll(".filtres button"),rs=document.querySelectorAll("tr[data-g]");function f(v){bs.forEach(function(b){b.setAttribute("aria-pressed",b.dataset.f===v)});rs.forEach(function(r){r.hidden=v!==""&&(" "+r.dataset.g+" ").indexOf(" "+v+" ")<0});try{sessionStorage.setItem("arbo_filtre",v)}catch(e){}}
+bs.forEach(function(b){b.addEventListener("click",function(){f(b.dataset.f)})});var v="";try{v=sessionStorage.getItem("arbo_filtre")||""}catch(e){}if(document.querySelector(".filtres button[data-f=\""+v+"\"]"))f(v);})();</script>';
 $a_envoyer = count(array_filter($rows, fn($r) => $r['statut'] === 'devis_brouillon'));
 $modeles = [];
 foreach (['devis', 'facture'] as $t) { $id = null; try { $id = pl_modele($t); } catch (Throwable $e) {} $modeles[] = ucfirst($t) . ' Arbogestion : ' . ($id ? 'trouvé (n° ' . $id . ')' : 'non trouvé, modèle par défaut de Pennylane'); }
-espace_rendu('Tableau de bord', $tableau . '<div class="actions" id="devis" style="justify-content:space-between;margin:24px 0 12px"><div><h2 style="font-size:1.3rem;margin:0">Derniers devis</h2><p class="sous" style="margin:0">' . count($rows) . ' derniers devis · ' . $a_envoyer . ' à envoyer</p></div></div>'
-    . ($rows ? '<div class="tab"><table><thead><tr><th>Devis</th><th>Date</th><th>Client</th><th class="n">Montant</th><th>Statut</th></tr></thead><tbody>' . $tr . '</tbody></table></div>'
+espace_rendu('Tableau de bord', $tableau . '<div class="actions" id="devis" style="justify-content:space-between;margin:24px 0 12px"><div><h2 style="font-size:1.3rem;margin:0">' . ($voir_archives ? 'Devis archivés' : 'Devis') . '</h2><p class="sous" style="margin:0">' . count($rows) . ' devis · ' . $a_envoyer . ' à envoyer</p></div></div>'
+    . $filtres . ($rows ? '<div class="tab"><table><thead><tr><th>Devis</th><th>Date</th><th>Client</th><th class="n">Montant</th><th>Statut</th><th>Paiement / facturation</th></tr></thead><tbody>' . $tr . '</tbody></table></div>' . $filtres_js
         : '<div class="carte"><p>Aucun devis pour l’instant. Les demandes du site et les devis saisis ici apparaîtront dans cette liste.</p><a class="btn" href="./?p=devis">Saisir un premier devis</a></div>')
     . '<p class="aide" style="margin-top:16px">Modèles Pennylane – ' . h(implode(' · ', $modeles)) . ' · CGV en vigueur : version du ' . h(date_fr(cgv_version_courante())) . '. Les signatures sont vérifiées toutes les heures.</p>');
