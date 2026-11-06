@@ -62,7 +62,7 @@ $titre = ['invalide' => 'Lien invalide', 'merci' => 'Merci, c’est enregistré'
 <p>Ce lien n’est pas valide. Contactez-nous à contact@arbogestion.fr.</p>
 <?php elseif ($etat === 'merci'): ?>
 <p>Votre paiement est bien pris en compte. Vous recevrez votre facture par courriel. <?php if (!empty($b['abonnement'])): ?>Les prochaines factures de votre abonnement seront prélevées automatiquement sur votre compte.<?php endif; ?></p>
-<p class="note">Un prélèvement SEPA peut prendre quelques jours avant d’apparaître sur votre compte.</p><a class="btn" href="/">Retour au site</a>
+<?php if (!empty($b['abonnement'])): ?><p class="note">Un prélèvement SEPA peut prendre quelques jours avant d’apparaître sur votre compte.</p><?php endif; ?><a class="btn" href="/">Retour au site</a>
 <?php elseif ($etat === 'rien'): ?>
 <p>Aucun paiement en ligne n’est nécessaire pour votre devis n° <?= h($row['pl_devis_numero']) ?>.</p><a class="btn" href="/">Retour au site</a>
 <?php elseif ($etat === 'fait'): ?>
