@@ -73,7 +73,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 [hidden]{display:none!important}
 </style></head><body>
 <div class="barre"><div class="in"><a class="marque" href="./">ARBOGESTION<small>Espace connecté</small></a>
-<?php if ($nav && espace_connecte()): ?><nav><a href="./">Devis</a><a href="./?p=devis">Nouveau devis</a><a href="./?p=securite">Sécurité</a>
+<?php if ($nav && espace_connecte()): ?><nav><a href="./">Devis</a><a href="./?p=devis">Nouveau devis</a><a href="./?p=agenda">Agenda</a><a href="./?p=securite">Sécurité</a>
 <form method="post" action="./?p=deconnexion" style="margin:0"><?= espace_csrf_champ() ?><button type="submit">Se déconnecter</button></form></nav><?php endif; ?></div></div>
 <main class="in">
 <?php if ($essai && espace_connecte()): ?><div class="essai"><b>Mode essai actif</b> : rien n’est créé ni envoyé dans Pennylane (config.php, « mode_essai »).</div><?php endif; ?>
@@ -315,6 +315,11 @@ if ($p === 'securite') {
         . sprintf($code, 'mdp') . '<div class="actions"><button class="btn" type="submit">Changer</button></div></form></div>'
         . '<div class="carte"><h2>Codes de secours</h2><p>Génère 10 nouveaux codes ; les anciens ne fonctionneront plus.</p><form method="post" action="./?p=securite">' . espace_csrf_champ() . '<input type="hidden" name="action" value="codes">'
         . sprintf($code, 'codes') . '<div class="actions"><button class="btn sec" type="submit">Générer de nouveaux codes</button></div></form></div></div>');
+}
+
+// ----- Agenda des interventions
+if ($p === 'agenda') {
+    require __DIR__ . '/agenda.inc.php';
 }
 
 // ----- Nouveau devis

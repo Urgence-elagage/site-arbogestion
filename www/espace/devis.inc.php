@@ -28,7 +28,7 @@ function lire_formulaire(): array {
             'adresse' => v('adresse'), 'cp' => v('cp'), 'ville' => v('ville'), 'representant' => v('representant'), 'referent' => v('referent'),
             'habilitation' => v('habilitation'), 'email' => v('email'), 'tel' => v('tel')],
         'estimation' => ['nb' => max(1, $nb), 'demarrage' => in_array($formule, ['libre', 'ponctuel', 'demarrage'], true), 'diag' => true, 'prev' => true,
-            'rb' => (int)v('rb', '0'), 'rh' => (int)v('rh', '0'), 'km' => $km, 'abonnement' => in_array($formule, ['demarrage', 'abonnement'], true)],
+            'rb' => (int)v('rb', '0'), 'rh' => (int)v('rh', '0'), 'km' => $km, 'km_peage' => nombre_fr(v('km_peage')) ?? 0, 'duree_h' => nombre_fr(v('duree_h')), 'abonnement' => in_array($formule, ['demarrage', 'abonnement'], true)],
         'consentement' => true, 'paiement' => v('paiement', 'annuel'), 'date_debut' => v('date_debut'),
         'site_adresse' => v('site_adresse'), 'lieu_label' => v('lieu_label'), 'contraintes' => v('contraintes'), 'message' => '',
         'execution_anticipee' => v('execution_anticipee') === '1',
@@ -132,8 +132,8 @@ $html = '<p><a href="./">← Tous les devis</a></p><h1>Nouveau devis</h1><p clas
     . '<div class="carte"><h2>Prestations selon la grille</h2>' . choix('formule', 'Formule', FORMULES, 'libre')
     . '<div class="grille" data-formule="grille">' . champ('nb', 'Nombre d’arbres', 'number', ['min' => '0', 'max' => '10000'])
     . '<div data-formule="ponctuel demarrage">' . champ('rb', 'Tests résistographe au pied', 'number', ['min' => '0', 'max' => '500']) . '</div>'
-    . '<div data-formule="ponctuel demarrage">' . champ('rh', 'Tests résistographe en hauteur', 'number', ['min' => '0', 'max' => '100']) . '</div>'
-    . '<div data-formule="ponctuel demarrage">' . champ('km', 'Distance depuis Cambes (km, aller)', 'text', ['inputmode' => 'decimal'], 'Vide = pas de frais de déplacement.') . '</div>'
+    . '<div data-formule="ponctuel demarrage">' . champ('rh', 'Diagnostics dans la couronne (arbres)', 'number', ['min' => '0', 'max' => '100']) . '</div>'
+    . '<div data-formule="ponctuel demarrage">' . champ('km', 'Distance depuis Cambes par la route (km, aller)', 'text', ['inputmode' => 'decimal'], 'Facturée aller-retour. Vide = pas de frais de déplacement.') . '</div><div data-formule="ponctuel demarrage">' . champ('km_peage', 'Dont km d’autoroute à péage (aller)', 'text', ['inputmode' => 'decimal']) . '</div><div data-formule="ponctuel demarrage">' . champ('duree_h', 'Temps de trajet aller (h)', 'text', ['inputmode' => 'decimal'], 'Au-delà de ' . (int)(tarifs()['eloignement']['heuresTrajetMax'] ?? 3) . ' h : hébergement et repas ajoutés.') . '</div>'
     . '<div data-formule="demarrage abonnement" data-pour="particulier pro">' . choix('paiement', 'Paiement de l’abonnement', ['annuel' => 'Annuel', 'mensuel' => 'Mensuel (prélèvement SEPA)'], 'annuel') . '</div>'
     . champ('date_debut', 'Date de début souhaitée', 'date') . '</div>'
     . '<div data-pour="particulier"><label class="coche"><input type="checkbox" name="execution_anticipee" value="1"' . (v('execution_anticipee') === '1' ? ' checked' : '') . '> Le client demande que la prestation commence avant la fin du délai de rétractation de 14 jours</label></div></div>'

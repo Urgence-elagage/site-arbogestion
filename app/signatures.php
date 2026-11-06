@@ -8,6 +8,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/demande.php';
 require_once __DIR__ . '/stripe.php';
+require_once __DIR__ . '/agenda.php';
 
 function url_site(string $chemin): string { return rtrim((string)cfg('url_site', 'https://arbogestion.fr'), '/') . '/' . ltrim($chemin, '/'); }
 
@@ -104,6 +105,8 @@ function suite_signature(array $row): string {
     $c = $dem['client'];
     $ab = $calc['abonnement'] ?? null;
     $avec_abonnement = $ab && empty($ab['sur_devis']);
+    try { if ($n = agenda_creer_depuis_demande($row)) { $row['notes'] = ajouter_note($row, "$n intervention(s) ajoutée(s) à l'agenda, à planifier."); } }
+    catch (Throwable $e) { journal('Agenda, demande ' . $id . ' : ' . $e->getMessage()); }
 
     if ($dem['profil'] === 'collectivite') {
         $lien = url_site('bon-de-commande.php?t=' . jeton_signe($id));
