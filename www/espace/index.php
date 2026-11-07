@@ -62,6 +62,7 @@ button:focus-visible,a:focus-visible{outline:3px solid var(--lime);outline-offse
 .grille>div{min-width:0}
 .g3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 details.plus{position:relative}details.plus>summary{list-style:none}details.plus>summary::-webkit-details-marker{display:none}details.plus>.carte{position:absolute;right:0;z-index:20;width:300px;margin-top:6px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+ul.appareils{list-style:none;margin:0;padding:0}ul.appareils li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--ligne)}ul.appareils li:first-child{border-top:0}
 hr{border:0;border-top:1px solid var(--ligne);margin:14px 0}
 .coche{display:flex;gap:8px;align-items:flex-start;font-weight:400;margin:12px 0}
 .coche input{margin-top:4px}
@@ -154,7 +155,9 @@ document.querySelectorAll('[data-confirmer]').forEach(function(f){f.addEventList
 /* =================================================================
  * Accès : installation, connexion, double authentification
  * ================================================================= */
-if ($p === 'deconnexion' && $post) { espace_fermer_session(); message('Vous êtes déconnecté.'); aller(''); }
+if ($p === 'deconnexion' && $post) { appareil_oublier_courant(); espace_fermer_session(); message('Vous êtes déconnecté. Cet appareil ne restera plus connecté.'); aller(''); }
+// Appareil de confiance : reconnexion sans mot de passe ni code pendant 90 jours
+if (!espace_connecte() && !in_array($p, ['invitation', 'installation'], true)) { try { appareil_reprendre(); } catch (Throwable $e) { journal('Espace appareil : ' . $e->getMessage()); } }
 // Compte désactivé ou supprimé pendant la session : on coupe.
 if (!empty($_SESSION['admin_id']) && (!($moi = espace_admin()) || (int)$moi['actif'] !== 1)) { espace_fermer_session(); message('!Cet accès a été désactivé.'); aller(''); }
 
@@ -266,10 +269,12 @@ if (!espace_connecte()) {
                     espace_maj_admin((int)$a['id'], ['totp_dernier_pas' => $pas]);
                     espace_maj_admin((int)$a['id'], ['derniere_connexion' => date('Y-m-d H:i:s')]);
                     espace_ouvrir_session((int)$a['id'], 'ok'); journal('Espace : connexion de ' . $a['email']);
+                    if (!empty($_POST['rester'])) { appareil_memoriser((int)$a['id']); }
                     aller('');
                 } elseif (strlen(preg_replace('/[^A-Za-z0-9]/', '', $saisie)) === 8 && code_secours_utiliser($a, $saisie)) {
                     espace_maj_admin((int)$a['id'], ['derniere_connexion' => date('Y-m-d H:i:s')]);
                     espace_ouvrir_session((int)$a['id'], 'ok'); journal('Espace : connexion avec un code de secours (' . $a['email'] . ')');
+                    if (!empty($_POST['rester'])) { appareil_memoriser((int)$a['id']); }
                     $reste = count(json_decode((string)espace_admin()['secours'], true) ?: []);
                     envoyer_mail((string)$a['email'], '[Arbogestion] Connexion avec un code de secours', "Un code de secours vient d'être utilisé pour se connecter à l'espace connecté avec votre compte. Il en reste $reste.\nSi ce n'est pas vous, prévenez immédiatement Arbogestion.");
                     message('Connexion avec un code de secours. Il vous en reste ' . $reste . '. Pensez à les régénérer dans « Sécurité ».');
@@ -280,6 +285,7 @@ if (!espace_connecte()) {
         espace_rendu('Code de vérification', '<div class="carte etroit"><h1>Code de vérification</h1><p class="sous">Ouvrez votre application d’authentification et saisissez le code Arbogestion.</p>'
             . ($err ? '<div class="msg err">' . h($err) . '</div>' : '')
             . '<form method="post" action="./?p=code">' . espace_csrf_champ() . '<label for="code">Code à 6 chiffres</label><input class="code6" type="text" id="code" name="code" inputmode="numeric" maxlength="9" required autofocus autocomplete="one-time-code">'
+            . '<label class="coche" style="margin-top:12px"><input type="checkbox" name="rester" value="1" checked> Rester connecté sur cet appareil pendant 90 jours</label><p class="aide" style="margin-top:2px">À décocher sur un ordinateur partagé.</p>'
             . '<p class="aide">Téléphone perdu ? Saisissez l’un de vos codes de secours (format ABCD-EFGH).</p>'
             . '<div class="actions"><button class="btn" type="submit">Valider</button><a href="./?p=annuler">Annuler</a></div></form></div>', false);
     }
@@ -413,6 +419,11 @@ if ($p === 'fiche') {
 // ----- Mon compte
 if ($p === 'compte' || $p === 'securite') {
     $a = espace_admin(); $err = '';
+    if ($post && in_array((string)($_POST['action'] ?? ''), ['appareil', 'appareils'], true)) {
+        if ($_POST['action'] === 'appareil') { appareils_revoquer((int)$a['id'], preg_replace('/[^a-f0-9]/', '', (string)($_POST['sel'] ?? ''))); message('Appareil déconnecté.'); }
+        else { appareils_revoquer((int)$a['id']); appareil_cookie('', time() - 3600); message('Tous tes appareils sont déconnectés (ils redemanderont mot de passe et code).'); }
+        aller('compte');
+    }
     if ($post) {
         $pas = totp_verifier((string)$a['totp_secret'], (string)($_POST['code'] ?? ''), (int)$a['totp_dernier_pas']);
         $act = (string)($_POST['action'] ?? '');
@@ -438,7 +449,7 @@ if ($p === 'compte' || $p === 'securite') {
             if (!password_verify((string)($_POST['actuel'] ?? ''), (string)$a['mdp_hash'])) { espace_echec('mot de passe actuel'); $err = 'Mot de passe actuel incorrect.'; }
             elseif ($m1 !== (string)($_POST['mdp2'] ?? '')) { $err = 'Les deux mots de passe ne sont pas identiques.'; }
             elseif ($e = espace_mdp_valide($m1)) { $err = $e; }
-            else { espace_maj_admin((int)$a['id'], ['mdp_hash' => password_hash($m1, PASSWORD_DEFAULT), 'totp_dernier_pas' => $pas]); journal('Espace : mot de passe changé (' . $a['email'] . ')'); message('Mot de passe changé.'); aller('compte'); }
+            else { espace_maj_admin((int)$a['id'], ['mdp_hash' => password_hash($m1, PASSWORD_DEFAULT), 'totp_dernier_pas' => $pas]); appareils_revoquer((int)$a['id']); journal('Espace : mot de passe changé (' . $a['email'] . ')'); message('Mot de passe changé.'); aller('compte'); }
         } elseif ($act === 'codes') {
             $codes = codes_secours_nouveaux();
             espace_maj_admin((int)$a['id'], ['secours' => json_encode(array_map('code_secours_hache', $codes)), 'totp_dernier_pas' => $pas]);
@@ -461,7 +472,17 @@ if ($p === 'compte' || $p === 'securite') {
         . sprintf($code, 'mdp') . '<div class="actions"><button class="btn" type="submit">Changer</button></div></form></div>'
         . '<div class="carte"><h2>Codes de secours</h2><p>Ils remplacent le code du téléphone si tu le perds. Génère 10 nouveaux codes ; les anciens ne fonctionneront plus.</p><form method="post" action="./?p=compte">' . espace_csrf_champ() . '<input type="hidden" name="action" value="codes">'
         . sprintf($code, 'codes') . '<div class="actions"><button class="btn sec" type="submit">Générer de nouveaux codes</button></div></form>'
-        . '<p class="aide" style="margin-top:14px">Nouveau téléphone ? Demande à un administrateur de « réinitialiser ton accès » : tu recevras un lien pour relier le nouveau téléphone.</p></div></div>');
+        . '<p class="aide" style="margin-top:14px">Nouveau téléphone ? Demande à un administrateur de « réinitialiser ton accès » : tu recevras un lien pour relier le nouveau téléphone.</p></div></div>'
+        . (function () use ($a) {
+            $ap = appareils_compte((int)$a['id']); $ici = (string)($_COOKIE[ESPACE_APPAREIL_COOKIE] ?? ''); $l = '';
+            foreach ($ap as $x) {
+                $l .= '<li><span><b>' . h((string)$x['libelle']) . '</b>' . (str_starts_with($ici, $x['selecteur'] . ':') ? ' <span class="pastille p-ok">cet appareil</span>' : '') . '<br><span class="aide">Depuis le ' . h(date('d/m/Y', strtotime((string)$x['cree_le']))) . ' · utilisé le ' . h(date('d/m/Y à H:i', strtotime((string)$x['dernier_usage']))) . ' · jusqu’au ' . h(date('d/m/Y', strtotime((string)$x['expire_le']))) . '</span></span>'
+                    . '<form method="post" action="./?p=compte" style="margin:0">' . espace_csrf_champ() . '<input type="hidden" name="action" value="appareil"><input type="hidden" name="sel" value="' . h((string)$x['selecteur']) . '"><button class="btn sec petit" type="submit">Déconnecter</button></form></li>';
+            }
+            return '<div class="carte"><h2>Appareils restés connectés</h2>' . ($l ? '<ul class="appareils">' . $l . '</ul><form method="post" action="./?p=compte" data-confirmer="Déconnecter tous tes appareils ?">' . espace_csrf_champ() . '<input type="hidden" name="action" value="appareils"><div class="actions"><button class="btn sec petit" type="submit">Déconnecter tous les appareils</button></div></form>'
+                : '<p class="aide" style="margin:0">Aucun. Coche « Rester connecté » à la prochaine connexion pour ne plus ressaisir mot de passe et code pendant 90 jours.</p>')
+                . '<p class="aide">Les appareils sont aussi déconnectés automatiquement quand tu changes ton mot de passe.</p></div>';
+        })());
 }
 
 // ----- Gestion des comptes (administrateurs)
@@ -499,7 +520,7 @@ if ($p === 'comptes') {
             } elseif ($soi) { $err = 'Pour ton propre compte, passe par « Mon compte ».'; }
             elseif ($act === 'desactiver') {
                 if ($dernier_admin) { $err = 'Impossible : c’est le dernier administrateur actif.'; }
-                else { espace_maj_admin((int)$cible['id'], ['actif' => 0]); journal('Espace : compte désactivé ' . $cible['email']); message(espace_nom($cible) . ' ne peut plus se connecter (déconnexion immédiate).'); aller('comptes'); }
+                else { espace_maj_admin((int)$cible['id'], ['actif' => 0]); appareils_revoquer((int)$cible['id']); journal('Espace : compte désactivé ' . $cible['email']); message(espace_nom($cible) . ' ne peut plus se connecter (déconnexion immédiate).'); aller('comptes'); }
             } elseif ($act === 'reactiver') {
                 espace_maj_admin((int)$cible['id'], ['actif' => 1]); journal('Espace : compte réactivé ' . $cible['email']); message('Compte réactivé.'); aller('comptes');
             } elseif ($act === 'role' && isset(ESPACE_ROLES[$_POST['role'] ?? ''])) {
@@ -509,6 +530,7 @@ if ($p === 'comptes') {
                 if ($dernier_admin) { $err = 'Impossible : c’est le dernier administrateur actif.'; }
                 else {
                     espace_maj_admin((int)$cible['id'], ['mdp_hash' => '', 'totp_secret' => '', 'totp_dernier_pas' => 0, 'secours' => '[]', 'actif' => 1]);
+                    appareils_revoquer((int)$cible['id']);
                     espace_maj_admin((int)$moi['id'], ['totp_dernier_pas' => $pas]);
                     envoyer_invitation((int)$cible['id'], $par);
                     journal('Espace : accès réinitialisé pour ' . $cible['email'] . ' par ' . $moi['email']);

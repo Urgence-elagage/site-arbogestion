@@ -67,6 +67,77 @@ function espace_fermer_session(): void {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
 
+/* ---------- Appareils de confiance : rester connecté 90 jours ----------
+ * Jeton « sélecteur:vérificateur » dans un cookie HttpOnly limité à /espace/ ; seule l'empreinte du vérificateur est
+ * en base, et il change à chaque reprise (un cookie copié devient inutilisable). Révoqués au changement de mot de
+ * passe, à la réinitialisation ou à la désactivation du compte, et un par un depuis « Mon compte ». */
+const ESPACE_APPAREIL_JOURS = 90;
+const ESPACE_APPAREIL_COOKIE = 'arbo_appareil';
+
+function installer_appareils(): void {
+    static $fait = false; if ($fait) { return; } $fait = true;
+    $pdo = db(); $mysql = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql';
+    $pdo->exec('CREATE TABLE IF NOT EXISTS espace_appareils (selecteur VARCHAR(32) NOT NULL PRIMARY KEY, compte_id INT NOT NULL, empreinte VARCHAR(64) NOT NULL,
+        libelle VARCHAR(120) NULL, cree_le VARCHAR(19) NOT NULL, expire_le VARCHAR(19) NOT NULL, dernier_usage VARCHAR(19) NULL, ancienne VARCHAR(64) NULL, ancienne_jusqua INT NULL)' . ($mysql ? ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4' : ''));
+    try { $pdo->query('SELECT ancienne FROM espace_appareils LIMIT 1'); } catch (Throwable $e) { $pdo->exec('ALTER TABLE espace_appareils ADD COLUMN ancienne VARCHAR(64) NULL'); $pdo->exec('ALTER TABLE espace_appareils ADD COLUMN ancienne_jusqua INT NULL'); }
+}
+function appareil_cookie(string $valeur, int $expire): void {
+    setcookie(ESPACE_APPAREIL_COOKIE, $valeur, ['expires' => $expire, 'path' => '/espace/', 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'httponly' => true, 'samesite' => 'Lax']);
+}
+function appareil_libelle(): string {
+    $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+    $os = preg_match('/iPhone/', $ua) ? 'iPhone' : (preg_match('/iPad/', $ua) ? 'iPad' : (preg_match('/Android/', $ua) ? 'Android' : (preg_match('/Mac OS X/', $ua) ? 'Mac' : (preg_match('/Windows/', $ua) ? 'PC Windows' : 'Appareil'))));
+    $nav = preg_match('/Edg\//', $ua) ? 'Edge' : (preg_match('/Firefox\//', $ua) ? 'Firefox' : (preg_match('/Chrome\//', $ua) ? 'Chrome' : (preg_match('/Safari\//', $ua) ? 'Safari' : 'navigateur')));
+    return "$os · $nav";
+}
+function appareil_memoriser(int $compte_id): void {
+    installer_appareils();
+    $sel = bin2hex(random_bytes(12)); $ver = bin2hex(random_bytes(32)); $exp = time() + ESPACE_APPAREIL_JOURS * 86400;
+    db()->prepare('INSERT INTO espace_appareils (selecteur, compte_id, empreinte, libelle, cree_le, expire_le, dernier_usage) VALUES (?,?,?,?,?,?,?)')
+        ->execute([$sel, $compte_id, hash('sha256', $ver), appareil_libelle(), date('Y-m-d H:i:s'), date('Y-m-d H:i:s', $exp), date('Y-m-d H:i:s')]);
+    appareil_cookie("$sel:$ver", $exp);
+}
+/** Reconnexion automatique depuis un appareil de confiance (à appeler quand personne n'est connecté). */
+function appareil_reprendre(): bool {
+    $c = (string)($_COOKIE[ESPACE_APPAREIL_COOKIE] ?? '');
+    if ($c === '' || espace_connecte()) { return false; }
+    installer_appareils();
+    if (!preg_match('/^([a-f0-9]{24}):([a-f0-9]{64})$/', $c, $m)) { appareil_cookie('', time() - 3600); return false; }
+    $s = db()->prepare('SELECT * FROM espace_appareils WHERE selecteur = ?'); $s->execute([$m[1]]); $a = $s->fetch();
+    $compte = $a ? espace_compte((int)$a['compte_id']) : null;
+    $emp = hash('sha256', $m[2]);
+    // Requêtes simultanées juste après une rotation : l'ancien vérificateur reste accepté 2 minutes, sans nouvelle rotation
+    if ($a && $compte && (int)$compte['actif'] === 1 && !espace_en_attente($compte) && $a['expire_le'] >= date('Y-m-d H:i:s')
+        && !empty($a['ancienne']) && (int)$a['ancienne_jusqua'] >= time() && hash_equals((string)$a['ancienne'], $emp)) {
+        espace_ouvrir_session((int)$compte['id'], 'ok'); $_SESSION['appareil'] = $m[1]; return true;
+    }
+    if (!$a || $a['expire_le'] < date('Y-m-d H:i:s') || !hash_equals((string)$a['empreinte'], hash('sha256', $m[2])) || !$compte || (int)$compte['actif'] !== 1 || espace_en_attente($compte)) {
+        if ($a && !hash_equals((string)$a['empreinte'], hash('sha256', $m[2]))) { // vérificateur périmé : possible vol du cookie, on coupe cet appareil
+            db()->prepare('DELETE FROM espace_appareils WHERE selecteur = ?')->execute([$m[1]]);
+            journal('Espace : jeton d’appareil invalide, appareil révoqué (' . ($compte['email'] ?? '?') . ')');
+        }
+        appareil_cookie('', time() - 3600); return false;
+    }
+    $ver = bin2hex(random_bytes(32));
+    db()->prepare('UPDATE espace_appareils SET empreinte = ?, ancienne = ?, ancienne_jusqua = ?, dernier_usage = ? WHERE selecteur = ?')->execute([hash('sha256', $ver), $emp, time() + 120, date('Y-m-d H:i:s'), $m[1]]);
+    appareil_cookie($m[1] . ':' . $ver, strtotime((string)$a['expire_le']));
+    espace_ouvrir_session((int)$compte['id'], 'ok');
+    $_SESSION['appareil'] = $m[1];
+    if (str_starts_with((string)($_SESSION['message'] ?? ''), 'Session expirée')) { unset($_SESSION['message']); }
+    return true;
+}
+function appareil_oublier_courant(): void {
+    $c = (string)($_COOKIE[ESPACE_APPAREIL_COOKIE] ?? '');
+    if (preg_match('/^([a-f0-9]{24}):/', $c, $m)) { installer_appareils(); db()->prepare('DELETE FROM espace_appareils WHERE selecteur = ?')->execute([$m[1]]); }
+    if ($c !== '') { appareil_cookie('', time() - 3600); }
+}
+function appareils_compte(int $id): array { installer_appareils(); $s = db()->prepare('SELECT * FROM espace_appareils WHERE compte_id = ? AND expire_le > ? ORDER BY dernier_usage DESC'); $s->execute([$id, date('Y-m-d H:i:s')]); return $s->fetchAll(); }
+function appareils_revoquer(int $id, ?string $selecteur = null): void {
+    installer_appareils();
+    if ($selecteur) { db()->prepare('DELETE FROM espace_appareils WHERE compte_id = ? AND selecteur = ?')->execute([$id, $selecteur]); }
+    else { db()->prepare('DELETE FROM espace_appareils WHERE compte_id = ?')->execute([$id]); }
+}
+
 /* ---------- Comptes ---------- */
 const ESPACE_ROLES = ['admin' => 'Administrateur', 'collaborateur' => 'Collaborateur'];
 
