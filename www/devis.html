@@ -37,6 +37,11 @@ nav ul a{text-decoration:none;opacity:.9;padding:6px 0;border-bottom:2px solid t
 nav ul a:hover{opacity:1;color:var(--lime);border-bottom-color:var(--lime)}
 nav ul .cta a{background:var(--lime);color:var(--vert);opacity:1;padding:8px 16px;border-radius:6px;border:0}
 nav ul .cta a:hover{color:var(--vert);filter:brightness(1.05)}
+nav ul .espace a{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);border-radius:6px;padding:7px 9px}
+nav ul .espace svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav ul .espace span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:1200px){nav ul .espace{border:0;margin-top:10px}nav ul .espace a{display:inline-flex;padding:10px 14px;font-size:1rem}nav ul .espace span{position:static;width:auto;height:auto;clip:auto}}
+
 .burger{display:none;background:none;border:0;color:#fff;cursor:pointer;padding:8px}
 .burger span{display:block;width:28px;height:3px;background:#fff;margin:6px 0;border-radius:2px;transition:.25s}
 .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:clamp(32px,5vw,90px);align-items:center;padding:clamp(40px,6vw,90px) 0}
@@ -261,6 +266,7 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr
         <li><a href="index.html#climat">Fraîcheur &amp; carbone</a></li>
         <li><a href="estimation.html" style="color:var(--lime)">Estimation</a></li>
         <li class="cta"><a href="index.html#contact">Contact</a></li>
+        <li class="espace"><a href="espace/" aria-label="Espace Arbogestion (connexion)" title="Espace Arbogestion"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Espace Arbogestion</span></a></li>
       </ul>
     </nav>
   </div>
