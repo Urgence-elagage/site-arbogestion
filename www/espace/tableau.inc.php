@@ -64,9 +64,10 @@ a.tuile[href]:hover{border-color:var(--vert)}
 .t-alerte{border-top-color:var(--rouge)}.t-alerte .t-val{color:var(--rouge)}.t-info{border-top-color:var(--bleu)}.t-ok{border-top-color:var(--ok)}
 .tb2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px;align-items:start}@media (max-width:900px){.tb2{grid-template-columns:1fr}}
 .prochains{list-style:none;margin:0;padding:0}.prochains li{display:flex;gap:14px;padding:10px 0;border-top:1px solid var(--ligne)}.prochains li:first-child{border-top:0}.prochains .d{flex:0 0 150px;color:var(--gris);font-size:.88rem}
-.alertes{margin:0;padding-left:18px}.alertes li{margin:4px 0}
+.alertes{margin:0;padding-left:18px}
+@media (max-width:760px){.tuiles{grid-template-columns:1fr 1fr;gap:10px}.tuile{min-height:96px;padding:11px 12px}.t-val{font-size:1.5rem}.t-titre{font-size:.7rem}.t-detail{font-size:.78rem}.tb-raccourcis{display:none!important}}.alertes li{margin:4px 0}
 </style>'
-    . '<div class="actions" style="justify-content:space-between;margin:0 0 16px"><div><h1>Tableau de bord</h1><p class="sous" style="margin:0">' . h(ucfirst(jour_fr(date('Y-m-d')))) . '</p></div><div class="actions" style="margin:0"><a class="btn" href="./?p=devis">Nouveau devis</a><a class="btn sec" href="./?p=agenda">Agenda</a></div></div>'
+    . '<div class="actions" style="justify-content:space-between;margin:0 0 16px"><div><h1>Tableau de bord</h1><p class="sous" style="margin:0">' . h(ucfirst(jour_fr(date('Y-m-d')))) . '</p></div><div class="actions tb-raccourcis" style="margin:0"><a class="btn" href="./?p=devis">Nouveau devis</a><a class="btn sec" href="./?p=agenda">Agenda</a></div></div>'
     . ($alertes ? '<div class="msg err" role="status"><b>À traiter</b><ul class="alertes">' . implode('', array_map(fn($a) => '<li>' . h($a) . '</li>', $alertes)) . '</ul></div>' : '')
     . '<div class="tuiles">'
     . $tuile('À envoyer', (string)$k['brouillon'][0], $k['brouillon'][0] ? eur($k['brouillon'][1]) . ' HT à faire signer' : 'aucun devis en brouillon', '#devis', $k['brouillon'][0] ? 'info' : '')

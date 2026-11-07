@@ -19,7 +19,9 @@ function espace_rendu(string $titre, string $contenu, bool $nav = true): void {
     global $nonce;
     $msg = $_SESSION['message'] ?? ''; unset($_SESSION['message']);
     $essai = false; try { $essai = (bool)cfg('mode_essai'); } catch (Throwable $e) {}
-    ?><!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    ?><!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="/espace/manifest.webmanifest"><meta name="theme-color" content="#163028"><link rel="apple-touch-icon" href="/espace/icone-180.png"><link rel="icon" href="/espace/icone-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Arbogestion"><meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title><?= h($titre) ?> — Espace Arbogestion</title><meta name="robots" content="noindex,nofollow">
 <style>
 :root{--vert:#1e3d33;--vert2:#163028;--lime:#b7c93b;--creme:#f6f5f0;--texte:#2b2b2b;--gris:#5f655f;--ligne:#dcdfd6;--blanc:#fff;--rouge:#8a2b2b;--rougef:#fbecec;--ok:#2f6b3a;--okf:#e6f2e2;--jaune:#8a6a12;--jaunef:#fff4d6;--bleu:#24507a;--bleuf:#e8f0f8}
@@ -86,6 +88,21 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cle{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;background:#fafbf6;padding:6px 10px;border-radius:6px}
 .code6{font-size:1.6rem;letter-spacing:.3em;text-align:center;font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
+.onglets{display:none}
+@media (max-width:760px){
+.barre nav{display:none}.barre .in{justify-content:space-between;padding-top:max(6px,env(safe-area-inset-top))}.marque>span{display:inline}.marque small{display:none}
+body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+.onglets{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--ligne);box-shadow:0 -4px 16px rgba(0,0,0,.08);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+.onglets>a,.onglets summary{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--gris);text-decoration:none;font-size:.72rem;font-weight:700;list-style:none;cursor:pointer;border-radius:10px}
+.onglets summary::-webkit-details-marker{display:none}.onglets .plus-menu{flex:1;display:flex}.onglets .plus-menu summary{width:100%}
+.onglets svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.onglets a[aria-current],.onglets .plus-menu[open] summary{color:var(--vert);background:#f1f5e0}
+.feuille{position:fixed;left:10px;right:10px;bottom:calc(76px + env(safe-area-inset-bottom));background:#fff;border:1px solid var(--ligne);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column}
+.feuille a,.feuille button{display:block;width:100%;text-align:left;padding:14px;border:0;background:none;font:inherit;font-weight:700;color:var(--vert);text-decoration:none;border-radius:10px;cursor:pointer}
+.feuille a:active,.feuille button:active{background:#f1f5e0}.feuille button{color:var(--rouge)}
+.ag-tete .vues button{padding:8px 8px;font-size:.8rem}
+}
+
 @media (max-width:760px){.barre .in{flex-wrap:nowrap;gap:6px;padding-block:6px}.marque>span,.vers-site span{display:none}.marque img{height:36px}.vers-site{margin:0;padding:6px}
 .barre nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.barre nav::-webkit-scrollbar{display:none}.barre nav a,.barre nav button{white-space:nowrap;padding:6px 10px}}
 </style></head><body>
@@ -94,6 +111,15 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 <?php if ($nav && espace_connecte()): $moi = espace_admin(); global $p; $ici = fn(array $x) => in_array($p, $x, true) ? ' aria-current="page"' : ''; ?><nav><a href="./"<?= $ici(['', 'fiche']) ?>>Tableau de bord</a><a href="./?p=devis"<?= $ici(['devis']) ?>>Nouveau devis</a><a href="./?p=agenda"<?= $ici(['agenda']) ?>>Agenda</a>
 <?php if (espace_est_admin($moi)): ?><a href="./?p=comptes"<?= $ici(['comptes']) ?>>Comptes</a><?php endif; ?><a href="./?p=compte"<?= $ici(['compte', 'securite']) ?> title="Mon compte"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><?= h(explode(' ', espace_nom($moi))[0]) ?></a>
 <form method="post" action="./?p=deconnexion" style="margin:0"><?= espace_csrf_champ() ?><button type="submit">Se déconnecter</button></form></nav><?php endif; ?></div></div>
+<?php if ($nav && espace_connecte()): ?><nav class="onglets" aria-label="Menu">
+<a href="./"<?= $ici(['', 'fiche']) ?>><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg><span>Accueil</span></a>
+<a href="./?p=devis"<?= $ici(['devis']) ?>><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg><span>Devis</span></a>
+<a href="./?p=agenda"<?= $ici(['agenda']) ?>><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Agenda</span></a>
+<a href="./?p=compte"<?= $ici(['compte', 'securite']) ?>><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span>Compte</span></a>
+<details class="plus-menu"><summary><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>Plus</span></summary><div class="feuille">
+<?php if (espace_est_admin($moi)): ?><a href="./?p=comptes">Comptes et accès</a><?php endif; ?><a href="./?archives=1#devis">Devis archivés</a><a href="/">Le site arbogestion.fr</a>
+<form method="post" action="./?p=deconnexion" style="margin:0"><?= espace_csrf_champ() ?><button type="submit">Se déconnecter</button></form></div></details>
+</nav><?php endif; ?>
 <main class="in">
 <?php if ($essai && espace_connecte()): ?><div class="essai"><b>Mode essai actif</b> : rien n’est créé ni envoyé dans Pennylane (config.php, « mode_essai »).</div><?php endif; ?>
 <?php if ($msg): ?><div class="msg<?= strpos($msg, '!') === 0 ? ' err' : '' ?>" role="status"><?= h(ltrim($msg, '!')) ?></div><?php endif; ?>
