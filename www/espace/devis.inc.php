@@ -144,7 +144,7 @@ for ($i = 0; $i < $nl; $i++) {
         . '<td style="width:110px"><input type="text" name="l_pu[]" inputmode="decimal" aria-label="Prix unitaire HT" value="' . h((string)($_POST['l_pu'][$i] ?? '')) . '"></td></tr>';
 }
 $T = tarifs();
-$html = '<p><a href="./">← Tous les devis</a></p><h1>Nouveau devis</h1><p class="sous">Le devis est créé dans Pennylane avec le modèle « Devis Arbogestion », l’annexe et les CGV du bon public. Taux horaire de la grille : ' . eur((float)$T['tauxHoraire']) . ' HT.</p>'
+$html = '<p class="m-cache"><a href="./#devis">← Tous les devis</a></p><h1>Nouveau devis</h1><p class="sous m-cache">Le devis est créé dans Pennylane avec le modèle « Devis Arbogestion », l’annexe et les CGV du bon public. Taux horaire de la grille : ' . eur((float)$T['tauxHoraire']) . ' HT.</p>'
     . ($erreur ? '<div class="msg err" role="alert">' . h($erreur) . '</div>' : '') . $apercu
     . '<div class="dv"><div class="dv-f"><form method="post" action="./?p=devis#apercu" id="f-devis">' . espace_csrf_champ()
     . '<div class="carte"><h2>Client</h2>' . choix('profil', 'Type de client', ['collectivite' => 'Collectivité', 'particulier' => 'Particulier', 'pro' => 'Professionnel'], 'collectivite')
@@ -183,7 +183,9 @@ $html = '<style>main.in{max-width:88rem}.dv{display:grid;grid-template-columns:m
 .l-pl{display:flex;gap:10px;align-items:center;margin-top:4px}.l-pl .coche{margin:2px 0;font-size:.85rem;color:var(--gris)}
 .pl-liste{position:absolute;left:0;right:0;top:100%;z-index:60;margin:4px 0 0;padding:4px;list-style:none;background:#fff;border:1px solid #cfd6cc;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.14);max-height:300px;overflow:auto}
 .pl-liste li{padding:9px 12px;border-radius:7px;cursor:pointer;color:var(--vert);display:flex;justify-content:space-between;gap:10px}.pl-liste li small{color:var(--gris)}.pl-liste li.actif,.pl-liste li:hover{background:#f1f5e0}.pl-liste .vide{cursor:default;color:var(--gris)}
-.pl-box{position:relative}#dist-info{margin-top:6px}
+.pl-box{position:relative}.dv-f{min-width:0}
+@media (max-width:760px){#t-lignes thead{display:none}#t-lignes,#t-lignes tbody{display:block}#t-lignes tr{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:6px;padding:10px;border-bottom:1px solid var(--ligne)}#t-lignes td{display:block;width:auto!important;padding:0;border:0}#t-lignes td:first-child{grid-column:1/-1}
+#t-lignes td:nth-child(2)::before{content:"Qté"}#t-lignes td:nth-child(3)::before{content:"Unité"}#t-lignes td:nth-child(4)::before{content:"PU HT (€)"}#t-lignes td:not(:first-child)::before{display:block;font-size:.75rem;font-weight:700;color:var(--gris);margin-bottom:2px}.lignes{overflow:visible}}#dist-info{margin-top:6px}
 @media (max-width:1100px){.dv{grid-template-columns:1fr}.dv-r{position:static}}</style>' . $html;
 
 function script_devis(): void { global $nonce; $D = tarifs()['depart']; ?>

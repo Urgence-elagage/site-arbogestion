@@ -88,7 +88,19 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .cle{font-family:ui-monospace,Menlo,Consolas,monospace;word-break:break-all;background:#fafbf6;padding:6px 10px;border-radius:6px}
 .code6{font-size:1.6rem;letter-spacing:.3em;text-align:center;font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
-.onglets{display:none}
+.onglets{display:none}.titre-barre{display:none}
+@media (max-width:760px){
+main.in{padding-top:14px}main h1{display:none}.sous{font-size:.9rem}.m-cache{display:none!important}
+.titre-barre{display:block;flex:1;text-align:center;color:#fff;font-weight:900;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.carte{padding:14px 14px 16px;border-radius:14px}
+.filtres{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-16px;padding-inline:16px}.filtres::-webkit-scrollbar{display:none}.filtres button{flex:0 0 auto}.filtres .archives{flex:0 0 auto}
+.liste-devis{border:0;background:none;overflow:visible}.liste-devis table,.liste-devis tbody{display:block}.liste-devis thead{display:none}
+.liste-devis tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;background:#fff;border:1px solid var(--ligne);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 2px rgba(30,61,51,.05),0 4px 12px rgba(30,61,51,.05);cursor:pointer}
+.liste-devis tr[hidden]{display:none}.liste-devis td{display:block;padding:0;border:0}
+.liste-devis .c-client{grid-column:1;grid-row:1;font-weight:900;color:var(--vert)}.liste-devis .c-client .aide{display:block;font-weight:400}.liste-devis .c-mont{grid-column:2;grid-row:1;text-align:right;font-weight:900;white-space:nowrap}
+.liste-devis .c-num{grid-column:1;grid-row:2;font-size:.85rem}.liste-devis .c-num a{color:var(--gris);text-decoration:none}.liste-devis .c-date{grid-column:2;grid-row:2;text-align:right;font-size:.85rem;color:var(--gris)}
+.liste-devis .c-st{grid-column:1/-1;grid-row:3;margin-top:6px}.liste-devis .c-pai{grid-column:1/-1;grid-row:4;font-size:.85rem}.liste-devis .c-pai:has(> .aide:only-child){display:none}
+}
 @media (max-width:760px){
 .barre nav{display:none}.barre .in{justify-content:space-between;padding-top:max(6px,env(safe-area-inset-top))}.marque>span{display:inline}.marque small{display:none}
 body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
@@ -106,7 +118,7 @@ body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
 @media (max-width:760px){.barre .in{flex-wrap:nowrap;gap:6px;padding-block:6px}.marque>span,.vers-site span{display:none}.marque img{height:36px}.vers-site{margin:0;padding:6px}
 .barre nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.barre nav::-webkit-scrollbar{display:none}.barre nav a,.barre nav button{white-space:nowrap;padding:6px 10px}}
 </style></head><body>
-<div class="barre"><div class="in"><a class="marque" href="./"><img src="/img/logo.png" alt="" width="44" height="45"><span>ARBOGESTION<small>Espace connecté</small></span></a>
+<div class="barre"><div class="in"><a class="marque" href="./"><img src="/img/logo.png" alt="" width="44" height="45"><span>ARBOGESTION<small>Espace connecté</small></span></a><span class="titre-barre"><?= h($titre) ?></span>
 <a class="vers-site" href="/" title="Retour au site arbogestion.fr"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg><span>Le site</span></a>
 <?php if ($nav && espace_connecte()): $moi = espace_admin(); global $p; $ici = fn(array $x) => in_array($p, $x, true) ? ' aria-current="page"' : ''; ?><nav><a href="./"<?= $ici(['', 'fiche']) ?>>Tableau de bord</a><a href="./?p=devis"<?= $ici(['devis']) ?>>Nouveau devis</a><a href="./?p=agenda"<?= $ici(['agenda']) ?>>Agenda</a>
 <?php if (espace_est_admin($moi)): ?><a href="./?p=comptes"<?= $ici(['comptes']) ?>>Comptes</a><?php endif; ?><a href="./?p=compte"<?= $ici(['compte', 'securite']) ?> title="Mon compte"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><?= h(explode(' ', espace_nom($moi))[0]) ?></a>
@@ -584,19 +596,19 @@ $tr = ''; $compte = array_fill_keys(array_keys(GROUPES), 0);
 foreach ($rows as $r) {
     $calc = json_decode($r['calcul'], true) ?: []; $dem = json_decode($r['donnees'], true) ?: [];
     $g = groupes_devis($r); foreach ($g as $x) { $compte[$x]++; }
-    $tr .= '<tr data-g="' . h(implode(' ', $g)) . '"><td><a href="./?p=fiche&amp;id=' . (int)$r['id'] . '">' . h($r['pl_devis_numero'] ?: 'n° ' . $r['id']) . '</a></td><td>' . h(date('d/m/Y', strtotime($r['cree_le']))) . '</td><td>' . h($r['nom_client'])
-        . '<br><span class="aide">' . h(PROFILS[$r['profil']]['nom'] ?? $r['profil']) . ' · ' . (($dem['origine'] ?? 'site') === 'espace' ? 'espace' : 'site') . '</span></td><td class="n">' . h(montant_txt($calc)) . '</td><td>' . pastille($r['statut']) . '</td><td>' . paiement_txt($r, $calc) . '</td></tr>';
+    $tr .= '<tr data-g="' . h(implode(' ', $g)) . '" data-lien="./?p=fiche&amp;id=' . (int)$r['id'] . '"><td class="c-num"><a href="./?p=fiche&amp;id=' . (int)$r['id'] . '">' . h($r['pl_devis_numero'] ?: 'n° ' . $r['id']) . '</a></td><td class="c-date">' . h(date('d/m/Y', strtotime($r['cree_le']))) . '</td><td class="c-client">' . h($r['nom_client'])
+        . '<br><span class="aide">' . h(PROFILS[$r['profil']]['nom'] ?? $r['profil']) . ' · ' . (($dem['origine'] ?? 'site') === 'espace' ? 'espace' : 'site') . '</span></td><td class="n c-mont">' . h(montant_txt($calc)) . '</td><td class="c-st">' . pastille($r['statut']) . '</td><td class="c-pai">' . paiement_txt($r, $calc) . '</td></tr>';
 }
 $filtres = '<div class="filtres" role="group" aria-label="Filtrer les devis"><button type="button" data-f="" aria-pressed="true">Tous <b>' . count($rows) . '</b></button>';
 foreach (GROUPES as $k => $lib) { if ($compte[$k]) { $filtres .= '<button type="button" data-f="' . $k . '" aria-pressed="false">' . h($lib) . ' <b>' . $compte[$k] . '</b></button>'; } }
 $filtres .= '<a class="archives" href="./' . ($voir_archives ? '' : '?archives=1') . '#devis">' . ($voir_archives ? 'Revenir aux devis' : 'Voir les archives') . '</a></div>';
 $filtres_js = '<style>.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}.filtres button{font:inherit;font-size:.88rem;font-weight:700;background:#fff;color:var(--vert);border:1px solid #c3c9bc;border-radius:999px;padding:6px 14px;cursor:pointer}.filtres button b{margin-left:4px;font-variant-numeric:tabular-nums;color:var(--gris)}.filtres button[aria-pressed=true]{background:var(--vert);border-color:var(--vert);color:#fff}.filtres button[aria-pressed=true] b{color:var(--lime)}.filtres .archives{margin-left:auto;font-size:.88rem}</style>'
     . '<script nonce="' . h($nonce) . '">(function(){var bs=document.querySelectorAll(".filtres button"),rs=document.querySelectorAll("tr[data-g]");function f(v){bs.forEach(function(b){b.setAttribute("aria-pressed",b.dataset.f===v)});rs.forEach(function(r){r.hidden=v!==""&&(" "+r.dataset.g+" ").indexOf(" "+v+" ")<0});try{sessionStorage.setItem("arbo_filtre",v)}catch(e){}}
-bs.forEach(function(b){b.addEventListener("click",function(){f(b.dataset.f)})});var v="";try{v=sessionStorage.getItem("arbo_filtre")||""}catch(e){}if(document.querySelector(".filtres button[data-f=\""+v+"\"]"))f(v);})();</script>';
+bs.forEach(function(b){b.addEventListener("click",function(){f(b.dataset.f)})});rs.forEach(function(r){r.addEventListener("click",function(e){if(!e.target.closest("a"))location.href=r.dataset.lien})});var v="";try{v=sessionStorage.getItem("arbo_filtre")||""}catch(e){}if(document.querySelector(".filtres button[data-f=\""+v+"\"]"))f(v);})();</script>';
 $a_envoyer = count(array_filter($rows, fn($r) => $r['statut'] === 'devis_brouillon'));
 $modeles = [];
 foreach (['devis', 'facture'] as $t) { $id = null; try { $id = pl_modele($t); } catch (Throwable $e) {} $modeles[] = ucfirst($t) . ' Arbogestion : ' . ($id ? 'trouvé (n° ' . $id . ')' : 'non trouvé, modèle par défaut de Pennylane'); }
 espace_rendu('Tableau de bord', $tableau . '<div class="actions" id="devis" style="justify-content:space-between;margin:24px 0 12px"><div><h2 style="font-size:1.3rem;margin:0">' . ($voir_archives ? 'Devis archivés' : 'Devis') . '</h2><p class="sous" style="margin:0">' . count($rows) . ' devis · ' . $a_envoyer . ' à envoyer</p></div></div>'
-    . $filtres . ($rows ? '<div class="tab"><table><thead><tr><th>Devis</th><th>Date</th><th>Client</th><th class="n">Montant</th><th>Statut</th><th>Paiement / facturation</th></tr></thead><tbody>' . $tr . '</tbody></table></div>' . $filtres_js
+    . $filtres . ($rows ? '<div class="tab liste-devis"><table><thead><tr><th>Devis</th><th>Date</th><th>Client</th><th class="n">Montant</th><th>Statut</th><th>Paiement / facturation</th></tr></thead><tbody>' . $tr . '</tbody></table></div>' . $filtres_js
         : '<div class="carte"><p>Aucun devis pour l’instant. Les demandes du site et les devis saisis ici apparaîtront dans cette liste.</p><a class="btn" href="./?p=devis">Saisir un premier devis</a></div>')
-    . '<p class="aide" style="margin-top:16px">Modèles Pennylane – ' . h(implode(' · ', $modeles)) . ' · CGV en vigueur : version du ' . h(date_fr(cgv_version_courante())) . '. Les signatures sont vérifiées toutes les heures.</p>');
+    . '<p class="aide m-cache" style="margin-top:16px">Modèles Pennylane – ' . h(implode(' · ', $modeles)) . ' · CGV en vigueur : version du ' . h(date_fr(cgv_version_courante())) . '. Les signatures sont vérifiées toutes les heures.</p>');

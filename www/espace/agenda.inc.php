@@ -195,6 +195,9 @@ main.in{max-width:100rem}
 .ag-titre{margin:0 0 10px}.a-planifier{padding:12px 14px;display:flex;flex-direction:column}.a-planifier>.sugg{margin-top:auto}.a-planifier>div:first-child{margin-bottom:10px}.sugg{margin-top:10px;padding:8px 10px;background:#fafbf6;border:1px solid var(--ligne);border-radius:8px;display:flex;flex-direction:column;gap:4px}
 .ag-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 @media (max-width:900px){.ag,.ag[data-vue]{grid-template-columns:1fr}.ag-g{position:static;max-height:none}}
+.vues .nb{display:inline-block;min-width:1.4em;margin-left:4px;padding:0 5px;border-radius:999px;background:var(--lime);color:var(--vert);font-size:.78rem}
+@media (max-width:760px){.ag-tete{display:block;margin-bottom:10px}.ag-tete .sous,.legende{display:none!important}.vues{display:flex;width:100%}.vues button{flex:1;padding:10px 6px}.vues [data-vue=double]{display:none}
+.ag[data-vue=double] .ag-d{display:none}.ag-titre{display:none}.ag-nav{position:sticky;top:56px;z-index:5;background:var(--creme);padding:6px 0}.ag[data-vue=liste] .ag-g{grid-template-columns:1fr}}
 .sem{display:grid;grid-template-columns:44px repeat(6,minmax(0,1fr));gap:6px;background:#fff;border:1px solid var(--ligne);border-radius:10px;padding:10px;overflow-x:auto}
 .hcol{padding-top:30px;font-size:.75rem;color:var(--gris)}.hcol div{border-top:1px solid #eef0ea}
 .jt{height:30px;font-weight:700;font-size:.88rem;color:var(--vert);text-align:center}.auj .jt{background:var(--lime);border-radius:6px}
@@ -209,7 +212,7 @@ main.in{max-width:100rem}
 @media (max-width:760px){.sem{grid-template-columns:1fr}.hcol{display:none}.jc{height:auto!important;background:#fff;min-height:40px;padding:4px}.ev{position:static;display:block;margin-bottom:4px;height:auto!important;padding:6px}.vide{position:static;display:block;padding:8px}}
 </style>'
     . '<div class="ag-tete"><div><h1>Agenda des interventions</h1><p class="sous" style="margin:0">Semaine du ' . h(date_fr($lundi)) . ' · zones grisées = route (depuis Cambes ou le chantier précédent, retour à Cambes le soir)</p></div>'
-    . '<div class="vues" role="group" aria-label="Affichage"><button type="button" data-vue="double">Double affichage</button><button type="button" data-vue="planning">Planning seul</button><button type="button" data-vue="liste">À planifier seul</button></div></div>'
+    . '<div class="vues" role="group" aria-label="Affichage"><button type="button" data-vue="double">Double affichage</button><button type="button" data-vue="planning">Planning</button><button type="button" data-vue="liste">À planifier <b class="nb">' . count($attente) . '</b></button></div></div>'
     . $aujourdhui
     . '<div class="ag" id="ag" data-vue="double"><aside class="ag-g">'
     . '<h2 class="ag-titre">À planifier (' . count($attente) . ')</h2>' . ($lst ?: '<div class="carte"><p class="aide" style="margin:0">Rien à planifier. Les interventions apparaissent ici dès qu’un devis comportant du terrain est signé.</p></div>')
@@ -247,5 +250,5 @@ $html .= '<script nonce="' . h($nonce) . '">' . <<<'JS'
 })();
 JS
 . '(function(){var ag=document.getElementById(\'ag\'),bs=document.querySelectorAll(\'.vues button\');function vue(v){ag.dataset.vue=v;bs.forEach(function(b){b.setAttribute(\'aria-pressed\',b.dataset.vue===v)});try{localStorage.setItem(\'arbo_vue_agenda\',v)}catch(e){}}
-bs.forEach(function(b){b.addEventListener(\'click\',function(){vue(b.dataset.vue)})});var v=\'double\';try{v=localStorage.getItem(\'arbo_vue_agenda\')||v}catch(e){}vue(v);})();</script>';
+bs.forEach(function(b){b.addEventListener(\'click\',function(){vue(b.dataset.vue)})});var v=\'double\';try{v=localStorage.getItem(\'arbo_vue_agenda\')||v}catch(e){}if(v===\'double\'&&matchMedia(\'(max-width:760px)\').matches)v=\'planning\';vue(v);})();</script>';
 espace_rendu('Agenda', $html);
